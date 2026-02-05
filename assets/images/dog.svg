@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <radialGradient id="dogEmojiHeadGradient" cx="50%" cy="40%">
+      <stop offset="0%" style="stop-color:#f5e6c8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e8d4a8;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  <!-- 左耳 - 大椭圆耳朵 -->
+  <ellipse cx="25" cy="25" rx="10" ry="18" fill="#e8d4a8" stroke="#2c3e50" stroke-width="3" transform="rotate(-20 25 25)"/>
+  <!-- 右耳 - 大椭圆耳朵 -->
+  <ellipse cx="75" cy="25" rx="10" ry="18" fill="#e8d4a8" stroke="#2c3e50" stroke-width="3" transform="rotate(20 75 25)"/>
+  <!-- 头部 - 大圆头 -->
+  <circle cx="50" cy="50" r="35" fill="url(#dogEmojiHeadGradient)" stroke="#2c3e50" stroke-width="3"/>
+  <!-- 脸颊红晕 -->
+  <ellipse cx="25" cy="52" rx="7" ry="5" fill="#ffb3c6" opacity="0.5"/>
+  <ellipse cx="75" cy="52" rx="7" ry="5" fill="#ffb3c6" opacity="0.5"/>
+  <!-- 左眼 - 有神的眼睛 -->
+  <circle cx="38" cy="45" r="5" fill="#2c3e50"/>
+  <circle cx="39.5" cy="43.5" r="2" fill="white"/>
+  <!-- 右眼 - 有神的眼睛 -->
+  <circle cx="62" cy="45" r="5" fill="#2c3e50"/>
+  <circle cx="63.5" cy="43.5" r="2" fill="white"/>
+  <!-- 鼻子 - 黑色三角形 -->
+  <path d="M50,55 L45,61 L55,61 Z" fill="#2c3e50"/>
+  <!-- 嘴巴 - 开心的笑容 -->
+  <path d="M50,61 Q42,67 38,65" stroke="#2c3e50" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M50,61 Q58,67 62,65" stroke="#2c3e50" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- 舌头 - 粉红色 -->
+  <ellipse cx="50" cy="71.2" rx="6" ry="8" fill="#ff8fab"/>
+  <ellipse cx="50" cy="71.2" rx="4" ry="6" fill="#ffb3c6"/>
+</svg>

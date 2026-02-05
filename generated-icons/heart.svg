@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <radialGradient id="heartGradient" cx="40%" cy="35%">
+      <stop offset="0%" style="stop-color:#ff9eb5;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#ff6b9d;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ff1744;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  <!-- 爱心主体 - 更圆润的心动日常风格 -->
+  <path d="M50,88 C50,88 12,68 12,42 C12,28 20,18 32,18 C40,18 46,23 50,30 C54,23 60,18 68,18 C80,18 88,28 88,42 C88,68 50,88 50,88 Z" 
+        fill="url(#heartGradient)" 
+        stroke="none"/>
+  <!-- 外层描边 -->
+  <path d="M50,88 C50,88 12,68 12,42 C12,28 20,18 32,18 C40,18 46,23 50,30 C54,23 60,18 68,18 C80,18 88,28 88,42 C88,68 50,88 50,88 Z" 
+        fill="none"
+        stroke="#ff1744" 
+        stroke-width="1.5"
+        opacity="0.6"/>
+  <!-- 高光效果 - 更明显 -->
+  <ellipse cx="32" cy="28" rx="14" ry="20" fill="white" opacity="0.35" transform="rotate(-15 32 28)"/>
+  <ellipse cx="38" cy="26" rx="8" ry="12" fill="white" opacity="0.5" transform="rotate(-15 38 26)"/>
+  <!-- 小高光点 -->
+  <circle cx="42" cy="24" r="3" fill="white" opacity="0.8"/>
+</svg>

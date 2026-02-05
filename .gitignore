@@ -1,0 +1,36 @@
+# 上传的文件
+uploads/photos/*
+uploads/avatars/*
+uploads/private/*
+!uploads/photos/.gitkeep
+!uploads/avatars/.gitkeep
+!uploads/private/.gitkeep
+
+# 数据文件（包含用户隐私）
+data/*.json
+!data/config.json.example
+!data/ai_config.json.example
+
+# 日志文件
+data/logs/*
+!data/logs/.gitkeep
+
+# 缓存文件
+data/cache/*
+!data/cache/.gitkeep
+
+# 系统文件
+.DS_Store
+Thumbs.db
+*.log
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 临时文件
+*.tmp
+*.bak
+*.backup

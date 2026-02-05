@@ -1,0 +1,63 @@
+{
+    "site": {
+        "name": "我们的小窝",
+        "description": "情侣专属网站",
+        "start_date": "2025-02-05"
+    },
+    "users": {
+        "name1": {
+            "id": "id1",
+            "partner": "name2",
+            "privatePassword": "password1",
+            "birthday": "01-01",
+            "name": "name1",
+            "avatar": "",
+            "balance": 1000
+        },
+        "name2": {
+            "id": "id2",
+            "partner": "name1",
+            "privatePassword": "password2",
+            "birthday": "02-14",
+            "name": "name2",
+            "avatar": "",
+            "balance": 1000
+        }
+    },
+    "specialDates": {
+        "anniversary": {
+            "date": "02-05",
+            "name": "恋爱纪念日",
+            "discount": 0.6
+        },
+        "birthdays": [
+            {
+                "date": "01-01",
+                "name": "name1生日",
+                "discount": 0.6
+            },
+            {
+                "date": "02-14",
+                "name": "name2生日",
+                "discount": 0.6
+            }
+        ]
+    },
+    "theme": {
+        "primaryColor": "#ec4899",
+        "secondaryColor": "#8b5cf6",
+        "successColor": "#10b981",
+        "backgroundColor": "#fdf2f8"
+    },
+    "ai": {
+        "enabled": true,
+        "api_key": "your_api_key_here",
+        "model": "gpt-3.5-turbo",
+        "base_url": "https://api.openai.com/v1"
+    },
+    "shop": {
+        "enabled": true,
+        "currency_name": "爱心币",
+        "currency_symbol": "♥"
+    }
+}

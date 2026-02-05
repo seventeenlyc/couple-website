@@ -1,0 +1,17 @@
+# 保护 uploads 目录
+
+# 阻止执行 PHP 文件
+<FilesMatch "\.php$">
+    Require all denied
+</FilesMatch>
+
+# 只允许访问图片文件
+<FilesMatch "\.(jpg|jpeg|png|gif|webp)$">
+    Require all granted
+</FilesMatch>
+
+# 阻止目录列表
+Options -Indexes
+
+# 防止上传的 PHP 文件被执行
+php_flag engine off

@@ -1,0 +1,703 @@
+/**
+ * AI功能专用样式文件
+ * 包含每日情话和纪念日提醒的所有样式
+ */
+
+/* ===== CSS变量定义 ===== */
+:root {
+    /* AI功能专用颜色 */
+    --ai-pink-50: #fdf2f8;
+    --ai-pink-100: #fce7f3;
+    --ai-pink-200: #fbcfe8;
+    --ai-pink-500: #ec4899;
+    --ai-pink-600: #db2777;
+    
+    --ai-purple-50: #faf5ff;
+    --ai-purple-100: #f3e8ff;
+    --ai-purple-500: #a855f7;
+    --ai-purple-600: #9333ea;
+    
+    --ai-blue-50: #eff6ff;
+    --ai-blue-100: #dbeafe;
+    
+    /* 渐变色 */
+    --ai-gradient-romantic: linear-gradient(135deg, #ffeef8 0%, #ffe4f1 50%, #ffd6e8 100%);
+    --ai-gradient-dreamy: linear-gradient(135deg, #f3e7ff 0%, #e9d5ff 50%, #ddd6fe 100%);
+    --ai-gradient-sunset: linear-gradient(135deg, #fff7ed 0%, #ffedd5 50%, #fed7aa 100%);
+    
+    /* 阴影效果 */
+    --ai-shadow-soft: 0 4px 16px rgba(236, 72, 153, 0.08);
+    --ai-shadow-medium: 0 8px 32px rgba(236, 72, 153, 0.12);
+    --ai-shadow-strong: 0 12px 48px rgba(236, 72, 153, 0.2);
+    --ai-shadow-glow: 0 0 20px rgba(236, 72, 153, 0.3);
+}
+
+/* ===== 每日情话容器 ===== */
+.daily-quote-wrapper {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+#daily-quote-container {
+    min-height: 160px;
+    background: var(--ai-gradient-romantic);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: var(--ai-shadow-medium);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(236, 72, 153, 0.1);
+}
+
+/* 背景装饰元素 */
+#daily-quote-container::before {
+    content: '💕';
+    position: absolute;
+    font-size: 8rem;
+    opacity: 0.05;
+    top: -20px;
+    right: -20px;
+    transform: rotate(-15deg);
+    pointer-events: none;
+}
+
+#daily-quote-container::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+}
+
+#daily-quote-container:hover::after {
+    opacity: 1;
+}
+
+#daily-quote-container:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--ai-shadow-strong);
+    border-color: rgba(236, 72, 153, 0.2);
+}
+
+/* ===== 情话内容样式 ===== */
+#quote-content {
+    animation: fadeInScale 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* 情话标题 */
+.quote-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.quote-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--ai-pink-600);
+}
+
+.quote-title i {
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+/* 情话文本 */
+#quote-text {
+    line-height: 2;
+    font-family: 'KaiTi', 'STKaiti', 'SimSun', 'Microsoft YaHei', serif;
+    font-size: 1.25rem;
+    color: #374151;
+    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
+    letter-spacing: 1px;
+    position: relative;
+    padding: 1.5rem 2rem;
+    text-align: center;
+    font-weight: 500;
+}
+
+/* 引号装饰 - 更精美的设计 */
+#quote-text::before,
+#quote-text::after {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 4rem;
+    font-weight: bold;
+    color: rgba(236, 72, 153, 0.15);
+    position: absolute;
+    line-height: 1;
+    font-style: italic;
+}
+
+#quote-text::before {
+    content: '"';
+    top: -15px;
+    left: -10px;
+    animation: quoteFloat 3s ease-in-out infinite;
+}
+
+#quote-text::after {
+    content: '"';
+    bottom: -35px;
+    right: 0;
+    animation: quoteFloat 3s ease-in-out infinite 1.5s;
+}
+
+@keyframes quoteFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+/* AI生成标识 */
+.ai-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.12) 0%, rgba(168, 85, 247, 0.12) 100%);
+    border-radius: 24px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--ai-pink-600);
+    border: 1.5px solid rgba(236, 72, 153, 0.25);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    animation: badgePulse 3s ease-in-out infinite;
+    box-shadow: 0 2px 8px rgba(236, 72, 153, 0.1);
+}
+
+.ai-badge i {
+    animation: rotate 4s linear infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% { 
+        opacity: 1;
+        box-shadow: 0 2px 8px rgba(236, 72, 153, 0.1);
+    }
+    50% { 
+        opacity: 0.85;
+        box-shadow: 0 4px 12px rgba(236, 72, 153, 0.2);
+    }
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ===== 纪念日提醒区域 ===== */
+#anniversary-reminders-section {
+    margin-top: 2.5rem;
+}
+
+.reminders-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding: 0 0.5rem;
+}
+
+.reminders-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--ai-purple-600);
+}
+
+.reminders-title i {
+    animation: bellRing 2s ease-in-out infinite;
+}
+
+@keyframes bellRing {
+    0%, 100% { transform: rotate(0deg); }
+    10%, 30% { transform: rotate(-10deg); }
+    20%, 40% { transform: rotate(10deg); }
+    50% { transform: rotate(0deg); }
+}
+
+/* 纪念日卡片网格 */
+#reminders-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    animation: fadeInStagger 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInStagger {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 单个纪念日卡片 */
+.reminder-card {
+    background: white;
+    border-radius: 20px;
+    padding: 1.75rem;
+    box-shadow: var(--ai-shadow-soft);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    border: 2px solid transparent;
+    cursor: pointer;
+}
+
+/* 卡片渐变边框 */
+.reminder-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    padding: 2px;
+    background: linear-gradient(135deg, var(--ai-pink-500), var(--ai-purple-500), var(--ai-pink-500));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.reminder-card:hover::before {
+    opacity: 1;
+    animation: borderRotate 3s linear infinite;
+}
+
+@keyframes borderRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.reminder-card:hover {
+    transform: translateY(-8px) scale(1.03);
+    box-shadow: var(--ai-shadow-strong);
+}
+
+/* 卡片图标 */
+.reminder-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: inline-block;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.reminder-card:hover .reminder-icon {
+    animation: iconBounce 0.8s ease-in-out;
+    filter: drop-shadow(0 8px 16px rgba(236, 72, 153, 0.4));
+}
+
+@keyframes iconBounce {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    25% { transform: scale(1.2) rotate(-5deg); }
+    50% { transform: scale(1.1) rotate(5deg); }
+    75% { transform: scale(1.15) rotate(-3deg); }
+}
+
+/* 卡片标题 */
+.reminder-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
+
+/* 倒计时显示 */
+.reminder-countdown {
+    display: inline-block;
+    font-size: 1.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--ai-pink-500), var(--ai-purple-500));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+    animation: countdownPulse 2s ease-in-out infinite;
+}
+
+@keyframes countdownPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* 特殊日期标记 */
+.reminder-urgent {
+    position: relative;
+}
+
+.reminder-urgent::after {
+    content: '🔥';
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    font-size: 1.5rem;
+    animation: fireFlicker 1s ease-in-out infinite;
+}
+
+@keyframes fireFlicker {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.1); }
+}
+
+/* 卡片描述文本 */
+.reminder-description {
+    color: #6b7280;
+    line-height: 1.7;
+    font-size: 0.95rem;
+}
+
+/* 祝福语样式 */
+.reminder-blessing {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed rgba(236, 72, 153, 0.2);
+    font-style: italic;
+    color: var(--ai-pink-600);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+/* ===== 加载状态 ===== */
+.ai-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 3rem 1rem;
+    animation: loadingPulse 2s ease-in-out infinite;
+}
+
+@keyframes loadingPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.ai-loading-spinner {
+    font-size: 3rem;
+    color: var(--ai-pink-500);
+    animation: spinSlow 2s linear infinite;
+}
+
+@keyframes spinSlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.ai-loading-text {
+    font-weight: 600;
+    color: #6b7280;
+    font-size: 1.125rem;
+}
+
+.ai-loading-dots::after {
+    content: '';
+    animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+    0%, 20% { content: ''; }
+    40% { content: '.'; }
+    60% { content: '..'; }
+    80%, 100% { content: '...'; }
+}
+
+/* ===== 错误状态 ===== */
+.ai-error {
+    animation: fadeInShake 0.6s ease-in;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #fff1f0 0%, #ffe4e1 100%);
+    border-radius: 16px;
+    border-left: 5px solid #ef4444;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+}
+
+@keyframes fadeInShake {
+    0% {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    50% {
+        transform: translateX(5px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.ai-error-icon {
+    color: #ef4444;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.ai-error-message {
+    color: #991b1b;
+    font-weight: 600;
+}
+
+/* ===== 空状态 ===== */
+.ai-empty {
+    animation: fadeInUp 0.8s ease-in;
+    padding: 3rem 1rem;
+    text-align: center;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ai-empty-icon {
+    font-size: 5rem;
+    opacity: 0.25;
+    color: #9ca3af;
+    margin-bottom: 1.5rem;
+    animation: floatSlow 4s ease-in-out infinite;
+}
+
+@keyframes floatSlow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+}
+
+.ai-empty-text {
+    color: #6b7280;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.ai-empty-hint {
+    color: #9ca3af;
+    font-size: 0.95rem;
+}
+
+/* ===== 响应式设计 ===== */
+
+/* 平板设备 */
+@media (max-width: 1024px) {
+    #reminders-list {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
+    }
+}
+
+/* 移动设备 */
+@media (max-width: 768px) {
+    #daily-quote-container {
+        padding: 1.5rem;
+        min-height: 140px;
+        border-radius: 16px;
+    }
+    
+    #daily-quote-container::before {
+        font-size: 5rem;
+        top: -10px;
+        right: -10px;
+    }
+    
+    #quote-text {
+        font-size: 1.125rem;
+        line-height: 1.8;
+        padding: 1rem 1.5rem;
+        letter-spacing: 0.5px;
+    }
+    
+    #quote-text::before,
+    #quote-text::after {
+        font-size: 3rem;
+    }
+    
+    #quote-text::before {
+        top: -10px;
+        left: -5px;
+    }
+    
+    #quote-text::after {
+        bottom: -25px;
+        right: 0;
+    }
+    
+    .quote-title {
+        font-size: 1.125rem;
+    }
+    
+    .ai-badge {
+        font-size: 0.7rem;
+        padding: 5px 12px;
+    }
+    
+    #reminders-list {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .reminder-card {
+        padding: 1.5rem;
+        border-radius: 16px;
+    }
+    
+    .reminder-icon {
+        font-size: 2.5rem;
+    }
+    
+    .reminder-title {
+        font-size: 1.125rem;
+    }
+    
+    .reminder-countdown {
+        font-size: 1.25rem;
+    }
+    
+    .reminders-title {
+        font-size: 1.25rem;
+    }
+}
+
+/* 小屏手机 */
+@media (max-width: 480px) {
+    #daily-quote-container {
+        padding: 1.25rem;
+    }
+    
+    #quote-text {
+        font-size: 1rem;
+        padding: 0.75rem 1rem;
+    }
+    
+    .reminder-card {
+        padding: 1.25rem;
+    }
+}
+
+/* ===== 打印样式 ===== */
+@media print {
+    #daily-quote-container,
+    .reminder-card {
+        box-shadow: none;
+        border: 1px solid #e5e7eb;
+        page-break-inside: avoid;
+    }
+    
+    #daily-quote-container::before,
+    #daily-quote-container::after,
+    .reminder-card::before {
+        display: none;
+    }
+    
+    .reminder-card:hover {
+        transform: none;
+    }
+    
+    .ai-badge {
+        border: 1px solid #e5e7eb;
+        background: white;
+        color: black;
+    }
+}
+
+/* ===== 无障碍支持 ===== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+    #daily-quote-container,
+    .reminder-card {
+        border: 2px solid currentColor;
+    }
+    
+    #quote-text {
+        text-shadow: none;
+    }
+}
+
+/* ===== 深色模式支持 ===== */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --ai-gradient-romantic: linear-gradient(135deg, #2d1b2e 0%, #3d2a3e 50%, #4d3a4e 100%);
+        --ai-gradient-dreamy: linear-gradient(135deg, #2a1f3d 0%, #3a2f4d 50%, #4a3f5d 100%);
+    }
+    
+    #daily-quote-container {
+        background: var(--ai-gradient-romantic);
+        border-color: rgba(236, 72, 153, 0.3);
+    }
+    
+    #quote-text {
+        color: #f3f4f6;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    }
+    
+    #quote-text::before,
+    #quote-text::after {
+        color: rgba(236, 72, 153, 0.25);
+    }
+    
+    .reminder-card {
+        background: #1f2937;
+        border-color: rgba(236, 72, 153, 0.2);
+    }
+    
+    .reminder-title {
+        color: #f3f4f6;
+    }
+    
+    .reminder-description {
+        color: #d1d5db;
+    }
+    
+    .ai-error {
+        background: linear-gradient(135deg, #3f1f1f 0%, #4f2f2f 100%);
+    }
+}

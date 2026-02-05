@@ -1,0 +1,36 @@
+# 根目录安全配置
+
+# 阻止访问配置文件
+<FilesMatch "^(composer\.|phpunit\.|\.env|\.git)">
+    Require all denied
+</FilesMatch>
+
+# 阻止访问测试文件
+<FilesMatch "^test-.*\.php$">
+    Require all denied
+</FilesMatch>
+
+# 阻止访问 JSON 和 Markdown 文件
+<FilesMatch "\.(json|md)$">
+    Require all denied
+</FilesMatch>
+
+# 阻止目录列表
+Options -Indexes
+
+# 启用 PHP 错误日志（生产环境应关闭显示）
+php_flag display_errors Off
+php_flag log_errors On
+
+# 防止访问隐藏文件
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# 设置默认字符集
+AddDefaultCharset UTF-8
+
+# 启用 HTTPS（如果可用）
+# RewriteEngine On
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]

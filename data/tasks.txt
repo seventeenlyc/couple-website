@@ -1,0 +1,14 @@
+# 任务数据表格
+# 格式：任务标题 | 任务描述 | 最小奖励 | 最大奖励 | 类别
+# 类别：daily_life（日常生活）、entertainment（娱乐）、outdoor（户外）、care（关怀）、health（健康）、communication（沟通）
+# 修改此文件后，系统会自动同步到 tasks.json
+
+一起打游戏 | 速速上号 | 13 | 17 | entertainment
+一起看电影 | 选一部喜欢的电影一起观看 | 25 | 52 | entertainment
+和对方唱首歌 | 可以合唱可以分开唱噢 | 25 | 52 | daily_life
+互相按摩 | 为对方按摩放松15分钟 | 13 | 17 | care
+一起运动 | 一起做运动或健身30分钟 | 20 | 30 | health
+打个视频吧 | 打视频欣赏可爱的拾叁/拾柒 | 13 | 17 | daily_life
+互相分享 | 分享今天发生的有趣事情 | 13 | 17 | communication
+分享美照 | 给对方拍一张令人心情愉悦的照片吧 | 25 | 52 | daily_life
+

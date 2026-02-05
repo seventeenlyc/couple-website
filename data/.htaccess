@@ -1,0 +1,29 @@
+# 保护敏感数据文件
+# 防止直接访问配置文件、日志文件和缓存文件
+
+<Files "ai_config.json">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "config.json">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<FilesMatch "\.(log)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# 允许访问JSON数据文件（如album.json等）
+<FilesMatch "^(album|tasks|products|user_currency|private_.*|checkin_.*|achievements_.*|orders_.*|reviews_.*)\.json$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# 默认拒绝访问其他文件
+<FilesMatch "\.(json|txt)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>

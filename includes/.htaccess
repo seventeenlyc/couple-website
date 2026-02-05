@@ -1,0 +1,13 @@
+# 保护 includes 目录
+
+# 阻止直接访问 PHP 文件
+<FilesMatch "\.php$">
+    Require all denied
+</FilesMatch>
+
+# 阻止目录列表
+Options -Indexes
+
+# 只允许从服务器内部包含这些文件
+Order Deny,Allow
+Deny from all

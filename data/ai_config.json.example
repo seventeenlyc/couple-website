@@ -1,0 +1,8 @@
+{
+    "enabled": true,
+    "api_key": "your_api_key_here",
+    "model": "gpt-3.5-turbo",
+    "base_url": "https://api.openai.com/v1",
+    "max_tokens": 1000,
+    "temperature": 0.7
+}
