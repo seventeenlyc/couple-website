@@ -1,743 +1,155 @@
-# 💕 情侣小窝 - 浪漫互动网站
+# Couple Website
 
-一个专为情侣设计的私密互动网站，记录美好时光，分享甜蜜瞬间。
+A private interactive website for couples — share photos, complete daily tasks, manage wish lists, send whispers, and track your love story.
 
-## 📋 目录
+## Features
 
-- [功能概览](#功能概览)
-- [技术栈](#技术栈)
-- [安装部署](#安装部署)
-- [功能详解](#功能详解)
-- [AI功能配置](#ai功能配置)
-- [安全特性](#安全特性)
-- [项目结构](#项目结构)
+- **Home** — Live love-duration counter, AI daily quotes, anniversary & birthday reminders
+- **Album** — Photo upload with folder organization, tags, and thumbnail generation
+- **Shop** — Virtual & physical goods store with a built-in currency system
+- **Tasks** — Daily check-in, collaborative task tracker, task rewards
+- **Private Space** — Password-protected private notes & file storage
+- **Whispers** — Private messages between partners
+- **Story** — Interactive love story timeline
 
----
+## Tech Stack
 
-## 🎯 功能概览
+| Layer    | Technology                        |
+|----------|-----------------------------------|
+| Frontend | HTML5, Tailwind CSS, JavaScript   |
+| Backend  | PHP 7.4+ (API endpoints)         |
+| Storage  | JSON file-based (no database)    |
+| Icons    | Font Awesome                     |
+| AI       | OpenAI / DeepSeek / DashScope API |
 
-### 核心功能模块
-
-1. **主页** - 恋爱时长计算、快速导航、AI每日情话、纪念日提醒
-2. **相册** - 照片上传管理、文件夹分类、标签系统
-3. **浪漫成就** - 记录里程碑、成就管理
-4. **商城系统** - 虚拟/实体商品、爱心币交易
-5. **任务系统** - 每日签到、任务完成、奖励领取
-6. **隐私空间** - 密码保护、私人笔记、文件管理
-7. **我的背包** - 虚拟商品管理、使用确认
-8. **订单历史** - 购买记录查看
-9. **交易历史** - 爱心币收支明细
-
----
-
-## 🛠 技术栈
-
-### 后端
-- **PHP 7.4+** - 服务器端逻辑
-- **JSON** - 数据存储（文件系统）
-- **cURL** - AI API调用
-
-### 前端
-- **HTML5 / CSS3** - 页面结构和样式
-- **JavaScript (ES6+)** - 交互逻辑
-- **Tailwind CSS** - UI框架
-- **Font Awesome** - 图标库
-
-### AI集成
-- **阿里云 DashScope API** - AI内容生成
-- **qwen-turbo 模型** - 自然语言处理
-
----
-
-## 📦 安装部署
-
-### 环境要求
+## Project Structure
 
 ```
-- PHP 7.4 或更高版本
-- Apache/Nginx Web服务器
-- 支持文件读写权限
-- cURL扩展（用于AI功能）
+├── index.html              # Login page
+├── home.html               # Dashboard / landing
+├── album.html              # Photo album
+├── shop.html               # Shop & orders
+├── task.html               # Tasks & check-in
+├── story.html              # Love story timeline
+├── private.html            # Password-protected private space
+├── maintain.html           # Maintenance / under-construction page
+├── api/                    # PHP API endpoints
+│   ├── login.php           # Authentication
+│   ├── checkin.php         # Daily check-in
+│   ├── tasks.php           # Task CRUD
+│   ├── photos.php          # Photo upload & management
+│   ├── folders.php         # Album folders
+│   ├── shop.php            # Product listing & purchase
+│   ├── orders.php          # Order management
+│   ├── reviews.php         # Product reviews
+│   ├── story.php           # Story event management
+│   ├── whispers.php        # Partner messages
+│   ├── private-files.php   # Private file upload
+│   ├── private-notes.php   # Private notes
+│   ├── private-auth.php    # Private space authentication
+│   ├── upload-avatar.php   # Avatar upload
+│   ├── upload-photo.php    # Photo upload
+│   ├── app-config.php      # Frontend app configuration
+│   ├── balance.php         # Currency balance
+│   ├── csrf-token.php      # CSRF token provider
+│   └── daily-quote.php     # AI-generated daily quote
+├── includes/               # PHP helper libraries
+│   ├── config.php          # Configuration loader
+│   ├── session.php         # Session management
+│   ├── auth.php            # Authentication helpers
+│   └── ...                 # Domain helpers (shop, tasks, album, etc.)
+├── assets/                 # Static assets (CSS, JS, images)
+├── data/                   # JSON data files (gitignored except .example)
+│   ├── config.json.example
+│   ├── ai_config.json.example
+│   ├── products.txt        # Product definitions
+│   └── tasks.txt           # Task pool definitions
+└── uploads/                # User uploads (gitignored)
+    ├── avatars/
+    ├── photos/
+    └── private/
 ```
 
-### 安装步骤
+## Quick Start
 
-1. **克隆项目到Web服务器目录**
+### Requirements
+
+- PHP 7.4+
+- Any web server (Apache, Nginx, or PHP built-in)
+- Write permissions on `data/` and `uploads/`
+
+### Setup
+
 ```bash
-git clone <repository-url> /path/to/webroot/couple-website
-cd /path/to/webroot/couple-website
+# Clone the repo
+git clone https://github.com/seventeenlyc/couple-website.git
+cd couple-website
+
+# Start a dev server
+php -S localhost:8080
 ```
 
-2. **设置文件权限**
+### Configuration
+
+Copy the example config files and edit them:
+
 ```bash
-chmod 755 -R .
+cp data/config.json.example data/config.json
+cp data/ai_config.json.example data/ai_config.json
+```
+
+**`data/config.json`** — set your user names, passwords, anniversary date, and birthdays:
+
+```json
+{
+  "startDate": "2024-02-14",
+  "users": {
+    "name1": {
+      "id": "id1",
+      "password": "your-password",
+      "privatePassword": "private-password",
+      "partner": "name2",
+      "birthday": "01-01"
+    },
+    "name2": {
+      "id": "id2",
+      "password": "partner-password",
+      "privatePassword": "partner-private-password",
+      "partner": "name1",
+      "birthday": "02-14"
+    }
+  }
+}
+```
+
+**`data/ai_config.json`** — optionally enable AI-powered features:
+
+```json
+{
+  "enabled": true,
+  "api_provider": "openai",
+  "api_key": "sk-your-api-key",
+  "model": "gpt-3.5-turbo"
+}
+```
+
+Supported providers: `openai`, `deepseek`, `dashscope`, `anthropic`.
+
+### File Permissions
+
+```bash
 chmod 777 -R data/
 chmod 777 -R uploads/
 ```
 
-3. **配置用户信息**
+## Security
 
-编辑 `data/config.json`：
-```json
-{
-  "users": {
-    "shiqi": {
-      "password": "你的密码",
-      "privatePassword": "隐私空间密码",
-      "partner": "shisan"
-    },
-    "shisan": {
-      "password": "对方密码",
-      "privatePassword": "对方隐私空间密码",
-      "partner": "shiqi"
-    }
-  },
-  "startDate": "2024-01-01",
-  "theme": {
-    "primaryColor": "#ec4899",
-    "secondaryColor": "#8b5cf6"
-  }
-}
-```
+- Passwords are stored in `config.json` (consider hashing for production)
+- CSRF protection on all state-changing requests
+- Private spaces have independent password protection
+- `data/*.json` and `uploads/*` are gitignored to prevent accidental leaks
+- Server-side API key handling (keys never exposed to the frontend)
 
-4. **配置AI功能（可选）**
+## License
 
-编辑 `data/ai_config.json`：
-```json
-{
-  "enabled": true,
-  "api_provider": "dashscope",
-  "api_key": "你的API密钥",
-  "model": "qwen-turbo"
-}
-```
-
-5. **访问网站**
-```
-http://localhost/couple-website/
-```
-
----
-
-## 📖 功能详解
-
-### 1. 主页 (home.php)
-
-#### 功能特点
-- **恋爱时长实时计算** - 精确到分钟的相爱时间
-- **双方头像展示** - 支持自定义头像
-- **浮动爱心动画** - 浪漫的视觉效果
-- **AI每日情话** - 每天生成新的情话
-- **纪念日提醒** - 自动提醒即将到来的纪念日
-
-#### 操作流程
-1. 登录后自动跳转到主页
-2. 查看恋爱天数统计
-3. 点击快速导航卡片进入各功能模块
-4. 阅读AI生成的每日情话
-5. 查看纪念日提醒列表
-
-#### 实现思路
-- **时长计算**：JavaScript实时计算时间差，每分钟更新一次
-- **AI情话**：调用 `api/daily-quote.php`，带缓存机制（24小时）
-- **纪念日**：基于起始日期自动计算月度/年度纪念日
-- **动画效果**：CSS3动画 + JavaScript定时创建浮动元素
-
----
-
-### 2. 相册 (album.php)
-
-#### 功能特点
-- **照片上传** - 支持JPG/PNG/GIF，最大5MB
-- **文件夹管理** - 创建、重命名、删除文件夹
-- **标签系统** - 为照片添加多个标签
-- **照片详情** - 查看大图、描述、上传信息
-- **照片删除** - 带确认的删除功能
-
-#### 操作流程
-
-**上传照片：**
-1. 点击"上传新照片"区域
-2. 选择图片文件
-3. 填写标题、描述、标签（可选）
-4. 点击"上传照片"按钮
-5. 系统自动保存到当前文件夹
-
-**管理文件夹：**
-1. 点击"创建文件夹"按钮
-2. 输入文件夹名称
-3. 点击文件夹进入子目录
-4. 使用面包屑导航返回上级
-
-**查看照片：**
-1. 点击照片卡片
-2. 在弹窗中查看大图和详细信息
-3. 可以直接删除照片
-
-#### 实现思路
-- **文件上传**：PHP `move_uploaded_file()` + 唯一文件名生成
-- **数据存储**：JSON格式存储在 `data/album.json`
-- **文件夹结构**：使用 `folder_path` 字段实现虚拟目录
-- **图片展示**：Grid布局 + 响应式设计
-- **安全性**：CSRF令牌验证 + 文件类型/大小检查
-
----
-
-### 3. 浪漫成就 (achievements.php)
-
-#### 功能特点
-- **成就添加** - 记录重要时刻
-- **完成状态** - 标记/取消完成
-- **统计信息** - 总数、完成数、完成率
-- **成就删除** - 带确认的删除功能
-
-#### 操作流程
-
-**添加成就：**
-1. 填写成就标题（必填）
-2. 选择日期（可选）
-3. 填写描述（可选）
-4. 点击"添加成就"
-
-**管理成就：**
-1. 点击"标记完成"按钮切换状态
-2. 已完成的成就显示金色奖杯
-3. 点击删除按钮移除成就（需确认）
-
-#### 实现思路
-- **数据结构**：JSON数组存储成就列表
-- **状态管理**：布尔值 `completed` 字段
-- **统计计算**：PHP `array_filter()` 统计完成数
-- **UI反馈**：不同状态显示不同颜色和图标
-
----
-
-### 4. 商城系统 (shop.php)
-
-#### 功能特点
-- **商品展示** - 虚拟/实体商品分类
-- **搜索筛选** - 关键词、分类、价格筛选
-- **商品详情** - 查看描述、评价、库存
-- **购买功能** - 爱心币支付系统
-- **评价系统** - 查看其他用户评价
-
-#### 操作流程
-
-**浏览商品：**
-1. 使用搜索框输入关键词
-2. 选择分类和价格范围筛选
-3. 点击商品卡片查看详情
-
-**购买商品：**
-1. 在商品详情页点击"立即购买"
-2. 确认购买信息
-3. 系统扣除爱心币
-4. 虚拟商品自动添加到背包
-5. 实体商品记录到订单
-
-#### 实现思路
-- **商品数据**：`data/products.json` 存储商品信息
-- **库存管理**：购买时减少库存，售罄时禁用购买
-- **支付系统**：
-  - 检查用户余额
-  - 扣除爱心币
-  - 创建订单记录
-  - 更新交易历史
-- **筛选逻辑**：JavaScript客户端筛选，实时响应
-- **评价系统**：独立的评价数据表，关联商品ID
-
----
-
-### 5. 任务系统 (tasks.php)
-
-#### 功能特点
-- **每日签到** - 连续签到奖励递增
-- **任务列表** - 双方协作完成任务
-- **任务状态** - 进行中、等待对方、可领取、已完成
-- **奖励领取** - 双方确认后领取爱心币
-
-#### 操作流程
-
-**每日签到：**
-1. 进入任务页面
-2. 点击"立即签到"按钮
-3. 获得10-20爱心币（根据连续天数）
-4. 连续签到7天及以上获得最高奖励
-
-**完成任务：**
-1. 查看今日任务列表
-2. 完成任务后点击"标记完成"
-3. 等待对方确认完成
-4. 双方都确认后点击"领取奖励"
-5. 获得任务奖励的爱心币
-
-#### 实现思路
-- **签到系统**：
-  - 记录每日签到时间
-  - 计算连续签到天数
-  - 根据天数给予不同奖励（10/15/20）
-- **任务协作**：
-  - 任务包含 `completed_by` 数组
-  - 双方都标记完成后状态变为 `completed`
-  - 任一方领取奖励后状态变为 `rewarded`
-- **状态流转**：
-  ```
-  pending → 一方完成 → 双方完成 → 领取奖励 → rewarded
-  ```
-- **数据同步**：使用 `auto-sync-helper.php` 自动同步数据
-
----
-
-### 6. 隐私空间 (private.php)
-
-#### 功能特点
-- **密码保护** - 独立的隐私空间密码
-- **私人笔记** - 记录个人想法
-- **文件上传** - 最大10MB文件
-- **文件夹管理** - 组织私人文件
-- **密码修改** - 更改隐私空间密码
-
-#### 操作流程
-
-**首次进入：**
-1. 输入隐私空间密码
-2. 点击"解锁隐私空间"
-3. 密码正确后进入私密区域
-
-**添加笔记：**
-1. 填写笔记标题（可选）
-2. 填写笔记内容（必填）
-3. 点击"保存笔记"
-4. 笔记显示在列表中
-
-**上传文件：**
-1. 点击"选择文件"
-2. 选择要上传的文件（最大10MB）
-3. 点击"上传文件"
-4. 文件保存到当前文件夹
-
-**更改密码：**
-1. 输入旧密码
-2. 输入新密码
-3. 确认新密码
-4. 点击"保存新密码"
-
-#### 实现思路
-- **认证机制**：
-  - Session存储认证状态
-  - 密码验证通过后设置 `private_authenticated`
-  - 超时自动清除认证
-- **数据隔离**：
-  - 每个用户独立的JSON文件：`data/private_{userId}.json`
-  - 数据结构：`{folders: [], files: [], notes: []}`
-- **文件管理**：
-  - 文件存储在 `uploads/private/` 目录
-  - 记录原始文件名、大小、上传时间
-  - 支持下载和删除
-- **安全性**：
-  - 密码验证
-  - CSRF保护
-  - 文件类型检查
-  - 大小限制
-
----
-
-### 7. 我的背包 (my-items.php)
-
-#### 功能特点
-- **虚拟商品展示** - 查看已购买的虚拟商品
-- **状态筛选** - 未使用、待确认、已使用
-- **商品使用** - 使用虚拟商品
-- **使用确认** - 对方确认后生效
-
-#### 操作流程
-
-**查看商品：**
-1. 进入"我的背包"页面
-2. 查看所有虚拟商品
-3. 使用状态筛选器过滤
-
-**使用商品：**
-1. 点击"可使用"状态的商品
-2. 点击"使用"按钮
-3. 确认使用
-4. 状态变为"待确认"
-5. 等待对方确认
-6. 确认后状态变为"已使用"
-
-#### 实现思路
-- **商品状态**：
-  - `unused` - 未使用（可以使用）
-  - `pending` - 待确认（等待对方）
-  - `used` - 已使用（已完成）
-- **使用流程**：
-  ```
-  unused → 点击使用 → pending → 对方确认 → used
-  ```
-- **数据存储**：`data/virtual_items.json`
-- **UI反馈**：不同状态显示不同颜色和图标
-
----
-
-### 8. 订单历史 (my-orders.php)
-
-#### 功能特点
-- **订单列表** - 查看所有购买记录
-- **分类筛选** - 虚拟/实体商品筛选
-- **订单详情** - 商品名称、价格、时间
-- **快速跳转** - 虚拟商品可跳转到背包
-
-#### 操作流程
-1. 进入"我的订单"页面
-2. 查看所有订单记录
-3. 使用分类筛选器过滤
-4. 点击"查看背包"查看虚拟商品
-
-#### 实现思路
-- **数据来源**：`data/orders.json`
-- **订单结构**：
-  ```json
-  {
-    "id": "订单ID",
-    "user_id": "用户ID",
-    "product_id": "商品ID",
-    "product_name": "商品名称",
-    "category": "virtual/physical",
-    "price": 价格,
-    "status": "completed",
-    "created_at": "时间戳"
-  }
-  ```
-- **筛选逻辑**：JavaScript客户端筛选
-
----
-
-### 9. 交易历史 (transaction-history.php)
-
-#### 功能特点
-- **余额显示** - 当前爱心币余额
-- **交易记录** - 所有收入和支出
-- **类型筛选** - 收入/支出筛选
-- **来源筛选** - 签到/任务/购买/退款
-
-#### 操作流程
-1. 进入"交易历史"页面
-2. 查看当前余额
-3. 浏览所有交易记录
-4. 使用筛选器查找特定交易
-
-#### 实现思路
-- **数据存储**：`data/user_currency.json`
-- **交易记录结构**：
-  ```json
-  {
-    "type": "income/expense",
-    "amount": 金额,
-    "source": "checkin/task/purchase/refund",
-    "description": "描述",
-    "balance_after": 交易后余额,
-    "timestamp": "时间戳"
-  }
-  ```
-- **余额计算**：每次交易后更新余额
-- **筛选功能**：JavaScript实时筛选
-
----
-
-## 🤖 AI功能配置
-
-### 支持的AI功能
-
-1. **每日情话生成** - 主页显示
-2. **纪念日祝福生成** - 纪念日提醒
-3. **照片描述生成** - 相册功能（预留）
-
-### 配置步骤
-
-1. **获取API密钥**
-   - 注册阿里云账号
-   - 开通DashScope服务
-   - 获取API Key
-
-2. **配置AI参数**
-
-编辑 `data/ai_config.json`：
-```json
-{
-  "enabled": true,
-  "api_provider": "dashscope",
-  "api_key": "sk-your-api-key-here",
-  "api_endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-  "model": "qwen-turbo",
-  "max_tokens": 150,
-  "temperature": 0.7,
-  "timeout": 30,
-  "retry_attempts": 3,
-  "rate_limit": {
-    "enabled": true,
-    "max_calls_per_day": 10,
-    "max_calls_per_hour": 20
-  },
-  "cache": {
-    "enabled": true,
-    "ttl": 86400
-  }
-}
-```
-
-3. **测试AI功能**
-
-运行测试脚本：
-```bash
-php test-ai-cli.php
-```
-
-### AI功能实现原理
-
-**缓存机制：**
-- 每日情话缓存24小时
-- 纪念日祝福缓存到纪念日过后
-- 减少API调用次数
-
-**降级策略：**
-- API调用失败时使用备用内容
-- 备用内容存储在配置文件中
-- 确保功能始终可用
-
-**速率限制：**
-- 每天最多10次调用
-- 每小时最多20次调用
-- 超出限制自动使用备用内容
-
----
-
-## 🔒 安全特性
-
-### 1. 身份认证
-- **Session管理** - 安全的会话机制
-- **密码验证** - 登录密码 + 隐私空间密码
-- **自动登出** - 超时自动清除会话
-
-### 2. CSRF防护
-- 所有表单包含CSRF令牌
-- 提交时验证令牌有效性
-- 防止跨站请求伪造攻击
-
-### 3. 输入验证
-- **文件上传**：
-  - 类型白名单
-  - 大小限制
-  - 文件名随机化
-- **表单输入**：
-  - HTML转义
-  - SQL注入防护（虽然使用JSON）
-  - XSS防护
-
-### 4. 数据保护
-- **文件权限**：
-  - 数据目录限制访问
-  - `.htaccess` 保护敏感文件
-- **密码存储**：
-  - 明文存储（建议改为哈希）
-  - 隐私空间独立密码
-
-### 5. API安全
-- **密钥保护**：
-  - 配置文件不提交到版本控制
-  - 服务器端调用API
-- **速率限制**：
-  - 防止API滥用
-  - 控制调用频率
-
----
-
-## 📁 项目结构
-
-```
-couple-website/
-├── api/                          # API接口目录
-│   ├── achievements.php          # 成就API
-│   ├── checkin.php              # 签到API
-│   ├── daily-quote.php          # 每日情话API
-│   ├── folders.php              # 文件夹管理API
-│   ├── login.php                # 登录API
-│   ├── logout.php               # 登出API
-│   ├── orders.php               # 订单API
-│   ├── private-auth.php         # 隐私空间认证API
-│   ├── private-files.php        # 私人文件API
-│   ├── private-notes.php        # 私人笔记API
-│   ├── reviews.php              # 评价API
-│   ├── shop.php                 # 商城API
-│   ├── tasks.php                # 任务API
-│   ├── upload-avatar.php        # 头像上传API
-│   ├── upload-photo.php         # 照片上传API
-│   └── virtual-items.php        # 虚拟商品API
-│
-├── assets/                       # 静态资源目录
-│   ├── css/                     # 样式文件
-│   │   ├── ai-features.css      # AI功能样式
-│   │   ├── custom.css           # 自定义样式
-│   │   └── shop.css             # 商城样式
-│   └── js/                      # JavaScript文件
-│       ├── ai-features.js       # AI功能脚本
-│       ├── folder-ui.js         # 文件夹UI脚本
-│       ├── mobile-menu.js       # 移动端菜单
-│       └── shop-effects.js      # 商城特效
-│
-├── data/                         # 数据存储目录
-│   ├── cache/                   # AI缓存目录
-│   ├── logs/                    # 日志目录
-│   ├── achievements.json        # 成就数据
-│   ├── ai_config.json          # AI配置
-│   ├── album.json              # 相册数据
-│   ├── config.json             # 系统配置
-│   ├── orders.json             # 订单数据
-│   ├── private_shiqi.json      # 用户1隐私数据
-│   ├── private_shisan.json     # 用户2隐私数据
-│   ├── products.json           # 商品数据
-│   ├── reviews.json            # 评价数据
-│   ├── tasks.json              # 任务数据
-│   ├── user_currency.json      # 货币数据
-│   └── virtual_items.json      # 虚拟商品数据
-│
-├── includes/                     # 公共组件目录
-│   ├── ai-config.php           # AI配置管理
-│   ├── ai-helper.php           # AI功能助手
-│   ├── anniversary-helper.php   # 纪念日助手
-│   ├── auth.php                # 认证功能
-│   ├── avatar-helper.php       # 头像管理
-│   ├── checkin-helper.php      # 签到助手
-│   ├── config.php              # 配置管理
-│   ├── currency-helper.php     # 货币管理
-│   ├── folder-helper.php       # 文件夹助手
-│   ├── footer.php              # 页脚组件
-│   ├── header.php              # 页头组件
-│   ├── json-helper.php         # JSON操作助手
-│   ├── order-helper.php        # 订单助手
-│   ├── review-helper.php       # 评价助手
-│   ├── session.php             # 会话管理
-│   ├── shop-helper.php         # 商城助手
-│   ├── task-helper.php         # 任务助手
-│   └── virtual-item-helper.php # 虚拟商品助手
-│
-├── uploads/                      # 上传文件目录
-│   ├── avatars/                # 头像目录
-│   ├── photos/                 # 照片目录
-│   └── private/                # 私人文件目录
-│
-├── achievements.php             # 浪漫成就页面
-├── album.php                    # 相册页面
-├── home.php                     # 主页
-├── index.php                    # 登录页面
-├── my-items.php                 # 我的背包页面
-├── my-orders.php                # 我的订单页面
-├── private.php                  # 隐私空间页面
-├── shop.php                     # 商城页面
-├── tasks.php                    # 任务页面
-├── transaction-history.php      # 交易历史页面
-├── test-ai-api.php             # AI API测试（Web）
-├── test-ai-cli.php             # AI API测试（CLI）
-├── README.md                    # 项目文档
-└── SECURITY.md                  # 安全文档
-```
-
----
-
-## 🎨 界面设计
-
-### 设计理念
-- **浪漫温馨** - 粉色/紫色主题色
-- **简洁清爽** - 卡片式布局
-- **响应式设计** - 支持桌面端和移动端
-- **动画效果** - 流畅的过渡和交互
-
-### 移动端适配
-- **响应式导航** - 汉堡菜单
-- **触摸优化** - 大按钮、易点击
-- **头像显示** - 移动端导航栏显示头像
-- **流畅体验** - 优化加载速度
-
----
-
-## 🚀 性能优化
-
-### 1. 缓存策略
-- **AI内容缓存** - 减少API调用
-- **静态资源** - CDN加速（Tailwind、Font Awesome）
-- **图片优化** - 限制上传大小
-
-### 2. 数据库优化
-- **JSON文件** - 轻量级数据存储
-- **索引优化** - 使用ID快速查找
-- **数据分离** - 按用户分离隐私数据
-
-### 3. 前端优化
-- **懒加载** - 按需加载内容
-- **代码压缩** - 减小文件体积
-- **异步加载** - 不阻塞页面渲染
-
----
-
-## 🐛 常见问题
-
-### 1. 无法登录
-- 检查 `data/config.json` 中的用户名和密码
-- 确保Session功能正常
-- 检查文件权限
-
-### 2. 照片上传失败
-- 检查 `uploads/photos/` 目录权限（777）
-- 确认文件大小不超过5MB
-- 检查文件格式是否支持
-
-### 3. AI功能不工作
-- 检查 `data/ai_config.json` 配置
-- 验证API密钥是否有效
-- 查看 `data/logs/ai_errors.log` 错误日志
-- 运行 `test-ai-cli.php` 测试
-
-### 4. 爱心币异常
-- 检查 `data/user_currency.json` 数据
-- 查看交易历史是否正常
-- 确认任务/签到功能正常
-
----
-
-## 📝 开发建议
-
-### 安全改进
-1. **密码哈希** - 使用 `password_hash()` 存储密码
-2. **HTTPS** - 启用SSL证书
-3. **输入过滤** - 加强输入验证
-4. **SQL注入** - 如果迁移到数据库，使用预处理语句
-
-### 功能扩展
-1. **评论系统** - 照片评论功能
-2. **通知系统** - 实时通知提醒
-3. **数据导出** - 导出照片和数据
-4. **主题切换** - 多种主题选择
-5. **移动应用** - 开发移动APP
-
-### 性能提升
-1. **数据库迁移** - 从JSON迁移到MySQL
-2. **Redis缓存** - 使用Redis缓存热数据
-3. **CDN加速** - 静态资源CDN
-4. **图片压缩** - 自动压缩上传图片
-
----
-
-## 📄 许可证
-
-本项目仅供个人学习和使用，请勿用于商业用途。
-
----
-
-## 💖 致谢
-
-感谢所有为这个项目提供灵感和支持的人！
-
-愿每一对情侣都能拥有属于自己的浪漫小窝 💕
-
----
-
-**最后更新时间：** 2025-12-02
+For personal use and learning. Not for commercial use.
