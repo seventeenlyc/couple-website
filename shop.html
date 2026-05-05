@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>偏爱 · 浪漫兑换小铺</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Noto+Serif+SC:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            background-color: #fdfcf8;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            color: #4a4a4a;
+            overflow-x: hidden;
+        }
+
+        .font-serif-sc { font-family: 'Noto Serif SC', serif; }
+        .font-handwriting { font-family: 'Caveat', cursive; }
+
+        /* 磨砂胶带 */
+        .tape {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(2px);
+            border: 1px solid rgba(0,0,0,0.02);
+            z-index: 10;
+        }
+
+        /* 撕纸底板边缘风格 */
+        .torn-paper {
+            background: #fff;
+            position: relative;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+            background-image: linear-gradient(transparent 95%, #fca5a5 95%);
+            background-size: 100% 1.5rem;
+        }
+        .torn-paper::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -8px; bottom: 0; width: 16px;
+            background: radial-gradient(circle at 0 0.75rem, transparent 4px, #fff 5px);
+            background-size: 16px 1.5rem;
+            z-index: -1;
+        }
+
+        /* 虚线优惠券风格 */
+        .coupon-card {
+            background: #fff;
+            border: 2px dashed #fca5a5;
+            border-radius: 12px;
+            position: relative;
+            box-shadow: 0 8px 20px -8px rgba(251, 113, 133, 0.15);
+        }
+        .coupon-card::before, .coupon-card::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 20px;
+            height: 20px;
+            background-color: #fdfcf8;
+            border-radius: 50%;
+            border: 2px dashed #fca5a5;
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+        .coupon-card::before { left: -12px; border-left-color: transparent; border-top-color: transparent; border-bottom-color: transparent; }
+        .coupon-card::after { right: -12px; border-right-color: transparent; border-top-color: transparent; border-bottom-color: transparent; }
+
+        /* 拍立得 */
+        .polaroid-card {
+            background: #ffffff;
+            padding: 10px 10px 35px 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            position: relative;
+        }
+
+        /* 标签入口 */
+        .action-stamp {
+            background: white;
+            padding: 8px;
+            border: 2px dashed #e5e7eb;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        @media (hover: hover) {
+            .polaroid-card:hover, .coupon-card:hover, .torn-paper:hover {
+                transform: scale(1.05) rotate(0deg) !important;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+                z-index: 50;
+            }
+        }
+
+        .reveal-item { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
+        .reveal-item.is-visible { opacity: 1; transform: none; }
+        
+        .modal-enter { animation: modalFadeIn 0.3s ease-out forwards; }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Page pull-down entrance */
+        .page-pull-enter {
+            animation: pullDownPage 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes pullDownPage {
+            from {
+                transform: translateY(-105vh);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        /* Pull-tab indicator at top of page */
+        .pull-tab {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: #fff9e6;
+            border: 1px solid #fde68a;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            padding: 6px 20px 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+            animation: tabBounce 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            pointer-events: none;
+        }
+        @keyframes tabBounce {
+            0% { transform: translateX(-50%) translateY(-60px); }
+            60% { transform: translateX(-50%) translateY(4px); }
+            80% { transform: translateX(-50%) translateY(-2px); }
+            100% { transform: translateX(-50%) translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-24 selection:bg-rose-100 relative">
+
+    <!-- 【左上角：返回主页贴纸】 -->
+    <a href="home.html" onclick="sessionStorage.setItem('home_from','shop')" class="absolute top-6 left-6 md:left-12 z-30 group sticker-item rotate-[-5deg]">
+        <div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-8 h-4 rotate-[10deg]"></div>
+        <div class="bg-white p-3 shadow-md flex items-center justify-center border border-stone-100 group-hover:scale-110 transition-transform">
+            <i class="fas fa-home text-rose-300"></i>
+            <span class="font-handwriting text-stone-500 ml-2 mt-1">Home</span>
+        </div>
+    </a>
+
+    <!-- 【右上角：我的小红花 (积分)】 -->
+    <div class="absolute top-6 right-6 md:right-12 z-30 sticker-item rotate-[3deg] cursor-pointer hover:rotate-0 transition-transform" onclick="showAlert('你目前拥有 842 朵小红花 🌸')">
+        <div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-10 h-4 rotate-[-8deg]"></div>
+        <div class="bg-rose-50 px-4 py-2 shadow-sm border border-rose-100 rounded flex items-center gap-2">
+            <i class="fas fa-seedling text-rose-400 animate-pulse"></i>
+            <span id="user-balance" class="font-serif-sc font-bold text-stone-700">...</span>
+        </div>
+    </div>
+
+    <!-- 【下拉标签指示器】 -->
+    <div id="pull-tab" class="pull-tab">
+        <span class="font-handwriting text-amber-600 text-sm">Shop</span>
+    </div>
+
+    <!-- 【页头区块 + 商品区 (整页下拉动画容器)】 -->
+    <div id="page-enter-wrapper" class="page-pull-enter">
+        <div class="max-w-5xl mx-auto px-5 md:px-12 pt-28">
+            <header class="flex flex-col items-center mb-16 relative reveal-item is-visible">
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-amber-100/40 rounded-[100%] blur-3xl -z-10"></div>
+
+                <h1 class="font-handwriting text-5xl md:text-7xl text-stone-700 tracking-wider mb-2">Gift Shop</h1>
+                <p class="font-serif-sc text-stone-400 text-sm tracking-[0.4em] uppercase">浪漫兑换小铺</p>
+
+                <div class="mt-8 flex gap-4 font-serif-sc text-xs text-stone-500">
+                    <span class="px-3 py-1 bg-white border border-stone-200 rounded-full cursor-pointer hover:bg-stone-50">全部 (All)</span>
+                    <span class="px-3 py-1 bg-transparent border border-transparent rounded-full cursor-pointer hover:text-rose-400">特权券</span>
+                    <span class="px-3 py-1 bg-transparent border border-transparent rounded-full cursor-pointer hover:text-rose-400">实体礼物</span>
+                </div>
+            </header>
+
+            <!-- 【商品陈列区 (手账排版混合风格)】 -->
+            <div id="products-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12 pb-10">
+                <div class="col-span-full text-center py-16">
+                    <i class="fas fa-spinner fa-spin text-stone-300 text-2xl"></i>
+                    <p class="font-serif-sc text-stone-400 text-sm mt-3">正在打开小铺...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 【右下角：我的背包】 -->
+    <a href="#" onclick="openBackpack(); return false;" id="backpack-btn" class="fixed bottom-8 right-8 z-30 w-14 h-14 bg-white shadow-xl rounded-2xl flex items-center justify-center text-rose-300 hover:scale-110 transition-transform group border border-stone-100 rotate-6 hover:rotate-0">
+         <i class="fas fa-box-open text-xl"></i>
+         <span id="backpack-pending-badge" class="absolute -top-1 -right-1 w-5 h-5 bg-amber-400 text-white text-[10px] font-bold rounded-full border-2 border-white flex items-center justify-center hidden">0</span>
+         <span class="absolute right-16 bg-white px-3 py-1 rounded-lg text-[10px] font-serif-sc text-stone-400 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm border border-stone-50 whitespace-nowrap tracking-widest">MY BACKPACK</span>
+    </a>
+
+    <!-- 【购买确认弹窗】 -->
+    <div id="buyModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm rounded-[2rem] p-8 modal-enter shadow-2xl relative torn-paper">
+            <button onclick="closeBuyModal()" class="absolute top-6 right-6 text-stone-300 hover:text-stone-600 transition-colors"><i class="fas fa-times text-xl"></i></button>
+            <div class="text-center">
+                <div class="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-300 text-2xl">
+                    <i class="fas fa-ticket-alt"></i>
+                </div>
+                <h3 class="font-serif-sc text-xl font-bold text-stone-800 mb-2">确认兑换</h3>
+                <p class="font-serif-sc text-sm text-stone-500 mb-6">你要花费 <span id="modal-price" class="font-bold text-rose-400"></span> 兑换「<span id="modal-item" class="font-bold text-stone-700"></span>」吗？</p>
+                
+                <div class="flex gap-4">
+                    <button onclick="closeBuyModal()" class="flex-1 py-3 rounded-xl border border-stone-200 text-stone-500 font-serif-sc text-sm hover:bg-stone-50 transition-colors">再想想</button>
+                    <button onclick="processBuy()" class="flex-1 py-3 rounded-xl bg-stone-800 text-white font-serif-sc font-bold text-sm hover:bg-stone-700 transition-colors shadow-lg shadow-stone-800/20">确认兑换</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 【背包弹窗】 -->
+    <div id="backpackModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeBackpack()">
+        <div class="bg-white w-full max-w-lg rounded-[2rem] p-6 md:p-8 modal-enter shadow-2xl relative torn-paper max-h-[88vh] flex flex-col">
+            <!-- Tape decorations -->
+            <div class="tape top-[-10px] left-8 w-14 h-5 rotate-[-4deg]"></div>
+            <div class="tape top-[-8px] right-10 w-10 h-5 rotate-[6deg]"></div>
+            <div class="tape bottom-[-8px] left-1/2 -translate-x-1/2 w-16 h-5 rotate-[2deg]"></div>
+            <!-- Close button -->
+            <button onclick="closeBackpack()" class="absolute top-5 right-5 text-stone-300 hover:text-stone-600 transition-colors z-20 w-8 h-8 flex items-center justify-center"><i class="fas fa-times text-lg"></i></button>
+
+            <!-- Title -->
+            <div class="text-center mb-6 shrink-0">
+                <h2 class="font-handwriting text-3xl text-stone-700">My Backpack</h2>
+                <p class="font-serif-sc text-[10px] text-stone-400 tracking-widest uppercase mt-1">我的背包</p>
+            </div>
+
+            <!-- Pending confirmations -->
+            <div id="backpack-pending-section" class="mb-6 hidden shrink-0">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+                    <h3 class="font-serif-sc font-bold text-xs text-amber-600 tracking-widest uppercase">待确认</h3>
+                </div>
+                <div id="backpack-pending-container" class="space-y-3"></div>
+            </div>
+
+            <!-- Owned items -->
+            <div id="backpack-items-scroll" class="flex-1 overflow-y-auto space-y-4 pr-1">
+                <div id="backpack-items-container" class="space-y-4"></div>
+                <div id="backpack-empty" class="text-center py-16 hidden">
+                    <i class="fas fa-box-open text-4xl text-stone-200 mb-4"></i>
+                    <p class="font-serif-sc text-stone-400">背包还是空的</p>
+                    <p class="font-handwriting text-stone-300 text-xl mt-2">快去兑换一些好东西吧</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义轻提示弹窗 (Toast) -->
+    <div id="customAlert" class="fixed inset-0 flex items-center justify-center z-[100] hidden pointer-events-none">
+        <div class="bg-white/90 backdrop-blur-md rounded-2xl p-6 shadow-2xl transform scale-95 opacity-0 transition-all duration-300 border border-stone-100" id="alertContent">
+            <p class="font-serif-sc text-stone-700 text-center font-medium" id="alertText">消息内容</p>
+        </div>
+    </div>
+
+    <script src="assets/js/api-client.js"></script>
+    <script>
+        // ── Globals ─────────────────────────────────────────
+        let allProducts = [];
+        let currentFilter = '全部';
+        let currentProduct = null;
+
+        // ── Toast ────────────────────────────────────────────
+        function showAlert(msg) {
+            const modal = document.getElementById('customAlert');
+            const content = document.getElementById('alertContent');
+            const text = document.getElementById('alertText');
+            text.innerText = msg;
+            modal.classList.remove('hidden');
+            setTimeout(() => { content.classList.remove('scale-95', 'opacity-0'); content.classList.add('scale-100', 'opacity-100'); }, 10);
+            setTimeout(() => {
+                content.classList.remove('scale-100', 'opacity-100'); content.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => { modal.classList.add('hidden'); }, 300);
+            }, 2000);
+        }
+
+        // ── Load balance ────────────────────────────────────
+        async function loadBalance() {
+            try {
+                const data = await API.get('api/balance.php');
+                if (data.success) {
+                    document.getElementById('user-balance').innerText = data.balance;
+                }
+            } catch (e) { /* keep default */ }
+        }
+
+        // ── Load products ───────────────────────────────────
+        const cardStyles = ['coupon', 'polaroid', 'torn-paper'];
+
+        function renderProductCard(p, index) {
+            const style = cardStyles[index % 3];
+            const rot = ((index % 5) * 2 - 4).toFixed(0);
+            const hasImage = p.image && p.image.trim() !== '';
+            const discount = p.price_info && p.price_info.is_special;
+            const displayPrice = discount ? p.price_info.final_price : p.price;
+
+            if (style === 'coupon') {
+                return `<div class="reveal-item sticker-item" style="transform:rotate(${rot}deg)" onclick="confirmBuy('${p.id}')">
+                    <div class="coupon-card p-6 cursor-pointer group ${index % 2 === 0 ? '' : 'bg-stone-50 border-stone-300'}">
+                        <div class="tape top-[-10px] left-${index%2===0?'4':'1/2 -translate-x-1/2'} w-12 h-5 rotate-[${index%2===0?5:-2}deg]"></div>
+                        <div class="text-center mb-4">
+                            ${hasImage ? '<img src="'+p.image+'" loading="lazy" decoding="async" class="w-16 h-16 mx-auto rounded-lg object-cover mb-3 shadow-sm group-hover:scale-110 transition-transform">' : '<i class="fas fa-gift text-3xl text-rose-300 mb-3 group-hover:scale-125 transition-transform duration-300"></i>'}
+                            <h3 class="font-serif-sc font-bold text-lg text-stone-700">${p.name}</h3>
+                            <p class="font-serif-sc text-[10px] text-stone-400 mt-1">${p.description || ''}</p>
+                            ${discount ? '<p class="text-[10px] text-rose-400 mt-1 line-through">原价 🌸 '+p.price+'</p>' : ''}
+                        </div>
+                        <div class="border-t border-dashed ${index%2===0?'border-rose-200':'border-stone-200'} pt-4 flex justify-between items-center">
+                            <span class="font-serif-sc font-black ${index%2===0?'text-rose-400':'text-stone-500'}">🌸 ${discount ? displayPrice : p.price}</span>
+                            <button class="${index%2===0?'bg-rose-100 text-rose-500 group-hover:bg-rose-400 group-hover:text-white':'bg-stone-200 text-stone-600 group-hover:bg-stone-800 group-hover:text-white'} text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider transition-colors">兑换</button>
+                        </div>
+                    </div>
+                </div>`;
+            } else if (style === 'polaroid') {
+                return `<div class="reveal-item sticker-item" style="transform:rotate(${rot}deg)" onclick="confirmBuy('${p.id}')">
+                    <div class="polaroid-card cursor-pointer group">
+                        <div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-14 h-5 rotate-[-4deg]"></div>
+                        <div class="overflow-hidden mb-3">
+                            ${hasImage ? '<img src="'+p.image+'" loading="lazy" decoding="async" class="w-full h-40 object-cover group-hover:scale-110 transition-transform duration-700">' : '<div class="w-full h-40 bg-stone-100 flex items-center justify-center"><i class="fas fa-image text-stone-300 text-3xl"></i></div>'}
+                        </div>
+                        <h3 class="font-handwriting text-2xl text-stone-700 text-center mt-2">${p.name}</h3>
+                        <p class="font-serif-sc text-xs text-stone-500 text-center mb-3">${p.description || ''}</p>
+                        ${discount ? '<p class="text-[10px] text-rose-400 text-center line-through">原价 🌸 '+p.price+'</p>' : ''}
+                        <div class="flex justify-between items-center px-2">
+                            <span class="font-serif-sc font-black text-rose-400">🌸 ${discount ? displayPrice : p.price}</span>
+                            <button class="w-8 h-8 rounded-full border border-stone-200 flex items-center justify-center text-stone-400 group-hover:bg-stone-800 group-hover:text-white transition-colors"><i class="fas fa-shopping-basket text-xs"></i></button>
+                        </div>
+                    </div>
+                </div>`;
+            } else {
+                return `<div class="reveal-item sticker-item" style="transform:rotate(${rot}deg)" onclick="confirmBuy('${p.id}')">
+                    <div class="torn-paper p-6 cursor-pointer group ${index%2===0?'':'bg-orange-50'}">
+                        <div class="tape top-[-10px] ${index%2===0?'right-6':'left-[-15px]'} w-10 h-5 rotate-[${index%2===0?15:85}deg]"></div>
+                        <div class="flex justify-between items-start mb-6">
+                            <div class="w-12 h-12 ${index%2===0?'bg-rose-50':'bg-white'} rounded-full flex items-center justify-center group-hover:animate-bounce overflow-hidden">
+                                ${hasImage ? '<img src="'+p.image+'" loading="lazy" decoding="async" class="w-full h-full object-cover">' : '<i class="fas fa-heart text-rose-400 text-xl"></i>'}
+                            </div>
+                            <span class="font-handwriting ${index%2===0?'text-stone-400':'text-orange-300'} text-xl">${p.category || 'Gift'}</span>
+                        </div>
+                        <h3 class="font-serif-sc font-bold text-lg text-stone-700 mb-1">${p.name}</h3>
+                        <p class="font-serif-sc text-xs text-stone-400 mb-6 h-8">${p.description || ''}</p>
+                        ${discount ? '<p class="text-[10px] text-rose-400 line-through">原价 🌸 '+p.price+'</p>' : ''}
+                        <div class="flex justify-between items-center">
+                            <span class="font-serif-sc font-black ${index%2===0?'text-rose-400':'text-orange-400'}">🌸 ${discount ? displayPrice : p.price}</span>
+                            <span class="font-handwriting ${index%2===0?'text-rose-300':'text-orange-400'} text-lg border-b ${index%2===0?'border-rose-200':'border-orange-200'} group-hover:text-rose-500">Get it</span>
+                        </div>
+                    </div>
+                </div>`;
+            }
+        }
+
+        async function loadProducts(filter) {
+            const container = document.getElementById('products-container');
+            container.innerHTML = '<div class="col-span-full text-center py-16"><i class="fas fa-spinner fa-spin text-stone-300 text-2xl"></i><p class="font-serif-sc text-stone-400 text-sm mt-3">正在打开小铺...</p></div>';
+
+            try {
+                let url = 'api/shop.php?action=get_all';
+                if (filter && filter !== '全部') {
+                    url = 'api/shop.php?action=filter&category=' + encodeURIComponent(filter);
+                }
+                const data = await API.get(url);
+                if (data.success) {
+                    allProducts = data.products || [];
+                    if (allProducts.length === 0) {
+                        container.innerHTML = '<div class="col-span-full text-center py-16"><p class="font-serif-sc text-stone-400">暂无商品</p></div>';
+                    } else {
+                        container.innerHTML = allProducts.map((p, i) => renderProductCard(p, i)).join('');
+                        // Re-observe for reveal animation
+                        document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
+                    }
+                    // Show special date info
+                    if (data.special_date && data.special_date.is_special) {
+                        showAlert('今日是 ' + data.special_date.name + '，部分商品有折扣！');
+                    }
+                }
+            } catch (e) {
+                container.innerHTML = '<div class="col-span-full text-center py-16"><p class="font-serif-sc text-stone-400">加载失败，请刷新重试</p></div>';
+            }
+        }
+
+        // ── Purchase flow ────────────────────────────────────
+        function confirmBuy(productId) {
+            currentProduct = allProducts.find(p => p.id === productId);
+            if (!currentProduct) return;
+            const price = (currentProduct.price_info && currentProduct.price_info.is_special) ? currentProduct.price_info.final_price : currentProduct.price;
+            document.getElementById('modal-item').innerText = currentProduct.name;
+            document.getElementById('modal-price').innerText = '🌸 ' + price;
+            document.getElementById('buyModal').classList.remove('hidden');
+        }
+
+        function closeBuyModal() {
+            document.getElementById('buyModal').classList.add('hidden');
+            currentProduct = null;
+        }
+
+        async function processBuy() {
+            if (!currentProduct) return;
+            const productId = currentProduct.id;
+            closeBuyModal();
+            try {
+                const data = await API.post('api/shop.php?action=purchase', { product_id: productId });
+                if (data.success) {
+                    showAlert('兑换成功！已放入你的背包');
+                    loadBalance();
+                } else {
+                    showAlert(data.message || '兑换失败，积分不足？');
+                }
+            } catch (e) {
+                showAlert('兑换失败，请重试');
+            }
+        }
+
+        // ── Backpack ─────────────────────────────────────────
+        let backpackItems = [];
+        let pendingItems = [];
+        let productMap = {};
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr.replace(' ', 'T'));
+            return d.getMonth()+1 + '/' + d.getDate() + ' ' + d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+        }
+
+        function getProductImage(productId) {
+            const p = productMap[productId];
+            return p && p.image ? p.image : null;
+        }
+
+        function renderBackpackItem(item, idx, isPending) {
+            const rot = ((idx % 5) * 2 - 4).toFixed(0);
+            const image = getProductImage(item.product_id);
+            const statusLabels = { 'unused': '未使用', 'pending': '等待对方确认', 'used': '已使用' };
+            const statusColors = { 'unused': 'bg-stone-100 text-stone-500', 'pending': 'bg-amber-100 text-amber-600', 'used': 'bg-rose-100 text-rose-400' };
+            const status = item.status || 'unused';
+            const badgeText = statusLabels[status] || status;
+            const badgeColor = statusColors[status] || statusColors['unused'];
+
+            let actionBtn = '';
+            if (isPending) {
+                // Partner used this item, I need to confirm
+                actionBtn = `<button onclick="event.stopPropagation(); confirmItemUse('${item.id}')" class="shrink-0 bg-amber-400 text-white font-serif-sc font-bold text-[10px] px-4 py-2 rounded-full hover:bg-amber-500 transition-colors tracking-widest uppercase shadow-sm">确认</button>`;
+            } else if (status === 'unused') {
+                actionBtn = `<button onclick="event.stopPropagation(); useItem('${item.id}')" class="shrink-0 bg-stone-800 text-white font-serif-sc font-bold text-[10px] px-4 py-2 rounded-full hover:bg-stone-700 transition-colors tracking-widest uppercase shadow-sm">使用</button>`;
+            }
+
+            return `<div class="coupon-card p-4 flex items-center gap-4 sticker-item hover:scale-[1.02] transition-transform" style="transform:rotate(${rot}deg)">
+                <div class="w-14 h-14 rounded-xl overflow-hidden shrink-0 shadow-sm border border-stone-100 bg-stone-50 flex items-center justify-center">
+                    ${image ? '<img src="'+image+'" class="w-full h-full object-cover" loading="lazy">' : '<i class="fas fa-gift text-stone-300 text-lg"></i>'}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-serif-sc font-bold text-sm text-stone-700 truncate">${item.product_name}</h4>
+                    <p class="font-handwriting text-[10px] text-stone-400 mt-0.5">${formatDate(item.purchased_at)}</p>
+                </div>
+                <span class="font-serif-sc text-[9px] px-2 py-0.5 rounded-full ${badgeColor} tracking-wider shrink-0">${badgeText}</span>
+                ${actionBtn}
+            </div>`;
+        }
+
+        async function loadBackpackData() {
+            // Fetch items, pending confirmations, and products in parallel
+            const [itemsRes, pendingRes, productsRes] = await Promise.all([
+                API.get('api/virtual-items.php?action=get_my_items'),
+                API.get('api/virtual-items.php?action=get_pending_confirmations'),
+                allProducts.length ? { success: true, products: allProducts } : API.get('api/shop.php?action=get_all')
+            ]);
+
+            if (itemsRes.success) backpackItems = itemsRes.items || [];
+            if (pendingRes.success) pendingItems = pendingRes.items || [];
+
+            // Build product map from all available products
+            const products = productsRes.success ? (productsRes.products || []) : allProducts;
+            products.forEach(p => { productMap[p.id] = p; });
+            if (products.length > allProducts.length) allProducts = products;
+        }
+
+        function renderBackpack() {
+            const container = document.getElementById('backpack-items-container');
+            const empty = document.getElementById('backpack-empty');
+            const pendingSection = document.getElementById('backpack-pending-section');
+            const pendingContainer = document.getElementById('backpack-pending-container');
+
+            // Pending confirmations
+            if (pendingItems.length > 0) {
+                pendingSection.classList.remove('hidden');
+                pendingContainer.innerHTML = pendingItems.map((item, i) => renderBackpackItem(item, i, true)).join('');
+            } else {
+                pendingSection.classList.add('hidden');
+            }
+
+            // Owned items
+            if (backpackItems.length > 0) {
+                empty.classList.add('hidden');
+                container.innerHTML = backpackItems.map((item, i) => renderBackpackItem(item, i, false)).join('');
+            } else {
+                container.innerHTML = '';
+                empty.classList.remove('hidden');
+            }
+        }
+
+        async function openBackpack() {
+            document.getElementById('backpackModal').classList.remove('hidden');
+            // Show loading state
+            document.getElementById('backpack-items-container').innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-stone-300 text-xl"></i></div>';
+            document.getElementById('backpack-empty').classList.add('hidden');
+            document.getElementById('backpack-pending-section').classList.add('hidden');
+
+            try {
+                await loadBackpackData();
+                renderBackpack();
+            } catch (e) {
+                document.getElementById('backpack-items-container').innerHTML = '<div class="text-center py-8"><p class="font-serif-sc text-stone-400 text-sm">加载失败</p></div>';
+            }
+        }
+
+        function closeBackpack() {
+            document.getElementById('backpackModal').classList.add('hidden');
+        }
+
+        async function useItem(itemId) {
+            try {
+                const res = await API.post('api/virtual-items.php?action=use', { item_id: itemId });
+                if (res.success) {
+                    showAlert('已提交使用，等待对方确认');
+                    await loadBackpackData();
+                    renderBackpack();
+                } else {
+                    showAlert(res.message || '使用失败');
+                }
+            } catch (e) {
+                showAlert('操作失败，请重试');
+            }
+        }
+
+        async function confirmItemUse(itemId) {
+            try {
+                const res = await API.post('api/virtual-items.php?action=confirm', { item_id: itemId });
+                if (res.success) {
+                    showAlert('确认成功！');
+                    await loadBackpackData();
+                    renderBackpack();
+                } else {
+                    showAlert(res.message || '确认失败');
+                }
+            } catch (e) {
+                showAlert('操作失败，请重试');
+            }
+        }
+
+        let lastPendingCount = 0;
+
+        async function updateBackpackBadge() {
+            const badge = document.getElementById('backpack-pending-badge');
+            try {
+                const res = await API.get('api/virtual-items.php?action=get_pending_confirmations');
+                if (res.success && res.items && res.items.length > 0) {
+                    const count = res.items.length;
+                    badge.textContent = count;
+                    badge.classList.remove('hidden');
+                    // Show toast when new pending items appear
+                    if (count > lastPendingCount) {
+                        const names = res.items.map(i => i.product_name).join('、');
+                        showAlert('对方想要使用：' + names + '，请确认');
+                    }
+                    lastPendingCount = count;
+                } else {
+                    badge.classList.add('hidden');
+                    lastPendingCount = 0;
+                }
+            } catch (e) {
+                badge.classList.add('hidden');
+            }
+        }
+
+        // Poll for pending confirmations every 30s
+        setInterval(updateBackpackBadge, 30000);
+
+        // ── Category filter ─────────────────────────────────
+        const categoryMap = { '全部 (All)': null, '特权券': 'virtual', '实体礼物': 'physical' };
+        document.querySelectorAll('.font-serif-sc.text-xs.text-stone-500 span').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const label = this.innerText.trim();
+                const filter = categoryMap[label] !== undefined ? categoryMap[label] : label;
+                currentFilter = label;
+                // Update active style
+                this.parentElement.querySelectorAll('span').forEach(s => {
+                    s.className = s === this
+                        ? 'px-3 py-1 bg-white border border-stone-200 rounded-full cursor-pointer hover:bg-stone-50'
+                        : 'px-3 py-1 bg-transparent border border-transparent rounded-full cursor-pointer hover:text-rose-400';
+                });
+                loadProducts(filter);
+            });
+        });
+
+        // ── Observer ─────────────────────────────────────────
+        let observer;
+        document.addEventListener('DOMContentLoaded', () => {
+            // Remove pull-tab after entrance animation (0.7s + buffer)
+            setTimeout(() => {
+                const tab = document.getElementById('pull-tab');
+                if (tab) tab.style.display = 'none';
+            }, 800);
+
+            observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        setTimeout(() => { entry.target.classList.add('is-visible'); }, Math.random() * 200);
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
+            loadBalance();
+            loadProducts();
+            updateBackpackBadge();
+        });
+    </script>
+</body>
+</html>

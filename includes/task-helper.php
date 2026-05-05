@@ -125,16 +125,16 @@ function markTaskComplete($taskId, $userId) {
         error_log("用户已标记完成: {$userId}");
         return false;
     }
-    
+
+    // 只能一个人标记完成，另一方负责确认
+    if (!empty($data['daily_tasks'][$today][$taskIndex]['completed_by'])) {
+        error_log("对方已标记完成，请使用确认功能");
+        return false;
+    }
+
     // 标记完成
     $data['daily_tasks'][$today][$taskIndex]['completed_by'][] = $userId;
-    
-    // 检查是否双方都标记完成
-    if (count($data['daily_tasks'][$today][$taskIndex]['completed_by']) === 2) {
-        // 双方都标记完成，状态改为可领取
-        $data['daily_tasks'][$today][$taskIndex]['status'] = 'completed';
-    }
-    
+
     // 保存数据
     return safeWriteJSON(TASKS_FILE, $data);
 }
@@ -182,32 +182,41 @@ function confirmTaskComplete($taskId, $userId) {
             'message' => '已经确认过了'
         ];
     }
-    
-    // 检查自己是否已标记完成
-    if (!in_array($userId, $task['completed_by'])) {
+
+    // 不能确认自己完成的任务
+    if (in_array($userId, $task['completed_by'])) {
         return [
             'success' => false,
-            'message' => '你还未标记完成'
+            'message' => '不能确认自己完成的任务'
         ];
     }
-    
-    // 检查对方是否已标记完成
-    $otherUserId = $userId === 'shiqi' ? 'shisan' : 'shiqi';
-    if (!in_array($otherUserId, $task['completed_by'])) {
+
+    // 必须对方先标记完成
+    if (empty($task['completed_by'])) {
         return [
             'success' => false,
             'message' => '对方还未标记完成'
         ];
     }
-    
-    // 确认完成
+
+    // 确认完成并立即发放奖励
     $data['daily_tasks'][$today][$taskIndex]['confirmed_by'][] = $userId;
-    
-    // 检查是否双方都确认
-    if (count($data['daily_tasks'][$today][$taskIndex]['confirmed_by']) === 2) {
-        $data['daily_tasks'][$today][$taskIndex]['status'] = 'completed';
+    $data['daily_tasks'][$today][$taskIndex]['status'] = 'rewarded';
+
+    // 发放奖励给双方
+    $reward = $task['reward'];
+    $description = "完成任务：{$task['title']}";
+
+    $success1 = addBalance('id1', $reward, 'task', $description);
+    $success2 = addBalance('id2', $reward, 'task', $description);
+
+    if (!$success1 || !$success2) {
+        return [
+            'success' => false,
+            'message' => '奖励发放失败'
+        ];
     }
-    
+
     // 保存数据
     if (!safeWriteJSON(TASKS_FILE, $data)) {
         return [
@@ -215,11 +224,11 @@ function confirmTaskComplete($taskId, $userId) {
             'message' => '保存失败'
         ];
     }
-    
+
     return [
         'success' => true,
-        'message' => '确认成功',
-        'can_claim' => $data['daily_tasks'][$today][$taskIndex]['status'] === 'completed'
+        'message' => '确认成功，奖励已发放！',
+        'reward' => $reward
     ];
 }
 
@@ -252,7 +261,7 @@ function rejectTaskComplete($taskId, $userId) {
     }
     
     // 移除对方的完成标记
-    $otherUserId = $userId === 'shiqi' ? 'shisan' : 'shiqi';
+    $otherUserId = $userId === 'id1' ? 'id2' : 'id1';
     $completedBy = $data['daily_tasks'][$today][$taskIndex]['completed_by'];
     $data['daily_tasks'][$today][$taskIndex]['completed_by'] = array_values(
         array_filter($completedBy, function($id) use ($otherUserId) {
@@ -343,8 +352,8 @@ function claimTaskReward($taskId) {
     $reward = $task['reward'];
     $description = "完成任务：{$task['title']}";
     
-    $success1 = addBalance('shiqi', $reward, 'task', $description);
-    $success2 = addBalance('shisan', $reward, 'task', $description);
+    $success1 = addBalance('id1', $reward, 'task', $description);
+    $success2 = addBalance('id2', $reward, 'task', $description);
     
     if (!$success1 || !$success2) {
         return [

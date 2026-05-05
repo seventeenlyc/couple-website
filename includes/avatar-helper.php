@@ -33,7 +33,7 @@ function getUserAvatarUrl($username) {
     
     $avatarFile = $config['users'][$username]['avatar'] ?? null;
     
-    if ($avatarFile && file_exists($avatarFile)) {
+    if ($avatarFile && file_exists(__DIR__ . '/../' . $avatarFile)) {
         return $avatarFile;
     }
     
@@ -62,7 +62,7 @@ function hasUserAvatar($username) {
     
     $avatarFile = $config['users'][$username]['avatar'] ?? null;
     
-    return $avatarFile && file_exists($avatarFile);
+    return $avatarFile && file_exists(__DIR__ . '/../' . $avatarFile);
 }
 
 /**

@@ -68,7 +68,6 @@ function createSession($userName, $userId) {
  * @return bool 是否已登录
  */
 function isLoggedIn() {
-    initSession();
     return isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
 }
 
@@ -77,7 +76,6 @@ function isLoggedIn() {
  * @return string|null 用户名或null
  */
 function getCurrentUser() {
-    initSession();
     return isset($_SESSION['user_name']) ? $_SESSION['user_name'] : null;
 }
 
@@ -86,7 +84,6 @@ function getCurrentUser() {
  * @return string|null 用户ID或null
  */
 function getCurrentUserId() {
-    initSession();
     return isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
 }
 
@@ -123,7 +120,6 @@ function setPrivateAuthenticated($userId) {
  * @return bool 是否已认证
  */
 function isPrivateAuthenticated() {
-    initSession();
     return isset($_SESSION['private_authenticated']) && $_SESSION['private_authenticated'] === true;
 }
 
@@ -132,7 +128,6 @@ function isPrivateAuthenticated() {
  * @return string|null 用户ID或null
  */
 function getPrivateUser() {
-    initSession();
     return isset($_SESSION['private_user']) ? $_SESSION['private_user'] : null;
 }
 
@@ -145,8 +140,10 @@ function clearPrivateAuthentication() {
     $_SESSION['private_user'] = null;
 }
 
-// 自动初始化会话
+// 自动初始化会话，然后立即释放锁（$_SESSION 仍可读）
+// 需要写入会话的函数会通过 initSession() 自动重新打开
 initSession();
+session_write_close();
 
 /**
  * 设置一次性消息（Flash Message）
@@ -180,6 +177,5 @@ function getFlashMessage() {
  * @return bool 是否有消息
  */
 function hasFlashMessage() {
-    initSession();
     return isset($_SESSION['flash_message']);
 }

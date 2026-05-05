@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>我们的日常 · 第 ... 天</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Noto+Serif+SC:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            background-color: #fdfcf8;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            color: #4a4a4a;
+            overflow-x: hidden;
+        }
+
+        .font-serif-sc { font-family: 'Noto Serif SC', serif; }
+        .font-handwriting { font-family: 'Caveat', cursive; }
+
+        /* 磨砂胶带 */
+        .tape {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(2px);
+            border: 1px solid rgba(0,0,0,0.02);
+            z-index: 10;
+        }
+
+        /* 撕纸底板边缘风格 */
+        .torn-paper {
+            background: #fff;
+            position: relative;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+            /* 底部粉色撕边效果 */
+            background-image: linear-gradient(transparent 95%, #fca5a5 95%);
+            background-size: 100% 2rem;
+        }
+        .torn-paper::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -8px; bottom: 0; width: 16px;
+            background: radial-gradient(circle at 0 1rem, transparent 4px, #fff 5px);
+            background-size: 16px 2rem;
+            z-index: -1;
+        }
+
+        /* --- 新增：横线信纸背景（完美匹配截图） --- */
+        .ruled-bg {
+            background-color: white;
+            background-image: repeating-linear-gradient(transparent, transparent 39px, #fecdd3 39px, #fecdd3 40px);
+            background-position: 0 35px; /* 让第一条线刚好在标题下方 */
+        }
+        /* 确保文字完美坐在横线上 */
+        .line-h-40 { line-height: 40px; }
+
+        /* --- 撕掉便签页的动画效果 --- */
+        @keyframes tearOffPage {
+            0% { 
+                transform: rotate(0deg) translate(0, 0) skewX(0deg); 
+                opacity: 1; 
+                transform-origin: top right; 
+                box-shadow: 0 0 0 rgba(0,0,0,0);
+            }
+            15% { 
+                /* 模拟手指捏住右上角提起的动作 */
+                transform: rotate(3deg) translate(-2px, 3px) skewX(-2deg) scale(1.01); 
+                box-shadow: -5px 8px 15px rgba(0,0,0,0.08); 
+                opacity: 1; 
+            }
+            100% { 
+                /* 猛地撕下并飘走 */
+                transform: rotate(-20deg) translate(-50px, 150px) skewX(10deg) scale(0.85); 
+                opacity: 0; 
+                box-shadow: -15px 20px 30px rgba(0,0,0,0.15); 
+            }
+        }
+        
+        .anim-tear-off {
+            animation: tearOffPage 0.65s cubic-bezier(0.5, 0, 0.2, 1) forwards;
+            pointer-events: none; /* 撕掉过程中不能点击 */
+            z-index: 50; /* 确保飞在最前面 */
+        }
+
+        /* 瀑布流、邮票等其他样式保持不变 */
+        .masonry-grid { column-count: 1; column-gap: 2rem; }
+        @media (min-width: 768px) { .masonry-grid { column-count: 2; } }
+        .masonry-item { break-inside: avoid; margin-bottom: 2.5rem; }
+        @media (max-width: 767px) {
+            #photos-container .masonry-item {
+                max-width: 280px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+        }
+
+        .polaroid-card {
+            background: #ffffff;
+            padding: 10px 10px 35px 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            position: relative;
+        }
+
+        /* 回形针牛皮纸卡片 */
+        .clipped-photo {
+            background: #fef9ed;
+            padding: 12px 12px 20px 12px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            position: relative;
+            border: 1px solid rgba(180, 140, 100, 0.2);
+        }
+        .clipped-photo::before {
+            content: '📎';
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%) rotate(15deg);
+            font-size: 22px;
+            z-index: 5;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+        }
+
+        /* 横线本内页卡片 —— 照片像被钉在笔记本里 */
+        .noted-card {
+            background-color: #fffef9;
+            background-image: repeating-linear-gradient(transparent, transparent 27px, #e8ddd0 27px, #e8ddd0 28px);
+            background-position: 0 20px;
+            padding: 8px 12px 24px 12px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            position: relative;
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+        .noted-card::before {
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 18px;
+            height: 6px;
+            background: linear-gradient(180deg, #c0c0c0 0%, #aaa 40%, #c0c0c0 100%);
+            border-radius: 2px;
+            z-index: 5;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+        }
+
+        /* 虚线票据卡片 */
+        .ticket-frame {
+            background: #fff;
+            border: 2px dashed #e5d5c0;
+            padding: 12px 12px 16px 12px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            position: relative;
+        }
+        .ticket-frame::before, .ticket-frame::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 18px;
+            height: 18px;
+            background: #fdfcf8;
+            border-radius: 50%;
+            border: 2px dashed #e5d5c0;
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+        .ticket-frame::before { left: -11px; border-left-color: transparent; border-top-color: transparent; border-bottom-color: transparent; }
+        .ticket-frame::after { right: -11px; border-right-color: transparent; border-top-color: transparent; border-bottom-color: transparent; }
+        .action-stamp {
+            background: white;
+            padding: 8px;
+            border: 2px dashed #e5e7eb;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .shop-tag {
+            background: #fff9e6;
+            border: 1px solid #fde68a;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .task-note {
+            background: #fff;
+            border-left: 3px solid #fb7185;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.02);
+        }
+
+        @media (hover: hover) {
+            .polaroid-card:hover, .clipped-photo:hover, .noted-card:hover, .ticket-frame:hover, .action-stamp:hover {
+                transform: scale(1.05) rotate(0deg) !important;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+                z-index: 50;
+            }
+        }
+
+        .reveal-item { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
+        .reveal-item.is-visible { opacity: 1; transform: none; }
+        .modal-enter { animation: modalFadeIn 0.3s ease-out forwards; }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* ── 上传进度条（手账风） ── */
+        #upload-progress-wrap {
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+            margin: 0;
+        }
+        #upload-progress-wrap.active {
+            max-height: 120px;
+            opacity: 1;
+            margin: 1.25rem 0;
+        }
+        .upload-progress-track {
+            width: 100%;
+            height: 8px;
+            background: #f0ebe3;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .upload-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #e8c4a0 0%, #d4946a 50%, #c7784a 100%);
+            border-radius: 4px;
+            transition: width 0.2s ease;
+            position: relative;
+        }
+        .upload-progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 4px; right: 4px; bottom: 4px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 100%);
+            border-radius: 2px;
+        }
+        #upload-progress-text {
+            font-family: 'Caveat', cursive;
+            font-size: 16px;
+            color: #8b7355;
+        }
+
+        /* 反向页面过渡动画（从子页面回到首页） */
+        .page-enter-slide-up {
+            animation: slideUpPage 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes slideUpPage {
+            from { transform: translateY(105vh); }
+            to { transform: translateY(0); }
+        }
+        .page-enter-slide-left {
+            animation: slideLeftPage 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes slideLeftPage {
+            from { transform: translateX(105vw); }
+            to { transform: translateX(0); }
+        }
+        .page-enter-pull-down {
+            animation: pullDownPage 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes pullDownPage {
+            from { transform: translateY(-105vh); }
+            to { transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-20 selection:bg-rose-100 relative">
+
+    <!-- 【商店小标签】 -->
+    <a href="shop.html" id="shop-tag" onclick="goToShop(event)" class="absolute top-0 left-6 md:left-12 z-30 shop-tag px-3 pt-8 pb-3 flex flex-col items-center gap-1 -translate-y-5 hover:translate-y-0 focus:translate-y-0 outline-none group">
+        <div class="w-2 h-2 bg-stone-300 rounded-full mb-1 shadow-inner"></div>
+        <i class="fas fa-shopping-bag text-amber-400 text-lg group-hover:scale-110 transition-transform"></i>
+        <span class="font-handwriting text-amber-600 text-sm mt-1">Shop</span>
+    </a>
+
+    <!-- 【任务侧边索引贴】 -->
+    <div id="task-sidebar" class="fixed top-32 left-0 z-40 flex items-start -translate-x-[calc(100%-2rem)] transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]">
+        <div onclick="goToTasks(event)" class="bg-white border-l-0 border-r-4 border-rose-300 shadow-[4px_4px_15px_rgba(0,0,0,0.06)] p-5 w-48 relative cursor-pointer hover:bg-rose-50/30 transition-colors group/main">
+            <h4 class="font-serif-sc text-[10px] font-bold text-stone-400 mb-4 tracking-widest uppercase flex items-center justify-between">
+                Daily Tasks
+                <i class="fas fa-pen text-rose-200"></i>
+            </h4>
+            <ul id="sidebar-task-list" class="space-y-3 font-serif-sc text-xs text-stone-600">
+                <li class="flex items-center text-stone-400"><i class="fas fa-spinner fa-spin mr-2 text-rose-300 text-[10px]"></i> 加载中...</li>
+            </ul>
+            <p class="mt-4 text-[10px] text-rose-400 text-right opacity-0 group-hover/main:opacity-100 transition-opacity flex items-center justify-end gap-1">
+                点击进入详细 <i class="fas fa-arrow-right"></i>
+            </p>
+        </div>
+        <div onclick="toggleTaskPanel(event)" class="bg-rose-100 border border-rose-200 border-l-0 w-8 h-20 rounded-r-lg shadow-sm flex items-center justify-center mt-4 relative overflow-hidden cursor-pointer hover:bg-rose-200 transition-colors">
+            <i class="fas fa-caret-right absolute top-2 text-rose-300 text-[10px] animate-pulse"></i>
+            <!-- 这里也把字改成了粉色，贴近你的截图 -->
+            <span class="font-handwriting text-rose-500 text-lg rotate-90 tracking-widest translate-y-1 pointer-events-none">Tasks</span>
+        </div>
+    </div>
+
+    <div id="page-enter-wrapper">
+    <div class="max-w-4xl mx-auto px-5 md:px-12 pt-16 md:pt-20">
+
+        <!-- 【Identity】 -->
+        <header class="flex flex-col items-center mb-16 relative reveal-item is-visible">
+            <div class="absolute top-10 left-1/2 -translate-x-1/2 w-48 h-48 bg-rose-100/40 rounded-full blur-3xl -z-10"></div>
+            <div class="flex items-center justify-center gap-2 mb-6">
+                <div class="relative sticker-item -rotate-6 cursor-pointer group/avatar" onclick="document.getElementById('avatar-upload-left').click()" data-avatar-side="left">
+                    <div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-10 h-5 rotate-[4deg]"></div>
+                    <div class="w-16 h-16 md:w-20 md:h-20 bg-white p-1.5 shadow-md relative overflow-hidden">
+                        <img id="avatar-left" src="assets/images/default-avatar.svg" data-user-id="id1" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-stone-900/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                            <i class="fas fa-camera text-white text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+                <i class="fas fa-heart text-rose-200 text-xl mx-2 animate-pulse"></i>
+                <div class="relative sticker-item rotate-3 cursor-pointer group/avatar" onclick="document.getElementById('avatar-upload-right').click()" data-avatar-side="right">
+                    <div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-10 h-5 rotate-[-3deg]"></div>
+                    <div class="w-16 h-16 md:w-20 md:h-20 bg-white p-1.5 shadow-md relative overflow-hidden">
+                        <img id="avatar-right" src="assets/images/default-avatar.svg" data-user-id="id2" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-stone-900/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                            <i class="fas fa-camera text-white text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <input type="file" id="avatar-upload-left" accept="image/*" class="hidden" onchange="uploadAvatar(this, 'left')">
+            <input type="file" id="avatar-upload-right" accept="image/*" class="hidden" onchange="uploadAvatar(this, 'right')">
+            <div class="text-center">
+                <p id="since-date" class="font-serif-sc text-stone-400 text-xs tracking-[0.3em] uppercase mb-2">Since ...</p>
+                <p class="font-serif-sc text-6xl md:text-8xl font-black text-stone-800 tracking-tighter">
+                    <span id="love-days">...</span><span class="text-2xl md:text-3xl ml-1 font-normal text-stone-300">Days</span>
+                </p>
+            </div>
+        </header>
+
+        <!-- 【Dynamic Section】 -->
+        <div class="max-w-xl mx-auto mb-8">
+            <!-- 今日心情 Whisper -->
+            <div class="reveal-item">
+                <!-- 取消了 overflow-hidden，让撕掉的纸可以飞出边界 -->
+                <div style="transform: scale(0.7); transform-origin: top center;">
+                <div id="mood-card" onclick="refreshWhisper()" class="torn-paper p-8 md:p-10 group cursor-pointer hover:shadow-lg transition-shadow relative rotate-[-1deg]">
+                    
+                    <div id="new-whisper-badge" class="absolute -top-3 -right-2 bg-rose-400 text-white text-[10px] px-3 py-1 rounded-full shadow-lg z-20 animate-bounce hidden">
+                        New Whisper!
+                    </div>
+
+                    <!-- 动态便签内容的相对定位容器 -->
+                    <div id="whisper-container" class="relative">
+                        <!-- 加入了 ruled-bg 横线信纸背景 -->
+                        <div id="whisper-content" class="ruled-bg relative z-0 w-full pb-4">
+                            <!-- 标题 -->
+                            <p class="font-handwriting text-[28px] text-stone-800 mb-2">Today's Whisper </p>
+                            <!-- 文本：固定最小高度以防布局跳动，并使行高与横线背景对齐 -->
+                            <p id="quote-display" class="font-serif-sc text-stone-600 text-lg min-h-[120px] line-h-40 flex items-start">
+                                “今天也要开心呀，我在想你。✨”
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 下方的操作栏（不受撕纸动画影响） -->
+                    <div class="flex justify-center items-center mt-2 pt-4 relative z-10 bg-white group-hover:bg-rose-50/30 transition-colors">
+                        <span class="text-xs text-rose-300 font-serif-sc tracking-widest uppercase">CLICK TO TEAR OFF</span>
+                    </div>
+                </div>
+                </div><!-- /scale wrapper -->
+
+                <!-- 动作入口 (邮票样式居中) -->
+                <div class="flex gap-6 mt-10 justify-center">
+                    <div onclick="openRecordModal()" class="action-stamp rotate-[3deg] group sticker-item">
+                        <div class="bg-rose-50/50 p-4 flex flex-col items-center justify-center">
+                            <i class="fas fa-camera-retro text-2xl text-rose-300 mb-2 group-hover:scale-110 transition-transform"></i>
+                            <span class="font-serif-sc text-xs text-stone-600 font-bold tracking-widest">记录此刻</span>
+                        </div>
+                    </div>
+                    <a href="album.html" class="action-stamp -rotate-[2deg] group sticker-item">
+                        <div class="bg-blue-50/50 p-4 flex flex-col items-center justify-center">
+                            <i class="fas fa-images text-2xl text-blue-300 mb-2 group-hover:scale-110 transition-transform"></i>
+                            <span class="font-serif-sc text-xs text-stone-600 font-bold tracking-widest">时光相册</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 【Recent Flashes】 -->
+        <section class="reveal-item">
+            <div class="flex items-center gap-4 mb-12 max-w-3xl mx-auto">
+                <div class="h-[1px] flex-1 bg-stone-200"></div>
+                <h2 class="font-handwriting text-2xl text-stone-400">Recent Flashes</h2>
+                <div class="h-[1px] flex-1 bg-stone-200"></div>
+            </div>
+
+            <div id="photos-container" class="masonry-grid max-w-3xl mx-auto">
+                <div class="masonry-item text-center py-12"><i class="fas fa-spinner fa-spin text-stone-300 text-2xl"></i><p class="font-serif-sc text-stone-400 text-sm mt-3">正在翻开相册...</p></div>
+            </div>
+
+            <div class="text-center mt-12">
+                <a href="story.html" id="story-link" onclick="goToStory(event)" class="inline-flex items-center gap-2 font-serif-sc text-stone-400 hover:text-stone-800 transition-colors underline decoration-stone-200 underline-offset-8 decoration-2 text-sm tracking-widest uppercase">
+                    <i class="fas fa-scroll text-stone-300"></i>
+                    Our Story Timeline
+                </a>
+            </div>
+        </section>
+    </div>
+    </div>
+
+    <!-- 【隐私空间入口：根据截图增加了红色的信封图标提示】 -->
+    <a href="private.html" class="fixed bottom-8 right-8 z-30 w-14 h-14 bg-white shadow-xl rounded-2xl flex items-center justify-center text-rose-300 hover:scale-110 transition-transform group border border-stone-100 rotate-6 hover:rotate-0">
+         <i class="fas fa-envelope-open-text text-xl"></i>
+         <div class="absolute -top-1 -right-1 w-3 h-3 bg-rose-400 rounded-full animate-ping opacity-75"></div>
+         <div class="absolute -top-1 -right-1 w-3 h-3 bg-rose-400 rounded-full"></div>
+    </a>
+
+    <!-- 【记录弹窗】 -->
+    <div id="recordModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 modal-enter shadow-2xl relative">
+            <button onclick="closeRecordModal()" class="absolute top-6 right-6 text-stone-200 hover:text-stone-500"><i class="fas fa-times text-xl"></i></button>
+            <h3 class="font-serif-sc text-xl font-bold text-stone-800 mb-8 text-center tracking-widest">RECORD MOMENT</h3>
+            <div class="space-y-4">
+                <button onclick="document.getElementById('hidden-input').click()" class="w-full flex items-center justify-between p-4 rounded-2xl bg-stone-50 hover:bg-rose-50 transition-colors group">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-stone-300 group-hover:text-rose-400 shadow-sm"><i class="fas fa-camera"></i></div>
+                        <span class="font-serif-sc text-sm text-stone-600">上传相片 / 打开相机</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-stone-200"></i>
+                </button>
+                <input type="file" id="hidden-input" accept="image/*" class="hidden">
+
+                <!-- 上传进度条 -->
+                <div id="upload-progress-wrap">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-serif-sc text-[10px] text-stone-400 tracking-wider uppercase">Uploading</span>
+                        <span id="upload-progress-text">0%</span>
+                    </div>
+                    <div class="upload-progress-track">
+                        <div id="upload-progress-fill" class="upload-progress-fill"></div>
+                    </div>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-stone-50 space-y-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-stone-300 shadow-sm"><i class="fas fa-paper-plane"></i></div>
+                        <span class="font-serif-sc text-sm text-stone-600">写句悄悄话 (24h 见)</span>
+                    </div>
+                    <textarea id="whisper-input" placeholder="这句话将出现在对方首页..." class="w-full bg-white border-none rounded-xl p-3 text-sm focus:ring-1 focus:ring-rose-200 font-serif-sc outline-none shadow-inner" rows="3"></textarea>
+                    <button onclick="sendWhisper()" class="w-full bg-stone-800 text-white py-3 rounded-xl text-xs font-bold tracking-widest hover:bg-stone-700 transition-colors uppercase">Send Whisper</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义弹窗 -->
+    <div id="customAlert" class="fixed inset-0 flex items-center justify-center z-[100] hidden pointer-events-none">
+        <div class="bg-white rounded-2xl p-6 shadow-2xl transform scale-95 opacity-0 transition-all duration-300 border border-rose-100" id="alertContent">
+            <p class="font-serif-sc text-stone-600 text-center" id="alertText">消息内容</p>
+        </div>
+    </div>
+
+    <script src="assets/js/api-client.js"></script>
+    <script>
+        // ── Toast ────────────────────────────────────────────
+        function showAlert(msg) {
+            const modal = document.getElementById('customAlert');
+            const content = document.getElementById('alertContent');
+            const text = document.getElementById('alertText');
+            text.innerText = msg;
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            setTimeout(() => {
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => { modal.classList.add('hidden'); }, 300);
+            }, 2000);
+        }
+
+        // ── Whisper system ──────────────────────────────────
+        // AI-generated quote pool
+        const WHISPER_KEY = 'whisper_pool';
+        let currentQuote = '';
+        // Partner's new whisper (if any)
+        let newWhisperFromPartner = null;
+
+        function getWhisperPool() {
+            try {
+                const pool = JSON.parse(sessionStorage.getItem(WHISPER_KEY));
+                if (Array.isArray(pool) && pool.length > 0) return pool;
+            } catch (e) {}
+            return [];
+        }
+        function saveWhisperPool(pool) {
+            sessionStorage.setItem(WHISPER_KEY, JSON.stringify(pool));
+        }
+
+        function pickWhisperFromPool() {
+            const pool = getWhisperPool();
+            if (pool.length === 0) return false;
+            const idx = Math.floor(Math.random() * pool.length);
+            currentQuote = pool[idx];
+            document.getElementById('quote-display').innerText = currentQuote;
+            return true;
+        }
+
+        async function fetchAndStoreWhisper() {
+            try {
+                const data = await API.get('api/daily-quote.php');
+                if (data.success && data.quote) {
+                    const pool = getWhisperPool();
+                    if (!pool.includes(data.quote)) {
+                        pool.push(data.quote);
+                        saveWhisperPool(pool);
+                    }
+                    return data.quote;
+                }
+            } catch (e) {}
+            return null;
+        }
+
+        // Check if partner sent a new whisper
+        async function checkNewWhisper() {
+            try {
+                const res = await API.get('api/whispers.php?action=check');
+                if (res.success && res.has_new && res.whispers.length > 0) {
+                    newWhisperFromPartner = res.whispers[0]; // Show newest first
+                    document.getElementById('new-whisper-badge').classList.remove('hidden');
+                    document.getElementById('quote-display').innerText = '你有一句新的悄悄话...';
+                    return true;
+                }
+            } catch (e) {}
+            return false;
+        }
+
+        async function loadQuote() {
+            // 1) Check partner whisper first
+            const hasNew = await checkNewWhisper();
+            if (hasNew) return;
+            // 2) Try AI pool
+            if (pickWhisperFromPool()) return;
+            // 3) Fetch AI quote
+            const quote = await fetchAndStoreWhisper();
+            if (quote) {
+                currentQuote = quote;
+                document.getElementById('quote-display').innerText = currentQuote;
+            }
+        }
+
+        async function refreshWhisper() {
+            const container = document.getElementById('whisper-container');
+            const content = document.getElementById('whisper-content');
+            if (container.querySelector('.anim-tear-off')) return;
+
+            // If partner sent a new whisper, reveal it
+            if (newWhisperFromPartner) {
+                const whisper = newWhisperFromPartner;
+                // Reveal content
+                document.getElementById('quote-display').innerText = whisper.content;
+                document.getElementById('new-whisper-badge').classList.add('hidden');
+                newWhisperFromPartner = null;
+                // Mark as read on backend (also saves to private space)
+                try {
+                    await API.post('api/whispers.php?action=mark_read', { whisper_id: whisper.id });
+                } catch (e) {}
+                showAlert('悄悄话已存入隐私空间');
+                return;
+            }
+
+            // Regular AI pool refresh with tear-off animation
+            pickWhisperFromPool();
+            const tornPage = content.cloneNode(true);
+            tornPage.removeAttribute('id');
+            tornPage.className = 'ruled-bg anim-tear-off';
+            tornPage.style.position = 'absolute';
+            tornPage.style.top = '0'; tornPage.style.left = '0';
+            tornPage.style.width = '100%'; tornPage.style.height = '100%';
+            tornPage.style.margin = '0';
+            container.appendChild(tornPage);
+            setTimeout(() => { if (tornPage.parentNode) tornPage.parentNode.removeChild(tornPage); }, 700);
+            fetchAndStoreWhisper();
+        }
+
+        // ── Love days ───────────────────────────────────────
+        let appConfig = null;
+        async function loadLoveDays() {
+            try {
+                const data = await API.get('api/app-config.php');
+                if (data.success) {
+                    appConfig = data;
+                    document.getElementById('love-days').innerText = data.love_days;
+                    document.title = '我们的日常 · 第 ' + data.love_days + ' 天';
+                    // Format the start date nicely
+                    const [y, m, d] = data.startDate.split('-');
+                    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    document.getElementById('since-date').innerText = 'Since ' + monthNames[parseInt(m)-1] + ' ' + d + ', ' + y;
+                    // Load avatars
+                    if (data.avatars && data.avatars.length >= 2) {
+                        document.getElementById('avatar-left').src = data.avatars[0].avatar;
+                        document.getElementById('avatar-left').dataset.userId = data.avatars[0].user_id;
+                        document.getElementById('avatar-right').src = data.avatars[1].avatar;
+                        document.getElementById('avatar-right').dataset.userId = data.avatars[1].user_id;
+                    }
+                }
+            } catch (e) { /* keep default */ }
+        }
+
+        // ── Avatar upload ────────────────────────────────────
+        async function uploadAvatar(input, side) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            const imgEl = side === 'left' ? document.getElementById('avatar-left') : document.getElementById('avatar-right');
+            const formData = new FormData();
+            formData.append('avatar', file);
+            formData.append('csrf_token', await API.getCSRFToken());
+            formData.append('side', side);  // 'left' or 'right' — always available
+            try {
+                const res = await fetch('api/upload-avatar.php', { method: 'POST', credentials: 'same-origin', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    imgEl.src = data.avatarUrl + '?t=' + Date.now();
+                    showAlert('头像已更新');
+                } else {
+                    showAlert(data.message || '头像上传失败');
+                }
+            } catch (e) {
+                showAlert('上传失败，请重试');
+            }
+            input.value = '';
+        }
+
+        // ── Recent photos (4 random photos, fresh each refresh) ─
+        function renderPhotoCard(p, index) {
+            const imgPath = p.thumb_path || p.path || '';
+            const date = (p.uploaded_at || '').split(' ')[0] || '';
+            const tags = (p.tags || []).map(t => `<span class="text-[9px] font-serif-sc bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full tracking-wider">#${t}</span>`).join('');
+            const rot = ((Math.random() * 6) - 3).toFixed(1);
+            const footer = `<div class="flex flex-col items-center gap-1.5 mt-3">${tags ? '<div class="flex flex-wrap justify-center gap-1">'+tags+'</div>' : ''}${date ? '<p class="text-[10px] text-stone-400 text-center font-serif-sc tracking-wider">'+date+'</p>' : ''}</div>`;
+
+            switch (index % 4) {
+                case 0: // Polaroid
+                    return `<div class="masonry-item"><div class="polaroid-card sticker-item" style="transform:rotate(${rot}deg)"><div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-10 h-4"></div><img src="${imgPath}" class="w-full" loading="lazy" decoding="async">${footer}</div></div>`;
+                case 1: // Clipped photo (回形针牛皮纸)
+                    return `<div class="masonry-item"><div class="clipped-photo sticker-item" style="transform:rotate(${rot}deg)"><img src="${imgPath}" class="w-full" loading="lazy" decoding="async">${footer}</div></div>`;
+                case 2: // Noted (横线本内页)
+                    return `<div class="masonry-item"><div class="noted-card sticker-item" style="transform:rotate(${rot}deg)"><img src="${imgPath}" class="w-full" loading="lazy" decoding="async">${footer}</div></div>`;
+                case 3: // Ticket frame (虚线票据)
+                    return `<div class="masonry-item"><div class="ticket-frame sticker-item" style="transform:rotate(${rot}deg)"><img src="${imgPath}" class="w-full rounded" loading="lazy" decoding="async">${footer}</div></div>`;
+                default: return '';
+            }
+        }
+
+        async function loadRecentPhotos() {
+            const container = document.getElementById('photos-container');
+            try {
+                const data = await API.get('api/folders.php?action=list&context=album&all=1');
+                if (data.success && data.files && data.files.length > 0) {
+                    const photos = data.files.sort(() => Math.random() - 0.5).slice(0, 4);
+                    container.innerHTML = photos.map((p, i) => renderPhotoCard(p, i)).join('');
+                } else {
+                    container.innerHTML = '<div class="masonry-item text-center py-12"><p class="font-serif-sc text-stone-400 text-sm">还没有照片，去记录第一个瞬间吧</p></div>';
+                }
+            } catch (e) {
+                container.innerHTML = '<div class="masonry-item text-center py-12"><p class="font-serif-sc text-stone-400 text-sm">加载失败，请刷新重试</p></div>';
+            }
+        }
+
+        // ── Shop transition ──────────────────────────────────
+        function goToShop(e) {
+            e.preventDefault();
+            const tag = document.getElementById('shop-tag');
+            tag.style.transform = 'translateY(0) scale(1.05)';
+            tag.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            setTimeout(() => {
+                window.location.href = 'shop.html';
+            }, 350);
+        }
+
+        // ── Story transition ──────────────────────────────────
+        function goToStory(e) {
+            e.preventDefault();
+            const link = document.getElementById('story-link');
+            link.style.transform = 'translateY(-8px) scale(1.05)';
+            link.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            setTimeout(() => {
+                window.location.href = 'story.html';
+            }, 350);
+        }
+
+        // ── Sidebar tasks (synced with task page) ──────────────
+        async function loadSidebarTasks() {
+            const list = document.getElementById('sidebar-task-list');
+            try {
+                const data = await API.get('api/tasks.php?action=get_today');
+                if (data.success && data.tasks && data.tasks.length > 0) {
+                    list.innerHTML = data.tasks.map(t => {
+                        const done = t.state === 'done' || t.state === 'confirmed';
+                        const icon = done ? 'fas fa-check-square' : 'far fa-square';
+                        const iconColor = done ? 'text-stone-300' : 'text-rose-300';
+                        const textClass = done ? 'line-through opacity-40' : 'text-stone-600';
+                        return `<li class="flex items-center ${textClass}"><i class="${icon} mr-2 ${iconColor}"></i> ${t.title}</li>`;
+                    }).join('');
+                } else {
+                    list.innerHTML = '<li class="flex items-center text-stone-400"><i class="far fa-square mr-2 text-stone-300"></i> 今日暂无任务</li>';
+                }
+            } catch (e) {
+                list.innerHTML = '<li class="flex items-center text-stone-400"><i class="far fa-square mr-2 text-stone-300"></i> 任务加载失败</li>';
+            }
+        }
+
+        // ── Task sidebar ─────────────────────────────────────
+        function toggleTaskPanel(e) {
+            e.stopPropagation();
+            const sidebar = document.getElementById('task-sidebar');
+            sidebar.classList.toggle('translate-x-0');
+            sidebar.classList.toggle('-translate-x-[calc(100%-2rem)]');
+        }
+        function goToTasks(e) {
+            e.stopPropagation();
+            const sidebar = document.getElementById('task-sidebar');
+            sidebar.style.transform = 'translateX(0) scale(1.02)';
+            sidebar.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            setTimeout(() => {
+                window.location.href = 'task.html';
+            }, 350);
+        }
+        document.addEventListener('click', (e) => {
+            const sidebar = document.getElementById('task-sidebar');
+            if (sidebar && sidebar.classList.contains('translate-x-0') && !sidebar.contains(e.target)) {
+                sidebar.classList.remove('translate-x-0');
+                sidebar.classList.add('-translate-x-[calc(100%-2rem)]');
+            }
+        });
+
+        // ── Record modal ────────────────────────────────────
+        function openRecordModal() { document.getElementById('recordModal').classList.remove('hidden'); }
+        function closeRecordModal() { document.getElementById('recordModal').classList.add('hidden'); }
+
+        async function sendWhisper() {
+            const input = document.getElementById('whisper-input');
+            const msg = input.value.trim();
+            if (!msg) { showAlert('请先写点什么吧'); return; }
+            closeRecordModal();
+            try {
+                const res = await API.post('api/whispers.php?action=send', { content: msg });
+                if (res.success) {
+                    showAlert('悄悄话已发送给对方');
+                } else {
+                    showAlert(res.message || '发送失败');
+                }
+            } catch (e) {
+                showAlert('发送失败，请重试');
+            }
+            input.value = '';
+        }
+
+        // ── Photo upload ────────────────────────────────────
+        document.getElementById('hidden-input').addEventListener('change', async function() {
+            if (!this.files || !this.files[0]) return;
+            const file = this.files[0];
+            const formData = new FormData();
+            formData.append('photo', file);
+            formData.append('csrf_token', await API.getCSRFToken());
+
+            // 显示进度条
+            const wrap = document.getElementById('upload-progress-wrap');
+            const fill = document.getElementById('upload-progress-fill');
+            const text = document.getElementById('upload-progress-text');
+            wrap.classList.add('active');
+            fill.style.width = '0%';
+            text.textContent = '0%';
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', 'api/upload-photo.php', true);
+            xhr.withCredentials = true;
+
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const pct = Math.round((e.loaded / e.total) * 100);
+                    fill.style.width = pct + '%';
+                    text.textContent = pct + '%';
+                }
+            });
+
+            xhr.addEventListener('load', function() {
+                // 完成后短暂显示 100%，再收起
+                fill.style.width = '100%';
+                text.textContent = '100%';
+                setTimeout(() => { wrap.classList.remove('active'); }, 600);
+
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    if (data.success) {
+                        showAlert('照片上传成功！');
+                        closeRecordModal();
+                        loadRecentPhotos();
+                    } else {
+                        showAlert(data.message || '上传失败');
+                    }
+                } catch (e) {
+                    showAlert('上传失败，请重试');
+                }
+            });
+
+            xhr.addEventListener('error', function() {
+                wrap.classList.remove('active');
+                showAlert('上传失败，请重试');
+            });
+
+            xhr.send(formData);
+            this.value = '';
+        });
+
+        // ── Pending backpack confirmations ────────────────────
+        async function checkPendingConfirmations() {
+            try {
+                const res = await API.get('api/virtual-items.php?action=get_pending_confirmations');
+                if (res.success && res.items && res.items.length > 0) {
+                    const names = res.items.map(i => i.product_name).join('、');
+                    showAlert('对方想要使用：' + names + '，请前往背包确认');
+                }
+            } catch (e) { /* silent */ }
+        }
+
+        // ── Init ─────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            // 反向页面过渡动画
+            const from = sessionStorage.getItem('home_from');
+            if (from) {
+                sessionStorage.removeItem('home_from');
+                const wrapper = document.getElementById('page-enter-wrapper');
+                const animMap = {
+                    'shop': 'page-enter-slide-up',
+                    'tasks': 'page-enter-slide-left',
+                    'story': 'page-enter-pull-down'
+                };
+                if (wrapper && animMap[from]) {
+                    wrapper.classList.add(animMap[from]);
+                }
+            }
+
+            loadLoveDays();
+            loadQuote();
+            loadRecentPhotos();
+            loadSidebarTasks();
+            checkPendingConfirmations();
+
+            document.querySelectorAll('.sticker-item').forEach(el => {
+                const rot = (Math.random() * 6 - 3).toFixed(1);
+                el.style.transform = `rotate(${rot}deg)`;
+            });
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('is-visible'); });
+            }, { threshold: 0.1 });
+            document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
+        });
+    </script>
+</body>
+</html>

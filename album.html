@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>拾影 · 那些定格的瞬间</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Noto+Serif+SC:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            background-color: #fdfcf8;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            color: #4a4a4a;
+            overflow-x: hidden;
+        }
+
+        .font-serif-sc { font-family: 'Noto Serif SC', serif; }
+        .font-handwriting { font-family: 'Caveat', cursive; }
+
+        /* 磨砂胶带 */
+        .tape {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(2px);
+            border: 1px solid rgba(0,0,0,0.02);
+            z-index: 10;
+        }
+
+        /* 撕纸信纸风格 */
+        .torn-paper {
+            background: #fff;
+            position: relative;
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
+            background-image: linear-gradient(transparent 95%, #fca5a5 95%);
+            background-size: 100% 1.5rem;
+        }
+        .torn-paper::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -8px; bottom: 0; width: 16px;
+            background: radial-gradient(circle at 0 0.75rem, transparent 4px, #fff 5px);
+            background-size: 16px 1.5rem;
+            z-index: -1;
+        }
+
+        /* 横线信纸背景 */
+        .ruled-bg {
+            background-color: white;
+            background-image: repeating-linear-gradient(transparent, transparent 39px, #fecdd3 39px, #fecdd3 40px);
+            background-position: 0 35px;
+        }
+
+        /* 拍立得照片 */
+        .polaroid-card {
+            background: #ffffff;
+            padding: 10px 10px 35px 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            position: relative;
+        }
+
+        /* 邮票入口 / 文件夹 */
+        .action-stamp {
+            background: white;
+            padding: 12px;
+            border: 2px dashed #e5e7eb;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        /* 瀑布流 */
+        .masonry-grid { column-count: 1; column-gap: 2rem; }
+        @media (min-width: 640px) { .masonry-grid { column-count: 2; } }
+        @media (min-width: 1024px) { .masonry-grid { column-count: 3; } }
+        .masonry-item { break-inside: avoid; margin-bottom: 2.5rem; }
+
+        @media (hover: hover) {
+            .hover-lift:hover {
+                transform: scale(1.05) rotate(0deg) !important;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+                z-index: 50;
+            }
+        }
+
+        .reveal-item { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
+        .reveal-item.is-visible { opacity: 1; transform: none; }
+        
+        .modal-enter { animation: modalFadeIn 0.3s ease-out forwards; }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* ── 上传进度条（手账风） ── */
+        #upload-progress-wrap {
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+            margin: 0;
+        }
+        #upload-progress-wrap.active {
+            max-height: 140px;
+            opacity: 1;
+            margin-bottom: 1.5rem;
+        }
+        .upload-progress-track {
+            width: 100%;
+            height: 8px;
+            background: #f0ebe3;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .upload-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #e8c4a0 0%, #d4946a 50%, #c7784a 100%);
+            border-radius: 4px;
+            transition: width 0.2s ease;
+            position: relative;
+        }
+        .upload-progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 4px; right: 4px; bottom: 4px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 100%);
+            border-radius: 2px;
+        }
+        #upload-progress-text {
+            font-family: 'Caveat', cursive;
+            font-size: 16px;
+            color: #8b7355;
+        }
+
+        /* 隐藏滚动条 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="min-h-screen pb-24 selection:bg-rose-100 relative">
+
+    <!-- 【左上角：返回主页】 -->
+    <a href="home.html" class="absolute top-6 left-6 md:left-12 z-30 group sticker-item rotate-[-5deg] transition-transform">
+        <div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-8 h-4 rotate-[10deg]"></div>
+        <div class="bg-white p-3 shadow-md flex items-center justify-center border border-stone-100">
+            <i class="fas fa-home text-stone-400 group-hover:text-rose-400 transition-colors"></i>
+            <span class="font-handwriting text-stone-500 ml-2 mt-1">Home</span>
+        </div>
+    </a>
+
+    <!-- 【右上角：上传新照片】 -->
+    <div class="absolute top-6 right-6 md:right-12 z-30 group sticker-item rotate-[3deg] transition-transform cursor-pointer" onclick="openUploadModal()">
+        <div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-10 h-4 rotate-[-8deg]"></div>
+        <div class="bg-white px-4 py-2 shadow-md border border-stone-100 flex items-center gap-2">
+            <i class="fas fa-cloud-upload-alt text-blue-400 group-hover:text-blue-500 transition-colors"></i>
+            <span class="font-serif-sc font-bold text-stone-600 text-sm">上传</span>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto px-5 md:px-12 pt-28">
+        
+        <!-- 【页头区块】 -->
+        <header class="flex flex-col items-center mb-12 relative reveal-item is-visible">
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-blue-100/30 rounded-[100%] blur-3xl -z-10"></div>
+            <h1 class="font-handwriting text-5xl md:text-7xl text-stone-700 tracking-wider mb-2">Memories</h1>
+            <h2 class="font-serif-sc text-2xl md:text-3xl font-black text-stone-700 tracking-widest">时光相册</h2>
+            <p id="photo-count" class="font-serif-sc text-stone-400 text-xs tracking-widest mt-4">正在加载...</p>
+        </header>
+
+        <!-- 【工具栏：面包屑导航与筛选】 -->
+        <div class="reveal-item mb-10">
+            <!-- 移除了 torn-paper 横线背景，改为干净的纯白卡片底底 -->
+            <div class="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-stone-50 p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 rotate-[-1deg] relative">
+                <div class="tape top-[-8px] left-10 w-12 h-4 rotate-[2deg]"></div>
+                
+                <!-- 面包屑 -->
+                <div id="breadcrumb" class="flex items-center text-sm font-serif-sc text-stone-600 font-medium">
+                    <i class="fas fa-folder-open text-amber-400 mr-3 text-lg"></i>
+                    <span class="text-stone-800 font-bold">正在加载...</span>
+                </div>
+
+                <!-- 工具按钮 -->
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <div class="relative flex-1 md:w-48">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-stone-300 text-xs"></i>
+                        <input type="text" placeholder="搜索标签..." class="w-full bg-stone-50/50 backdrop-blur-sm border border-stone-100 rounded-full py-2 pl-8 pr-3 text-xs font-serif-sc text-stone-600 focus:outline-none focus:border-rose-200 focus:ring-1 focus:ring-rose-200 transition-colors">
+                    </div>
+                    <button onclick="openCreateFolderModal()" class="flex-shrink-0 bg-stone-800 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-stone-700 transition-colors shadow-md" title="新建文件夹">
+                        <i class="fas fa-folder-plus text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 【文件夹展示区】 -->
+        <div class="mb-12 reveal-item">
+            <h3 class="font-handwriting text-2xl text-stone-400 mb-6 flex items-center gap-3">
+                <i class="fas fa-archive text-sm"></i> Folders
+            </h3>
+            
+            <div id="folders-container" class="flex gap-4 overflow-x-auto pb-6 pt-2 px-2 no-scrollbar snap-x">
+                <div class="text-center py-4 text-stone-400 font-serif-sc text-sm">加载中...</div>
+            </div>
+        </div>
+
+        <!-- 【照片瀑布流展示区】 -->
+        <div class="reveal-item">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="h-[1px] flex-1 bg-stone-200"></div>
+                <h3 class="font-handwriting text-2xl text-stone-400"><i class="fas fa-camera-retro text-sm mr-2"></i>Photos</h3>
+                <div class="h-[1px] flex-1 bg-stone-200"></div>
+            </div>
+
+            <div id="photos-masonry" class="masonry-grid">
+                <div class="masonry-item text-center py-12">
+                    <i class="fas fa-spinner fa-spin text-stone-300 text-2xl"></i>
+                    <p class="font-serif-sc text-stone-400 text-sm mt-3">正在翻开相册...</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ==================== 极简无Emoji弹窗区 ==================== -->
+
+    <!-- 全屏图片查看弹窗 -->
+    <div id="photoViewerModal" class="fixed inset-0 bg-stone-900/90 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 md:p-10 opacity-0 transition-opacity duration-300" onclick="closeModal('photoViewerModal')">
+        <button onclick="closeModal('photoViewerModal')" class="absolute top-6 right-6 md:top-10 md:right-10 text-white/50 hover:text-white transition-colors z-50">
+            <i class="fas fa-times text-3xl"></i>
+        </button>
+        <!-- 使用超大号拍立得风格展示 -->
+        <div class="bg-white p-4 md:p-6 pb-12 md:pb-16 shadow-2xl max-w-4xl w-full max-h-full overflow-y-auto no-scrollbar transform scale-95 transition-transform duration-300" id="photoViewerContent" onclick="event.stopPropagation()">
+            <img id="viewerImage" src="" class="w-full h-auto max-h-[70vh] object-contain mb-6">
+            <h3 id="viewerTitle" class="font-handwriting text-3xl md:text-4xl text-stone-800 text-center mb-2"></h3>
+            <p id="viewerDesc" class="font-serif-sc text-stone-500 text-center text-sm mb-4"></p>
+            <div class="flex justify-center gap-4 border-t border-stone-100 pt-4 mt-4">
+                <button onclick="closeModal('photoViewerModal'); openMoveModal(currentPhoto.id, currentPhoto.title || currentPhoto.filename || '')" class="text-stone-400 hover:text-emerald-500 font-serif-sc text-xs tracking-widest uppercase transition-colors"><i class="fas fa-arrows-alt mr-1"></i> 移动</button>
+                <button onclick="closeModal('photoViewerModal'); confirmDeletePhoto()" class="text-stone-400 hover:text-red-500 font-serif-sc text-xs tracking-widest uppercase transition-colors"><i class="fas fa-trash mr-1"></i> 删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建文件夹/重命名 弹窗 -->
+    <div id="folderModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-6 opacity-0 transition-opacity duration-300">
+        <div class="bg-white w-full max-w-sm rounded-[1rem] p-8 shadow-2xl relative torn-paper rotate-[1deg] transform scale-95 transition-transform duration-300" id="folderModalContent">
+            <div class="tape top-[-10px] left-1/2 -translate-x-1/2 w-14 h-5 rotate-[-2deg]"></div>
+            <button onclick="closeModal('folderModal')" class="absolute top-5 right-5 text-stone-300 hover:text-stone-600 transition-colors"><i class="fas fa-times"></i></button>
+            
+            <div class="mt-2">
+                <h3 id="folderModalTitle" class="font-handwriting text-3xl text-stone-700 mb-6 text-center">New Folder</h3>
+                <div class="mb-8">
+                    <label class="block text-xs font-serif-sc text-stone-500 mb-2 uppercase tracking-widest">文件夹名称</label>
+                    <!-- 增加了背景透明度和高斯模糊 -->
+                    <input type="text" id="folderNameInput" placeholder="输入名称..." class="w-full bg-stone-50/40 backdrop-blur-sm border border-stone-200/50 rounded-xl p-4 text-stone-700 font-serif-sc focus:ring-1 focus:ring-rose-200 outline-none transition-shadow shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]">
+                </div>
+                <div class="flex gap-4">
+                    <button onclick="closeModal('folderModal')" class="flex-1 py-3 rounded-xl border border-stone-200 text-stone-500 font-serif-sc text-xs font-bold hover:bg-stone-50 transition-colors uppercase tracking-widest">取消</button>
+                    <button onclick="submitFolder()" class="flex-1 py-3 rounded-xl bg-stone-800 text-white font-serif-sc font-bold text-xs hover:bg-stone-700 transition-colors shadow-lg shadow-stone-800/20 uppercase tracking-widest">确认</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 移动照片 弹窗（图钉便签风） -->
+    <div id="moveModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-6 opacity-0 transition-opacity duration-300">
+        <div class="w-full max-w-sm transform scale-95 transition-transform duration-300 rotate-[-1deg]" id="moveModalContent">
+            <!-- 图钉 -->
+            <div class="relative z-20 flex justify-center">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-rose-300 to-rose-500 shadow-md" style="box-shadow: 2px 3px 6px rgba(0,0,0,0.25), inset -1px -2px 2px rgba(0,0,0,0.15), inset 1px 1px 2px rgba(255,255,255,0.4);"></div>
+                <div class="absolute top-2 w-4 h-4 rounded-full bg-rose-200/60 blur-[1px]"></div>
+            </div>
+            <!-- 便签纸 -->
+            <div class="bg-[#fef9ed] p-8 shadow-lg relative -mt-4" style="box-shadow: 3px 5px 15px rgba(0,0,0,0.12), 1px 2px 4px rgba(0,0,0,0.06);">
+                <!-- 胶带 -->
+                <div class="tape top-[-8px] left-8 w-10 h-4 rotate-[-6deg]"></div>
+                <button onclick="closeModal('moveModal')" class="absolute top-4 right-4 text-stone-300 hover:text-stone-500 transition-colors"><i class="fas fa-times"></i></button>
+
+                <div class="mt-2">
+                    <h3 class="font-handwriting text-3xl text-stone-700 mb-2 text-center">Move to</h3>
+                    <p id="movePhotoName" class="font-serif-sc text-stone-500 text-xs text-center mb-6 line-clamp-1">...</p>
+                    <div class="mb-8">
+                        <label class="block text-xs font-serif-sc text-stone-500 mb-2 uppercase tracking-widest">选择目标文件夹</label>
+                        <div class="relative">
+                            <select id="moveFolderSelect" class="w-full bg-white/60 backdrop-blur-sm border border-stone-200/60 rounded-xl p-4 text-stone-700 font-serif-sc focus:ring-1 focus:ring-rose-200 outline-none transition-shadow shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] appearance-none cursor-pointer">
+                                <option value="">根目录</option>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 text-xs pointer-events-none"></i>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="closeModal('moveModal')" class="flex-1 py-3 rounded-xl border border-stone-300 text-stone-500 font-serif-sc text-xs font-bold hover:bg-stone-50 transition-colors uppercase tracking-widest">取消</button>
+                        <button onclick="submitMove()" class="flex-1 py-3 rounded-xl bg-stone-800 text-white font-serif-sc font-bold text-xs hover:bg-stone-700 transition-colors shadow-lg shadow-stone-800/20 uppercase tracking-widest">移动</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认 弹窗（手账风） -->
+    <div id="confirmModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm hidden z-[60] flex items-center justify-center p-6 opacity-0 transition-opacity duration-200">
+        <div id="confirmModalContent" class="w-full max-w-xs transform scale-95 transition-transform duration-300 rotate-[2deg]">
+            <!-- 胶带 -->
+            <div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-12 h-5 rotate-[3deg] z-10"></div>
+            <div class="bg-white p-8 shadow-lg relative">
+                <!-- 撕边效果 -->
+                <div class="absolute top-0 left-0 right-0 h-1" style="background: repeating-linear-gradient(90deg, transparent, transparent 8px, #fef9ed 8px, #fef9ed 12px, transparent 12px, transparent 16px); transform: translateY(-1px);"></div>
+                <button onclick="closeConfirmModal(false)" class="absolute top-4 right-4 text-stone-300 hover:text-stone-500 transition-colors"><i class="fas fa-times"></i></button>
+                <div class="text-center pt-4">
+                    <i class="fas fa-exclamation-triangle text-amber-400/60 text-2xl mb-4 block"></i>
+                    <p id="confirmMessage" class="font-handwriting text-2xl text-stone-700 leading-relaxed mb-8">确定要删除吗？</p>
+                    <div class="flex gap-3">
+                        <button onclick="closeConfirmModal(false)" class="flex-1 py-3 rounded-full border border-stone-200 text-stone-500 font-serif-sc text-xs font-bold hover:bg-stone-50 transition-colors uppercase tracking-widest">取消</button>
+                        <button id="confirmBtn" onclick="closeConfirmModal(true)" class="flex-1 py-3 rounded-full bg-rose-400/80 text-white font-serif-sc font-bold text-xs hover:bg-rose-500 transition-colors shadow-lg shadow-rose-400/20 uppercase tracking-widest">确认删除</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传照片 弹窗 (横线信纸风) -->
+    <div id="uploadModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-6 opacity-0 transition-opacity duration-300">
+        <div class="w-full max-w-lg rounded-xl shadow-2xl relative torn-paper ruled-bg transform scale-95 transition-transform duration-300" id="uploadModalContent">
+            <!-- 胶带固定 -->
+            <div class="tape top-[-10px] left-4 w-12 h-5 rotate-[-5deg]"></div>
+            <div class="tape top-[-10px] right-4 w-12 h-5 rotate-[3deg]"></div>
+            
+            <button onclick="closeModal('uploadModal')" class="absolute top-4 right-4 text-stone-400 hover:text-stone-600 transition-colors bg-white/50 rounded-full w-8 h-8 flex items-center justify-center"><i class="fas fa-times"></i></button>
+            
+            <div class="p-8 pb-10">
+                <h3 class="font-handwriting text-4xl text-stone-800 text-center mb-6 pt-2">Upload Memory</h3>
+                
+                <div class="border-2 border-dashed border-stone-300 bg-stone-50/50 rounded-xl p-8 text-center cursor-pointer hover:bg-stone-100 hover:border-blue-300 transition-all mb-6 group" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-cloud-upload-alt text-4xl text-stone-300 mb-3 group-hover:text-blue-400 transition-colors"></i>
+                    <p class="font-serif-sc text-stone-600 text-sm">点击选择照片，或拖拽到此处</p>
+                    <p id="file-count-hint" class="font-serif-sc text-stone-400 text-xs mt-2 hidden">已选择 <span id="file-count">0</span> 张照片</p>
+                    <input type="file" id="fileInput" multiple accept="image/*" class="hidden" onchange="onFilesSelected(this)">
+                </div>
+
+                <!-- Photo preview strip -->
+                <div id="photo-preview" class="flex gap-2 overflow-x-auto pb-2 mb-6 no-scrollbar hidden">
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-xs font-serif-sc text-stone-500 mb-1 uppercase tracking-widest pl-1">保存至文件夹</label>
+                        <select id="uploadFolderSelect" class="w-full bg-transparent border-b border-stone-300 py-2 text-stone-700 font-serif-sc focus:outline-none focus:border-stone-500 appearance-none cursor-pointer">
+                            <option value="">根目录</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-serif-sc text-stone-500 mb-1 uppercase tracking-widest pl-1">批量标签 (逗号分隔)</label>
+                        <input type="text" placeholder="#旅行, #日常" class="w-full bg-transparent border-b border-stone-300 py-2 text-stone-700 font-serif-sc focus:outline-none focus:border-stone-500">
+                    </div>
+                </div>
+
+                <!-- 上传进度条 -->
+                <div id="upload-progress-wrap">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-serif-sc text-[10px] text-stone-400 tracking-wider uppercase">Uploading <span id="upload-progress-file">1/1</span></span>
+                        <span id="upload-progress-text">0%</span>
+                    </div>
+                    <div class="upload-progress-track">
+                        <div id="upload-progress-fill" class="upload-progress-fill"></div>
+                    </div>
+                </div>
+
+                <div class="mt-10 flex justify-center">
+                    <button onclick="submitUpload()" class="bg-stone-800 text-white font-serif-sc font-bold text-xs px-12 py-3 rounded-full hover:bg-stone-700 transition-colors shadow-lg uppercase tracking-widest">开始上传</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 极简轻提示弹窗 (Toast) -->
+    <div id="customAlert" class="fixed inset-0 flex items-center justify-center z-[110] hidden pointer-events-none">
+        <div class="bg-transparent transform scale-95 opacity-0 transition-all duration-300" id="alertContent">
+            <p class="font-serif-sc text-stone-600 text-center font-bold text-base tracking-widest drop-shadow-sm bg-white/90 backdrop-blur-md px-6 py-3 rounded-full border border-white" id="alertText">消息内容</p>
+        </div>
+    </div>
+
+    <script src="assets/js/api-client.js"></script>
+    <script>
+        // ── Globals ─────────────────────────────────────────
+        let currentPath = '';
+        let allFolders = [];
+        let allPhotos = [];
+        let currentPhoto = null;
+
+        // ── Toast ────────────────────────────────────────────
+        function showAlert(msg) {
+            const modal = document.getElementById('customAlert');
+            const content = document.getElementById('alertContent');
+            const text = document.getElementById('alertText');
+            
+            const rot = (Math.random() * 4 - 2).toFixed(1);
+            content.style.transform = `scale(0.95) rotate(${rot}deg)`;
+            
+            text.innerText = msg;
+            modal.classList.remove('hidden');
+            
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+                content.style.transform = `scale(1) rotate(${rot}deg)`;
+            }, 10);
+
+            setTimeout(() => {
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+                content.style.transform = `scale(0.95) rotate(${rot}deg)`;
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 300);
+            }, 2500);
+        }
+
+        // ── Modal helpers ────────────────────────────────────
+        function openModal(modalId, contentId) {
+            const modal = document.getElementById(modalId);
+            const content = document.getElementById(contentId);
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); modal.classList.add('opacity-100'); content.classList.remove('scale-95'); content.classList.add('scale-100'); }, 10);
+        }
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            const content = modal.querySelector('.transform, .scale-100');
+            if (content) { content.classList.remove('scale-100'); content.classList.add('scale-95'); }
+            modal.classList.remove('opacity-100'); modal.classList.add('opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); }, 300);
+        }
+
+        // ── Confirm dialog (replaces native confirm) ──────────
+        let _confirmResolve = null;
+        function showConfirm(message) {
+            return new Promise((resolve) => {
+                _confirmResolve = resolve;
+                document.getElementById('confirmMessage').innerText = message;
+                const modal = document.getElementById('confirmModal');
+                const content = document.getElementById('confirmModalContent');
+                const rot = ((Math.random() * 6) - 3).toFixed(1);
+                content.style.transform = `scale(0.9) rotate(${rot}deg)`;
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0'); modal.classList.add('opacity-100');
+                    content.classList.remove('scale-95'); content.classList.add('scale-100');
+                    content.style.transform = `scale(1) rotate(${rot}deg)`;
+                }, 10);
+            });
+        }
+        function closeConfirmModal(confirmed) {
+            const modal = document.getElementById('confirmModal');
+            const content = document.getElementById('confirmModalContent');
+            content.classList.remove('scale-100'); content.classList.add('scale-95');
+            modal.classList.remove('opacity-100'); modal.classList.add('opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); if (_confirmResolve) { _confirmResolve(confirmed); _confirmResolve = null; } }, 200);
+        }
+
+        // ── Data loading ────────────────────────────────────
+        async function loadAlbum(path) {
+            currentPath = path || '';
+            try {
+                const data = await API.get('api/folders.php?action=list&context=album&path=' + encodeURIComponent(currentPath));
+                if (data.success) {
+                    allFolders = data.folders || [];
+                    allPhotos = data.files || [];
+                    renderBreadcrumbs(data.breadcrumbs || []);
+                    renderFolders();
+                    renderPhotos();
+                    updatePhotoCount(data.total_count ?? allPhotos.length);
+                    updateFolderSelects();
+                }
+            } catch (e) { showAlert('加载失败，请刷新重试'); }
+        }
+
+        function updatePhotoCount(total) {
+            document.getElementById('photo-count').innerText = '已收集 ' + (total || allPhotos.length) + ' 个美好瞬间';
+        }
+
+        function renderBreadcrumbs(breadcrumbs) {
+            const bc = document.getElementById('breadcrumb');
+            let html = '<i class="fas fa-folder-open text-amber-400 mr-3 text-lg"></i>';
+            html += '<a href="#" onclick="navigateTo(\'\');return false" class="hover:text-rose-400 transition-colors">根目录</a>';
+            breadcrumbs.forEach((crumb, i) => {
+                html += '<span class="mx-2 text-stone-300">/</span>';
+                if (i === breadcrumbs.length - 1) {
+                    html += '<span class="text-stone-800 font-bold">' + crumb.name + '</span>';
+                } else {
+                    html += '<a href="#" onclick="navigateTo(\'' + crumb.path + '\');return false" class="hover:text-rose-400 transition-colors">' + crumb.name + '</a>';
+                }
+            });
+            bc.innerHTML = html;
+        }
+
+        function renderFolders() {
+            const container = document.getElementById('folders-container');
+            if (allFolders.length === 0) {
+                container.innerHTML = '<p class="text-stone-400 font-serif-sc text-sm py-4">暂无文件夹，点击 + 创建</p>';
+                return;
+            }
+            container.innerHTML = allFolders.map((f, i) => {
+                const rot = ((i % 3) - 1) * 2;
+                return `<div class="snap-start flex-shrink-0 w-36 action-stamp group hover-lift relative" style="transform:rotate(${rot}deg)" onclick="navigateTo('${f.path}')">
+                    <div class="text-center py-4">
+                        <i class="fas fa-folder text-4xl text-amber-300 mb-3 group-hover:scale-110 transition-transform"></i>
+                        <h4 class="font-serif-sc font-bold text-stone-700 text-sm truncate px-2">${f.name}</h4>
+                        <p class="font-serif-sc text-[10px] text-stone-400 mt-1">${f.file_count || 0} 张照片</p>
+                    </div>
+                    <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="event.stopPropagation(); openRenameModal('${f.path}', '${f.name.replace(/'/g, "\\'")}')" class="w-6 h-6 bg-white border border-stone-100 rounded-full flex items-center justify-center text-stone-400 hover:text-blue-500 shadow-sm"><i class="fas fa-pen text-[10px]"></i></button>
+                        <button onclick="event.stopPropagation(); deleteFolder('${f.path}', '${f.name.replace(/'/g, "\\'")}')" class="w-6 h-6 bg-white border border-stone-100 rounded-full flex items-center justify-center text-stone-400 hover:text-red-500 shadow-sm"><i class="fas fa-trash text-[10px]"></i></button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderPhotos() {
+            const container = document.getElementById('photos-masonry');
+            if (allPhotos.length === 0) {
+                container.innerHTML = '<div class="masonry-item text-center py-12"><p class="font-serif-sc text-stone-400 text-sm">这个文件夹还是空的</p></div>';
+                return;
+            }
+            container.innerHTML = allPhotos.map((p, i) => {
+                const rot = ((i % 5) - 2);
+                const title = p.title || p.filename || '';
+                const desc = p.description || '';
+                const tags = (p.tags || []).map(t => '<span class="text-[9px] font-serif-sc bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full tracking-wider">#'+t+'</span>').join('');
+                const date = (p.uploaded_at || '').split(' ')[0] || '';
+                const author = p.uploaded_by || '';
+                const imgPath = p.thumb_path || p.path || '';
+                return `<div class="masonry-item"><div class="polaroid-card hover-lift group sticker-item" style="transform:rotate(${rot}deg)">
+                    <div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-12 h-5 rotate-[${(i%3)*4-4}deg]"></div>
+                    <div class="relative overflow-hidden cursor-pointer" onclick="viewPhoto('${p.id}')">
+                        <div class="absolute inset-0 bg-stone-900/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3 z-10">
+                            <button onclick="event.stopPropagation(); viewPhoto('${p.id}')" class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-stone-700 hover:text-blue-500 hover:scale-110 transition-all shadow-lg"><i class="fas fa-expand"></i></button>
+                            <button onclick="event.stopPropagation(); openMoveModal('${p.id}', '${title.replace(/'/g, "\\'")}')" class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-stone-700 hover:text-emerald-500 hover:scale-110 transition-all shadow-lg"><i class="fas fa-arrows-alt"></i></button>
+                            <button onclick="event.stopPropagation(); deletePhoto('${p.id}', '${title.replace(/'/g, "\\'")}')" class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-stone-700 hover:text-red-500 hover:scale-110 transition-all shadow-lg"><i class="fas fa-trash"></i></button>
+                        </div>
+                        <img src="${imgPath}" class="w-full h-auto object-cover" loading="lazy">
+                    </div>
+                    <div class="pt-4 px-2">
+                        <h4 class="font-handwriting text-2xl text-stone-700 text-center mb-2">${title}</h4>
+                        ${desc ? '<p class="font-serif-sc text-xs text-stone-500 text-center mb-3 line-clamp-1">'+desc+'</p>' : ''}
+                        ${tags ? '<div class="flex flex-wrap justify-center gap-1 mb-2">'+tags+'</div>' : ''}
+                        <div class="flex justify-between items-center text-[9px] text-stone-300 font-serif-sc border-t border-stone-50 pt-2 mt-2">
+                            ${author ? '<span><i class="fas fa-pen-nib mr-1"></i>'+author+'</span>' : '<span></span>'}
+                            ${date ? '<span><i class="far fa-calendar-alt mr-1"></i>'+date+'</span>' : ''}
+                        </div>
+                    </div>
+                </div></div>`;
+            }).join('');
+        }
+
+        function updateFolderSelects() {
+            const options = '<option value="">根目录</option>' + allFolders.map(f => '<option value="'+f.path+'">'+f.name+'</option>').join('');
+            ['uploadFolderSelect', 'moveFolderSelect'].forEach(id => {
+                const sel = document.getElementById(id);
+                if (sel) sel.innerHTML = options;
+            });
+        }
+
+        function navigateTo(path) {
+            loadAlbum(path);
+            const uploadSelect = document.getElementById('uploadFolderSelect');
+            if (uploadSelect && path) {
+                const opt = uploadSelect.querySelector('option[value="'+path+'"]');
+                if (opt) opt.selected = true;
+            }
+        }
+
+        // ── Photo viewer ────────────────────────────────────
+        function viewPhoto(photoId) {
+            currentPhoto = allPhotos.find(p => p.id === photoId);
+            if (!currentPhoto) return;
+            document.getElementById('viewerImage').src = currentPhoto.path;
+            document.getElementById('viewerTitle').innerText = currentPhoto.title || currentPhoto.filename || '';
+            document.getElementById('viewerDesc').innerText = currentPhoto.description || '';
+            openModal('photoViewerModal', 'photoViewerContent');
+        }
+
+        // ── Folder CRUD ─────────────────────────────────────
+        function openCreateFolderModal() {
+            document.getElementById('folderModalTitle').innerText = 'New Folder';
+            document.getElementById('folderNameInput').value = '';
+            window._folderAction = 'create';
+            window._folderOldPath = '';
+            openModal('folderModal', 'folderModalContent');
+        }
+        function openRenameModal(folderPath, currentName) {
+            document.getElementById('folderModalTitle').innerText = 'Rename';
+            document.getElementById('folderNameInput').value = currentName;
+            window._folderAction = 'rename';
+            window._folderOldPath = folderPath;
+            openModal('folderModal', 'folderModalContent');
+        }
+        async function submitFolder() {
+            const name = document.getElementById('folderNameInput').value.trim();
+            if (!name) { showAlert('请输入文件夹名称'); return; }
+            const action = window._folderAction || 'create';
+            closeModal('folderModal');
+            try {
+                let res;
+                if (action === 'create') {
+                    res = await API.post('api/folders.php?action=create&context=album', { folder_name: name, parent_path: currentPath });
+                } else {
+                    res = await API.post('api/folders.php?action=rename&context=album', { folder_path: window._folderOldPath, new_name: name });
+                }
+                if (res.success) { showAlert('操作成功'); loadAlbum(currentPath); }
+                else { showAlert(res.message || '操作失败'); }
+            } catch (e) { showAlert('操作失败'); }
+        }
+        async function deleteFolder(folderPath, folderName) {
+            if (!await showConfirm('确定要删除文件夹「'+folderName+'」吗？\n删除后不可恢复。')) return;
+            try {
+                const res = await API.post('api/folders.php?action=delete&context=album', { folder_path: folderPath });
+                if (res.success) { showAlert('删除成功'); loadAlbum(currentPath); }
+                else { showAlert(res.message || '删除失败'); }
+            } catch (e) { showAlert('删除失败'); }
+        }
+
+        // ── Photo operations ────────────────────────────────
+        function openMoveModal(photoId, photoTitle) {
+            currentPhoto = allPhotos.find(p => p.id === photoId);
+            document.getElementById('movePhotoName').innerText = '当前: ' + (photoTitle || '照片');
+            document.getElementById('moveFolderSelect').value = '';
+            openModal('moveModal', 'moveModalContent');
+        }
+        async function submitMove() {
+            if (!currentPhoto) return;
+            const targetPath = document.getElementById('moveFolderSelect').value;
+            closeModal('moveModal');
+            try {
+                const res = await API.post('api/folders.php?action=move&context=album', { file_id: currentPhoto.id, target_path: targetPath });
+                if (res.success) { showAlert('移动成功'); loadAlbum(currentPath); }
+                else { showAlert(res.message || '移动失败'); }
+            } catch (e) { showAlert('移动失败'); }
+        }
+        async function deletePhoto(photoId, photoTitle) {
+            if (!await showConfirm('确定要删除照片「'+photoTitle+'」吗？\n删除后不可恢复。')) return;
+            try {
+                const res = await API.post('api/photos.php', { action: 'delete', photo_id: photoId });
+                if (res.success) { showAlert('删除成功'); loadAlbum(currentPath); }
+                else { showAlert(res.message || '删除失败'); }
+            } catch (e) { showAlert('删除失败'); }
+        }
+        async function confirmDeletePhoto() {
+            if (!currentPhoto) return;
+            await deletePhoto(currentPhoto.id, currentPhoto.title || currentPhoto.filename || '');
+        }
+
+        // ── Upload ──────────────────────────────────────────
+        function openUploadModal() {
+            // Reset preview
+            document.getElementById('photo-preview').classList.add('hidden');
+            document.getElementById('photo-preview').innerHTML = '';
+            document.getElementById('file-count-hint').classList.add('hidden');
+            document.getElementById('fileInput').value = '';
+            // Refresh folder list from root (independent of current navigation)
+            refreshUploadFolders();
+            openModal('uploadModal', 'uploadModalContent');
+        }
+
+        async function refreshUploadFolders() {
+            try {
+                const data = await API.get('api/folders.php?action=list&context=album&path=');
+                if (data.success) {
+                    const options = '<option value="">根目录</option>' + (data.folders || []).map(f => '<option value="'+f.path+'">'+f.name+'</option>').join('');
+                    const sel = document.getElementById('uploadFolderSelect');
+                    if (sel) {
+                        sel.innerHTML = options;
+                        // Default to current subfolder if browsing one
+                        if (currentPath) sel.value = currentPath;
+                    }
+                }
+            } catch (e) { /* keep existing options */ }
+        }
+
+        function onFilesSelected(input) {
+            const preview = document.getElementById('photo-preview');
+            const hint = document.getElementById('file-count-hint');
+            const countSpan = document.getElementById('file-count');
+            preview.innerHTML = '';
+
+            if (!input.files || input.files.length === 0) {
+                preview.classList.add('hidden');
+                hint.classList.add('hidden');
+                return;
+            }
+
+            hint.classList.remove('hidden');
+            countSpan.textContent = input.files.length;
+            preview.classList.remove('hidden');
+
+            // Show up to 6 thumbnails (at least 1)
+            const showCount = Math.min(input.files.length, 6);
+            for (let i = 0; i < showCount; i++) {
+                const file = input.files[i];
+                const reader = new FileReader();
+                const thumb = document.createElement('div');
+                thumb.className = 'flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-stone-100 relative';
+                const img = document.createElement('img');
+                img.className = 'w-full h-full object-cover';
+                thumb.appendChild(img);
+                if (i === showCount - 1 && input.files.length > 6) {
+                    const badge = document.createElement('div');
+                    badge.className = 'absolute inset-0 bg-stone-900/50 flex items-center justify-center';
+                    badge.innerHTML = '<span class="font-serif-sc text-white text-xs font-bold">+'+ (input.files.length - 5) +'</span>';
+                    thumb.appendChild(badge);
+                }
+                preview.appendChild(thumb);
+                reader.onload = (function(imgEl) { return function(e) { imgEl.src = e.target.result; }; })(img);
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function uploadFile(file, folder, tags, onProgress) {
+            return new Promise((resolve, reject) => {
+                API.getCSRFToken().then(csrf => {
+                    const formData = new FormData();
+                    formData.append('photo', file);
+                    formData.append('folder_path', folder);
+                    formData.append('tags', tags);
+                    formData.append('csrf_token', csrf);
+
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', 'api/upload-photo.php', true);
+                    xhr.withCredentials = true;
+
+                    xhr.upload.addEventListener('progress', function(e) {
+                        if (e.lengthComputable && typeof onProgress === 'function') {
+                            onProgress(Math.round((e.loaded / e.total) * 100));
+                        }
+                    });
+
+                    xhr.addEventListener('load', function() {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            resolve({ success: data.success, message: data.message || '' });
+                        } catch (e) {
+                            reject(e);
+                        }
+                    });
+
+                    xhr.addEventListener('error', function() {
+                        reject(new Error('Network error'));
+                    });
+
+                    xhr.send(formData);
+                }).catch(reject);
+            });
+        }
+
+        async function submitUpload() {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files || fileInput.files.length === 0) { showAlert('请选择照片'); return; }
+            const folder = document.getElementById('uploadFolderSelect').value || '';
+            const tags = document.querySelector('#uploadModal input[type="text"]').value || '';
+            const total = fileInput.files.length;
+
+            // 显示进度条
+            const wrap = document.getElementById('upload-progress-wrap');
+            const fill = document.getElementById('upload-progress-fill');
+            const pctText = document.getElementById('upload-progress-text');
+            const fileLabel = document.getElementById('upload-progress-file');
+            wrap.classList.add('active');
+            fill.style.width = '0%';
+            pctText.textContent = '0%';
+            fileLabel.textContent = '1/' + total;
+
+            for (let i = 0; i < total; i++) {
+                const file = fileInput.files[i];
+                fileLabel.textContent = (i + 1) + '/' + total;
+                fill.style.width = '0%';
+                pctText.textContent = '0%';
+
+                try {
+                    const result = await uploadFile(file, folder, tags, (pct) => {
+                        fill.style.width = pct + '%';
+                        pctText.textContent = pct + '%';
+                    });
+                    if (result.success !== undefined && !result.success) {
+                        wrap.classList.remove('active');
+                        showAlert(result.message || '上传失败');
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Upload error:', e);
+                    wrap.classList.remove('active');
+                    showAlert('上传失败');
+                    return;
+                }
+            }
+
+            // 完成后短暂显示全满再收起
+            fill.style.width = '100%';
+            pctText.textContent = '100%';
+            setTimeout(() => { wrap.classList.remove('active'); }, 600);
+
+            showAlert(total > 1 ? '已上传 ' + total + ' 张照片' : '上传成功！');
+            closeModal('uploadModal');
+            setTimeout(() => location.reload(), 600);
+            fileInput.value = '';
+            document.getElementById('photo-preview').classList.add('hidden');
+            document.getElementById('photo-preview').innerHTML = '';
+            document.getElementById('file-count-hint').classList.add('hidden');
+        }
+
+        // ── Search ──────────────────────────────────────────
+        const searchInput = document.querySelector('#breadcrumb').parentElement.querySelector('input');
+        if (searchInput) {
+            let searchTimer;
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(() => {
+                    const keyword = this.value.trim();
+                    if (keyword) {
+                        const filtered = allPhotos.filter(p => (p.tags || []).some(t => t.includes(keyword)) || (p.title || '').includes(keyword));
+                        allPhotos = filtered;
+                    }
+                    renderPhotos();
+                    if (!keyword) loadAlbum(currentPath);
+                }, 400);
+            });
+        }
+
+        // ── Init ─────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAlbum('');
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        setTimeout(() => { entry.target.classList.add('is-visible'); }, Math.random() * 150);
+                    }
+                });
+            }, { threshold: 0.1 });
+            document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
+        });
+    </script>
+</body>
+</html>

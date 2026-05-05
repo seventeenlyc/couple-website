@@ -15,28 +15,34 @@ try {
         exit();
     }
 
+    // Support JSON input
+    $input = $_POST;
+    if (empty($input)) {
+        $input = json_decode(file_get_contents('php://input'), true) ?: [];
+    }
+
     // 获取操作类型
-    $action = $_POST['action'] ?? '';
-    
+    $action = $input['action'] ?? '';
+
     if ($action !== 'delete') {
         echo json_encode(['success' => false, 'message' => '无效的操作: ' . $action], JSON_UNESCAPED_UNICODE);
         exit();
     }
 
     // 验证CSRF令牌
-    $csrfToken = $_POST['csrf_token'] ?? '';
+    $csrfToken = $input['csrf_token'] ?? '';
     $expectedToken = $_SESSION['csrf_token'] ?? '';
-    
+
     if (empty($expectedToken) || $csrfToken !== $expectedToken) {
         echo json_encode([
-            'success' => false, 
+            'success' => false,
             'message' => 'CSRF验证失败'
         ], JSON_UNESCAPED_UNICODE);
         exit();
     }
 
     // 获取照片ID
-    $photoId = $_POST['photo_id'] ?? '';
+    $photoId = $input['photo_id'] ?? '';
     
     if (empty($photoId)) {
         echo json_encode([

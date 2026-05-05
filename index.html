@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>扉页 · 翻开我们的回忆</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Noto+Serif+SC:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #fdfcf8;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            color: #4a4a4a;
+            overflow-x: hidden;
+        }
+
+        .font-serif-sc { font-family: 'Noto Serif SC', serif; }
+        .font-handwriting { font-family: 'Caveat', cursive; }
+
+        /* 磨砂胶带 */
+        .tape {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(2px);
+            border: 1px solid rgba(0,0,0,0.02);
+            z-index: 10;
+        }
+
+        /* 横线信纸背景 */
+        .ruled-bg {
+            background-color: white;
+            background-image: repeating-linear-gradient(transparent, transparent 39px, #fecdd3 39px, #fecdd3 40px);
+            background-position: 0 35px; /* 对齐第一条线 */
+        }
+
+        /* 撕纸信纸风格 */
+        .torn-paper {
+            position: relative;
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
+            /* 底部撕边 */
+            background-image: linear-gradient(transparent 95%, #fca5a5 95%);
+            background-size: 100% 2rem;
+        }
+        .torn-paper::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -8px; bottom: 0; width: 16px;
+            background: radial-gradient(circle at 0 1rem, transparent 4px, white 5px); /* 边缘打孔白底 */
+            background-size: 16px 2rem;
+            z-index: -1;
+        }
+
+        /* 拍立得照片 (作为背景装饰) */
+        .polaroid-card {
+            background: #ffffff;
+            padding: 8px 8px 24px 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            position: absolute;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* 鼠标点击特效 */
+        .click-star {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            font-size: 12px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(2deg); }
+        }
+        .anim-float { animation: float 6s ease-in-out infinite; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-5 selection:bg-rose-100 relative">
+
+    <!-- 背景装饰：散落的拍立得照片 (仅在大屏幕显示) -->
+    <div class="hidden md:block polaroid-card rotate-[-12deg] left-10 top-20 w-48 opacity-70">
+        <div class="tape top-[-10px] left-1/2 -translate-x-1/2 w-10 h-5 rotate-[5deg]"></div>
+        <div class="bg-rose-50 w-full h-40 flex items-center justify-center">
+            <i class="fas fa-heart text-4xl text-rose-200"></i>
+        </div>
+    </div>
+    <div class="hidden md:block polaroid-card rotate-[8deg] right-12 bottom-20 w-40 opacity-60">
+        <div class="tape top-[-8px] right-2 w-8 h-4 rotate-[-15deg]"></div>
+        <div class="bg-amber-50 w-full h-32 flex items-center justify-center">
+            <i class="fas fa-camera-retro text-3xl text-amber-200"></i>
+        </div>
+    </div>
+
+    <!-- 主体登录卡片 -->
+    <div class="w-full max-w-md relative z-10 anim-float">
+        <!-- 引入了 ruled-bg 让它变成带横线的信纸 -->
+        <div class="torn-paper ruled-bg p-8 md:p-12 rotate-[1deg] hover:rotate-0 transition-transform duration-500 group">
+            
+            <!-- 顶部胶带 -->
+            <div class="tape top-[-12px] left-1/2 -translate-x-1/2 w-16 h-6 rotate-[-3deg]"></div>
+
+            <!-- 标题区 -->
+            <div class="text-center mb-8 relative z-10 bg-white/40 backdrop-blur-[1px] py-4 -mt-4 rounded-2xl">
+                <h1 class="font-handwriting text-3xl md:text-4xl text-rose-400 mb-2 tracking-wide">Welcome</h1>
+                <!-- 移除了小窝，改为手账本 -->
+                <h2 class="font-serif-sc text-2xl md:text-3xl font-black text-stone-700 tracking-widest">我们的手账本</h2>
+            </div>
+
+            <!-- 登录表单 -->
+            <form id="login-form" class="space-y-6 relative">
+                <!-- 前端预览用的隐藏字段，实际项目中用 PHP 替换 value -->
+                <input type="hidden" name="csrf_token" value="preview_token">
+                
+                <!-- 装饰邮票 -->
+                <div class="absolute -right-4 -top-8 w-12 h-12 border-2 border-dashed border-rose-200 rounded-full flex items-center justify-center rotate-12 opacity-50 pointer-events-none">
+                    <i class="fas fa-stamp text-rose-300 text-xl"></i>
+                </div>
+                
+                <div>
+                    <label for="you" class="flex items-end gap-2 mb-2">
+                        <i class="fas fa-pen-nib text-stone-300 text-sm mb-1"></i>
+                        <span class="font-handwriting text-2xl text-stone-600">Who are you ?</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="you" 
+                        name="you" 
+                        required
+                        class="w-full bg-stone-50/50 border-none rounded-xl p-4 text-stone-700 font-serif-sc focus:ring-2 focus:ring-rose-200 shadow-inner outline-none transition-shadow"
+                        placeholder="请输入你的名字"
+                        autocomplete="off"
+                    >
+                </div>
+
+                <div>
+                    <label for="baby" class="flex items-end gap-2 mb-2">
+                        <i class="fas fa-heart text-rose-300 text-sm mb-1"></i>
+                        <span class="font-handwriting text-2xl text-stone-600">Who is your beloved ?</span>
+                    </label>
+                    <!-- 通过 translate-y-[5px] 精准向下偏移 5px 对齐横线 -->
+                    <input 
+                        type="text" 
+                        id="baby" 
+                        name="baby" 
+                        required
+                        class="w-full bg-stone-50/50 border-none rounded-xl p-4 text-stone-700 font-serif-sc focus:ring-2 focus:ring-rose-200 shadow-inner outline-none transition-shadow translate-y-[5px]"
+                        placeholder="请输入对方的名字"
+                        autocomplete="off"
+                    >
+                </div>
+
+                <div class="pt-8">
+                    <button 
+                        type="submit" 
+                        id="login-button"
+                        class="w-full bg-stone-800 text-white font-serif-sc font-bold py-4 rounded-xl hover:bg-stone-700 transition-colors shadow-lg shadow-stone-800/10 uppercase tracking-widest text-sm flex items-center justify-center gap-2"
+                    >
+                        <span>翻开手账本</span>
+                        <i class="fas fa-book-open text-xs text-stone-300"></i>
+                    </button>
+                </div>
+            </form>
+           
+            <!-- 提示信息与备案 -->
+            <div class="mt-8 pt-6 text-center space-y-3 relative z-10 bg-white/40 backdrop-blur-[1px] rounded-xl pb-2">
+                <p class="font-serif-sc text-[11px] text-stone-400">
+                    <i class="fas fa-info-circle mr-1 opacity-70"></i>
+                    如有问题，请<span class="line-through mx-1 opacity-60">诱惑</span>贿赂管理员 
+                    <img src="https://ts1.tc.mm.bing.net/th/id/OIP-C.JqtutuIUT2Pxe6BsgdseGwAAAA?cb=ucfimg2&ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3" alt="狗头" class="inline-block w-4 h-4 align-text-bottom rounded-full rotate-6">
+                </p>
+                <p class="font-serif-sc text-[10px] text-stone-300 tracking-wider">
+                    <a href="https://beian.miit.gov.cn/#/Integrated/index" target="_blank" class="hover:text-stone-500 transition-colors">
+                        <i class="fas fa-shield-alt mr-1 opacity-50"></i>粤ICP备2025512966号-1
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 极简轻提示弹窗 (Toast) -->
+    <div id="customAlert" class="fixed inset-0 flex items-center justify-center z-[100] hidden pointer-events-none">
+        <div class="bg-transparent transform scale-95 opacity-0 transition-all duration-300" id="alertContent">
+            <p class="font-serif-sc text-stone-600 text-center font-bold text-base tracking-widest drop-shadow-sm bg-white/80 backdrop-blur-md px-6 py-3 rounded-full border border-white" id="alertText">消息内容</p>
+        </div>
+    </div>
+
+    <script src="assets/js/api-client.js"></script>
+    <script>
+        // 检查维护页面，存在则重定向
+        (async function() {
+            try {
+                const res = await fetch('maintaining.html', { method: 'HEAD' });
+                if (res.ok) { window.location.href = 'maintaining.html'; }
+            } catch(e) { /* 文件不存在，正常进入 */ }
+        })();
+
+        // --- 轻提示逻辑 ---
+        function showAlert(msg) {
+            const modal = document.getElementById('customAlert');
+            const content = document.getElementById('alertContent');
+            const text = document.getElementById('alertText');
+            
+            const rot = (Math.random() * 4 - 2).toFixed(1);
+            content.style.transform = `scale(0.95) rotate(${rot}deg)`;
+            
+            text.innerText = msg;
+            modal.classList.remove('hidden');
+            
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+                content.style.transform = `scale(1) rotate(${rot}deg)`;
+            }, 10);
+
+            setTimeout(() => {
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+                content.style.transform = `scale(0.95) rotate(${rot}deg)`;
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 300);
+            }, 2500);
+        }
+
+        // --- 表单提交逻辑 (模拟预览) ---
+        const form = document.getElementById('login-form');
+        const loginButton = document.getElementById('login-button');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            loginButton.disabled = true;
+            loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>翻开中...</span>';
+            loginButton.classList.add('opacity-80', 'cursor-not-allowed');
+
+            const you = document.getElementById('you').value.trim();
+            const baby = document.getElementById('baby').value.trim();
+
+            if (!you || !baby) {
+                showAlert('请输入双方的名字');
+                resetLoginButton();
+                return;
+            }
+
+            try {
+                const data = await API.postForm('api/login.php', { you, baby });
+
+                if (data.success) {
+                    loginButton.innerHTML = '<i class="fas fa-check"></i> <span>欢迎回家</span>';
+                    loginButton.classList.remove('bg-stone-800', 'text-white');
+                    loginButton.classList.add('bg-rose-100', 'text-rose-600');
+                    showAlert('✨ 登录成功！即将跳转...');
+                    setTimeout(() => {
+                        window.location.href = data.redirect || 'home.html';
+                    }, 800);
+                } else {
+                    showAlert(data.message || '登录失败，请检查名字是否正确');
+                    resetLoginButton();
+                }
+            } catch (err) {
+                showAlert('网络错误，请稍后重试');
+                resetLoginButton();
+            }
+        });
+
+        function resetLoginButton() {
+            loginButton.disabled = false;
+            loginButton.innerHTML = '<span>翻开手账本</span> <i class="fas fa-book-open text-xs text-stone-300"></i>';
+            loginButton.classList.remove('opacity-80', 'cursor-not-allowed');
+        }
+
+        // --- 鼠标点击浪漫碎光特效 ---
+        document.addEventListener('click', function(e) {
+            const stars = ['✨', '🌸', '🤍', '·'];
+            const starCount = Math.floor(Math.random() * 8) + 5;
+            
+            for (let i = 0; i < starCount; i++) {
+                setTimeout(() => {
+                    const star = document.createElement('div');
+                    star.className = 'click-star font-serif-sc';
+                    star.textContent = stars[Math.floor(Math.random() * stars.length)];
+                    
+                    const size = Math.random() * 8 + 6;
+                    star.style.fontSize = size + 'px';
+                    star.style.left = e.clientX + 'px';
+                    star.style.top = e.clientY + 'px';
+                    
+                    const angle = Math.random() * Math.PI * 2;
+                    const distance = Math.random() * 60 + 30; 
+                    const endX = e.clientX + Math.cos(angle) * distance;
+                    const endY = e.clientY + Math.sin(angle) * distance + 20; 
+                    
+                    document.body.appendChild(star);
+                    
+                    const duration = 800 + Math.random() * 600; 
+                    const startTime = Date.now();
+                    
+                    function animate() {
+                        const elapsed = Date.now() - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        
+                        const easeProgress = 1 - Math.pow(1 - progress, 3);
+                        
+                        const currentX = e.clientX + (endX - e.clientX) * easeProgress;
+                        const currentY = e.clientY + (endY - e.clientY) * easeProgress;
+                        
+                        star.style.left = currentX + 'px';
+                        star.style.top = currentY + 'px';
+                        
+                        star.style.opacity = 1 - progress;
+                        star.style.transform = `rotate(${progress * 180}deg) scale(${1 - progress * 0.3})`;
+                        
+                        if (progress < 1) {
+                            requestAnimationFrame(animate);
+                        } else {
+                            if (document.body.contains(star)) {
+                                document.body.removeChild(star);
+                            }
+                        }
+                    }
+                    
+                    animate();
+                }, i * 15);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -4,6 +4,14 @@
  * 处理私人文件的上传、下载和删除
  */
 define('INCLUDED', true);
+
+// 确保输出缓冲开启，防止任何意外输出污染JSON
+if (ob_get_level()) {
+    ob_clean();
+} else {
+    ob_start();
+}
+
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/auth.php';
@@ -197,7 +205,12 @@ function deletePrivateFile($fileId) {
 }
 
 // 处理请求
-$action = $_POST['action'] ?? $_GET['action'] ?? '';
+$postInput = $_POST;
+// Support JSON input (API.post() sends JSON, which doesn't populate $_POST)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($postInput)) {
+    $postInput = json_decode(file_get_contents('php://input'), true) ?: [];
+}
+$action = $postInput['action'] ?? $_GET['action'] ?? '';
 
 switch ($action) {
     case 'get':
@@ -214,48 +227,24 @@ switch ($action) {
     case 'upload':
         // 上传文件
         if (!isset($_FILES['file'])) {
-            // 如果是表单提交，重定向回去
-            if (!isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
-                setFlashMessage('没有选择文件', 'error');
-                header('Location: ../private.php');
-                exit();
-            }
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => '没有选择文件']);
             exit();
         }
-        
+
         // 验证CSRF令牌
-        $csrf_token = $_POST['csrf_token'] ?? '';
+        $csrf_token = $postInput['csrf_token'] ?? '';
         if (!validateCSRFToken($csrf_token)) {
-            // 如果是表单提交，重定向回去
-            if (!isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
-                setFlashMessage('请求无效，请重新尝试', 'error');
-                header('Location: ../private.php');
-                exit();
-            }
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => '请求无效，请重新尝试']);
             exit();
         }
-        
+
         // 获取文件夹路径
-        $folderPath = $_POST['folder_path'] ?? '';
-        
+        $folderPath = $postInput['folder_path'] ?? '';
+
         $result = uploadPrivateFile($_FILES['file'], $folderPath);
-        
-        // 如果是表单提交（不是AJAX），重定向回隐私空间页面
-        if (!isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
-            if ($result['success']) {
-                setFlashMessage($result['message'], 'success');
-            } else {
-                setFlashMessage($result['message'], 'error');
-            }
-            header('Location: ../private.php');
-            exit();
-        }
-        
-        // AJAX请求返回JSON
+
         if ($result['success']) {
             echo json_encode($result);
         } else {
@@ -263,50 +252,26 @@ switch ($action) {
             echo json_encode($result);
         }
         break;
-        
+
     case 'delete':
         // 删除文件
-        $csrf_token = $_POST['csrf_token'] ?? '';
+        $csrf_token = $postInput['csrf_token'] ?? '';
         if (!validateCSRFToken($csrf_token)) {
-            // 如果是表单提交，重定向回去
-            if (!isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
-                setFlashMessage('请求无效，请重新尝试', 'error');
-                header('Location: ../private.php');
-                exit();
-            }
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => '请求无效，请重新尝试']);
             exit();
         }
-        
-        $fileId = $_POST['file_id'] ?? '';
-        
+
+        $fileId = $postInput['file_id'] ?? '';
+
         if (empty($fileId)) {
-            // 如果是表单提交，重定向回去
-            if (!isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
-                setFlashMessage('文件ID不能为空', 'error');
-                header('Location: ../private.php');
-                exit();
-            }
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => '文件ID不能为空']);
             exit();
         }
-        
+
         $result = deletePrivateFile($fileId);
-        
-        // 如果是表单提交（不是AJAX），重定向回隐私空间页面
-        if (!isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
-            if ($result['success']) {
-                setFlashMessage($result['message'], 'success');
-            } else {
-                setFlashMessage($result['message'], 'error');
-            }
-            header('Location: ../private.php');
-            exit();
-        }
-        
-        // AJAX请求返回JSON
+
         if ($result['success']) {
             echo json_encode($result);
         } else {

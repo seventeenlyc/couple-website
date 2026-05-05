@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>藏宝 · 只有你我的树洞</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Noto+Serif+SC:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #fdfcf8;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            color: #4a4a4a; overflow-x: hidden;
+        }
+        .font-serif-sc { font-family: 'Noto Serif SC', serif; }
+        .font-handwriting { font-family: 'Caveat', cursive; }
+        .tape { position: absolute; background-color: rgba(255,255,255,0.4); backdrop-filter: blur(2px); border: 1px solid rgba(0,0,0,0.02); z-index: 10; }
+        .torn-paper { background: #fff; position: relative; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08); background-image: linear-gradient(transparent 95%, #fca5a5 95%); background-size: 100% 1.5rem; }
+        .torn-paper::after { content: ''; position: absolute; top: 0; left: -8px; bottom: 0; width: 16px; background: radial-gradient(circle at 0 0.75rem, transparent 4px, #fff 5px); background-size: 16px 1.5rem; z-index: -1; }
+        .ruled-bg { background-color: white; background-image: repeating-linear-gradient(transparent, transparent 39px, #fecdd3 39px, #fecdd3 40px); background-position: 0 35px; }
+        .coupon-card { background: #fff; border: 2px dashed #c4b5fd; border-radius: 12px; position: relative; box-shadow: 0 8px 20px -8px rgba(167,139,250,0.15); }
+        .action-stamp { background: white; padding: 8px; border: 2px dashed #e5e7eb; transition: all 0.3s ease; cursor: pointer; }
+        @media (hover: hover) {
+            .hover-lift:hover { transform: scale(1.05) rotate(0deg) !important; box-shadow: 0 20px 40px rgba(0,0,0,0.08); z-index: 50; }
+        }
+        .reveal-item { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
+        .reveal-item.is-visible { opacity: 1; transform: none; }
+        .modal-enter { animation: modalFadeIn 0.3s ease-out forwards; }
+        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body class="min-h-screen pb-24 selection:bg-violet-100 relative">
+
+    <!-- Home link -->
+    <a href="home.html" class="absolute top-6 left-6 md:left-12 z-30 group sticker-item rotate-[-5deg] transition-transform">
+        <div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-8 h-4 rotate-[10deg]"></div>
+        <div class="bg-white p-3 shadow-md flex items-center justify-center border border-stone-100">
+            <i class="fas fa-home text-stone-400 group-hover:text-violet-400 transition-colors"></i>
+            <span class="font-handwriting text-stone-500 ml-2 mt-1">Home</span>
+        </div>
+    </a>
+
+    <div class="max-w-3xl mx-auto px-5 md:px-12 pt-28">
+
+        <!-- Header -->
+        <header class="flex flex-col items-center mb-12 relative reveal-item is-visible">
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-violet-100/40 rounded-[100%] blur-3xl -z-10"></div>
+            <h1 class="font-handwriting text-5xl md:text-7xl text-stone-700 tracking-wider mb-2">Private Space</h1>
+            <h2 class="font-serif-sc text-2xl md:text-3xl font-black text-stone-700 tracking-widest">秘密基地</h2>
+            <p class="font-serif-sc text-stone-400 text-xs tracking-widest mt-4">只属于我们的悄悄话</p>
+        </header>
+
+        <!-- Auth Gate -->
+        <div id="auth-gate" class="reveal-item">
+            <div class="torn-paper ruled-bg p-8 md:p-12 max-w-md mx-auto rotate-[1deg]">
+                <div class="tape top-[-12px] left-1/2 -translate-x-1/2 w-16 h-6 rotate-[-3deg]"></div>
+                <h3 class="font-handwriting text-3xl text-stone-700 text-center mb-8 pt-2">Unlock</h3>
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-xs font-serif-sc text-stone-500 mb-2 uppercase tracking-widest">请输入密码</label>
+                        <input type="password" id="private-password" placeholder="输入密码..." class="w-full bg-stone-50/50 border border-stone-200/50 rounded-xl p-4 text-stone-700 font-serif-sc focus:ring-2 focus:ring-violet-200 outline-none">
+                    </div>
+                    <button onclick="verifyPassword()" class="w-full bg-stone-800 text-white font-serif-sc font-bold py-4 rounded-xl hover:bg-stone-700 transition-colors uppercase tracking-widest text-sm">解密进入</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Private Content (hidden initially) -->
+        <div id="private-content" class="hidden space-y-12">
+
+            <!-- Section: Files -->
+            <section class="reveal-item">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="font-handwriting text-2xl text-stone-400"><i class="fas fa-folder-tree mr-2 text-sm"></i>我的文件</h3>
+                    <button onclick="openUploadModal()" class="bg-violet-100 text-violet-600 font-serif-sc text-xs font-bold px-4 py-2 rounded-full hover:bg-violet-200 transition-colors uppercase tracking-widest">
+                        <i class="fas fa-upload mr-1"></i> 上传
+                    </button>
+                </div>
+                <div id="private-files-container" class="space-y-3">
+                    <p class="font-serif-sc text-stone-400 text-sm text-center py-8">加载中...</p>
+                </div>
+            </section>
+
+            <!-- Section: Notes -->
+            <section class="reveal-item">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="font-handwriting text-2xl text-stone-400"><i class="fas fa-sticky-note mr-2 text-sm"></i>悄悄话</h3>
+                    <button onclick="openNoteModal()" class="bg-rose-100 text-rose-600 font-serif-sc text-xs font-bold px-4 py-2 rounded-full hover:bg-rose-200 transition-colors uppercase tracking-widest">
+                        <i class="fas fa-plus mr-1"></i> 写一条
+                    </button>
+                </div>
+                <div id="private-notes-container" class="space-y-4">
+                    <p class="font-serif-sc text-stone-400 text-sm text-center py-8">加载中...</p>
+                </div>
+            </section>
+
+            <!-- Logout button -->
+            <div class="text-center pb-12">
+                <button onclick="logoutPrivate()" class="font-serif-sc text-stone-400 hover:text-stone-600 text-xs tracking-widest uppercase underline decoration-stone-200 underline-offset-4">
+                    <i class="fas fa-lock mr-1"></i> 退出隐私空间
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note modal -->
+    <div id="noteModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm rounded-[1rem] p-8 shadow-2xl relative torn-paper rotate-[1deg] modal-enter">
+            <div class="tape top-[-10px] left-1/2 -translate-x-1/2 w-14 h-5 rotate-[-2deg]"></div>
+            <button onclick="closeModal('noteModal')" class="absolute top-5 right-5 text-stone-300 hover:text-stone-600"><i class="fas fa-times"></i></button>
+            <h3 class="font-handwriting text-3xl text-stone-700 mb-6 text-center mt-2">New Note</h3>
+            <input type="text" id="note-title" placeholder="标题（可选）" class="w-full bg-stone-50/40 border border-stone-200/50 rounded-xl p-3 text-stone-700 font-serif-sc mb-4 focus:ring-1 focus:ring-rose-200 outline-none text-sm">
+            <textarea id="note-content" placeholder="写下想说的话..." rows="4" class="w-full bg-stone-50/40 border border-stone-200/50 rounded-xl p-3 text-stone-700 font-serif-sc mb-6 focus:ring-1 focus:ring-rose-200 outline-none text-sm resize-none"></textarea>
+            <div class="flex gap-4">
+                <button onclick="closeModal('noteModal')" class="flex-1 py-3 rounded-xl border border-stone-200 text-stone-500 font-serif-sc text-xs font-bold hover:bg-stone-50 uppercase tracking-widest">取消</button>
+                <button onclick="submitNote()" class="flex-1 py-3 rounded-xl bg-stone-800 text-white font-serif-sc font-bold text-xs hover:bg-stone-700 shadow-lg uppercase tracking-widest">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete confirmation modal (手账风) -->
+    <div id="confirmModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm hidden z-[60] flex items-center justify-center p-6 opacity-0 transition-opacity duration-200">
+        <div id="confirmModalContent" class="w-full max-w-xs transform scale-95 transition-transform duration-300 rotate-[2deg]">
+            <div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-12 h-5 rotate-[3deg] z-10"></div>
+            <div class="bg-white p-8 shadow-lg relative">
+                <div class="absolute top-0 left-0 right-0 h-1" style="background: repeating-linear-gradient(90deg, transparent, transparent 8px, #fef9ed 8px, #fef9ed 12px, transparent 12px, transparent 16px); transform: translateY(-1px);"></div>
+                <button onclick="closeConfirmModal(false)" class="absolute top-4 right-4 text-stone-300 hover:text-stone-500 transition-colors"><i class="fas fa-times"></i></button>
+                <div class="text-center pt-4">
+                    <i class="fas fa-exclamation-triangle text-amber-400/60 text-2xl mb-4 block"></i>
+                    <p id="confirmMessage" class="font-handwriting text-2xl text-stone-700 leading-relaxed mb-8">确定要删除吗？</p>
+                    <div class="flex gap-3">
+                        <button onclick="closeConfirmModal(false)" class="flex-1 py-3 rounded-full border border-stone-200 text-stone-500 font-serif-sc text-xs font-bold hover:bg-stone-50 transition-colors uppercase tracking-widest">取消</button>
+                        <button id="confirmBtn" onclick="closeConfirmModal(true)" class="flex-1 py-3 rounded-full bg-rose-400/80 text-white font-serif-sc font-bold text-xs hover:bg-rose-500 transition-colors shadow-lg shadow-rose-400/20 uppercase tracking-widest">确认删除</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload modal -->
+    <div id="uploadModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm rounded-[1rem] p-8 shadow-2xl relative torn-paper rotate-[-1deg] modal-enter">
+            <div class="tape top-[-10px] right-10 w-12 h-4 rotate-[5deg]"></div>
+            <button onclick="closeModal('uploadModal')" class="absolute top-5 right-5 text-stone-300 hover:text-stone-600"><i class="fas fa-times"></i></button>
+            <h3 class="font-handwriting text-3xl text-stone-700 mb-6 text-center mt-2">Upload File</h3>
+            <div class="border-2 border-dashed border-stone-300 bg-stone-50/50 rounded-xl p-8 text-center cursor-pointer hover:bg-stone-100 hover:border-violet-300 transition-all mb-4" onclick="document.getElementById('private-file-input').click()">
+                <i class="fas fa-cloud-upload-alt text-3xl text-stone-300 mb-2"></i>
+                <p class="font-serif-sc text-stone-600 text-sm">点击选择文件</p>
+                <input type="file" id="private-file-input" class="hidden" onchange="uploadPrivateFile()">
+            </div>
+            <button onclick="closeModal('uploadModal')" class="w-full py-3 rounded-xl border border-stone-200 text-stone-500 font-serif-sc text-xs font-bold hover:bg-stone-50 uppercase tracking-widest">关闭</button>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="customAlert" class="fixed inset-0 flex items-center justify-center z-[100] hidden pointer-events-none">
+        <div class="bg-transparent transform scale-95 opacity-0 transition-all duration-300" id="alertContent">
+            <p class="font-serif-sc text-stone-600 text-center font-bold text-base tracking-widest drop-shadow-sm bg-white/90 backdrop-blur-md px-6 py-3 rounded-full border border-white" id="alertText"></p>
+        </div>
+    </div>
+
+    <script src="assets/js/api-client.js"></script>
+    <script>
+        function showAlert(msg) {
+            const modal = document.getElementById('customAlert');
+            const content = document.getElementById('alertContent');
+            const text = document.getElementById('alertText');
+            const rot = (Math.random() * 4 - 2).toFixed(1);
+            content.style.transform = `scale(0.95) rotate(${rot}deg)`;
+            text.innerText = msg; modal.classList.remove('hidden');
+            setTimeout(() => { content.classList.remove('scale-95', 'opacity-0'); content.classList.add('scale-100', 'opacity-100'); content.style.transform = `scale(1) rotate(${rot}deg)`; }, 10);
+            setTimeout(() => { content.classList.remove('scale-100', 'opacity-100'); content.classList.add('scale-95', 'opacity-0'); setTimeout(() => modal.classList.add('hidden'), 300); }, 2500);
+        }
+
+        function closeModal(id) {
+            const m = document.getElementById(id);
+            const inner = m.querySelector('.modal-enter');
+            if (inner) { inner.style.transform = 'scale(0.9)'; inner.style.opacity = '0'; }
+            m.style.opacity = '0';
+            setTimeout(() => m.classList.add('hidden'), 300);
+        }
+
+        function openModal(id) {
+            const m = document.getElementById(id);
+            m.classList.remove('hidden');
+            const inner = m.querySelector('.modal-enter');
+            if (inner) { inner.style.transform = 'scale(1)'; inner.style.opacity = '1'; }
+            m.style.opacity = '1';
+        }
+
+        // ── Confirm dialog (replaces native confirm) ──────────
+        let _confirmResolve = null;
+        function showConfirm(message) {
+            return new Promise((resolve) => {
+                _confirmResolve = resolve;
+                document.getElementById('confirmMessage').innerText = message;
+                const modal = document.getElementById('confirmModal');
+                const content = document.getElementById('confirmModalContent');
+                const rot = ((Math.random() * 6) - 3).toFixed(1);
+                content.style.transform = `scale(0.9) rotate(${rot}deg)`;
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0'); modal.classList.add('opacity-100');
+                    content.classList.remove('scale-95'); content.classList.add('scale-100');
+                    content.style.transform = `scale(1) rotate(${rot}deg)`;
+                }, 10);
+            });
+        }
+        function closeConfirmModal(confirmed) {
+            const modal = document.getElementById('confirmModal');
+            const content = document.getElementById('confirmModalContent');
+            content.classList.remove('scale-100'); content.classList.add('scale-95');
+            modal.classList.remove('opacity-100'); modal.classList.add('opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); if (_confirmResolve) { _confirmResolve(confirmed); _confirmResolve = null; } }, 200);
+        }
+
+        // ── Auth ────────────────────────────────────────────
+        async function verifyPassword() {
+            const pw = document.getElementById('private-password').value;
+            if (!pw) { showAlert('请输入密码'); return; }
+            try {
+                const res = await API.post('api/private-auth.php', { action: 'verify', password: pw });
+                if (res.success) { showPrivateContent(); }
+                else { showAlert(res.message || '密码错误'); }
+            } catch (e) { showAlert('验证失败'); }
+        }
+
+        async function checkAuth() {
+            try {
+                const res = await API.post('api/private-auth.php', { action: 'check' });
+                if (res.success && res.authenticated) { showPrivateContent(); }
+            } catch (e) { /* stay on auth gate */ }
+        }
+
+        async function logoutPrivate() {
+            try {
+                await API.post('api/private-auth.php', { action: 'logout' });
+            } catch (e) { /* ignore */ }
+            document.getElementById('auth-gate').classList.remove('hidden');
+            document.getElementById('private-content').classList.add('hidden');
+            showAlert('已退出隐私空间');
+        }
+
+        function showPrivateContent() {
+            document.getElementById('auth-gate').classList.add('hidden');
+            document.getElementById('private-content').classList.remove('hidden');
+            loadPrivateFiles();
+            loadPrivateNotes();
+        }
+
+        // ── Files ───────────────────────────────────────────
+        async function loadPrivateFiles() {
+            const container = document.getElementById('private-files-container');
+            try {
+                const res = await API.get('api/private-files.php?action=get');
+                if (res.success && res.files && res.files.length > 0) {
+                    container.innerHTML = res.files.map(f => {
+                        const date = (f.uploaded_at || '').split(' ')[0] || '';
+                        return `<div class="coupon-card p-4 flex items-center justify-between group hover-lift" style="transform:rotate(${(Math.random()*2-1).toFixed(1)}deg)">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 bg-violet-50 rounded-lg flex items-center justify-center text-violet-300"><i class="fas fa-file"></i></div>
+                                <div><p class="font-serif-sc font-bold text-stone-700 text-sm">${f.original_name}</p><p class="font-serif-sc text-[10px] text-stone-400">${date} · ${(f.size/1024).toFixed(1)}KB</p></div>
+                            </div>
+                            <div class="flex gap-2">
+                                <a href="${f.path}" download class="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-400 hover:text-violet-500 hover:bg-violet-50 transition-colors"><i class="fas fa-download text-xs"></i></a>
+                                <button onclick="deletePrivateFile('${f.id}')" class="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-400 hover:text-red-500 hover:bg-red-50 transition-colors"><i class="fas fa-trash text-xs"></i></button>
+                            </div>
+                        </div>`;
+                    }).join('');
+                } else {
+                    container.innerHTML = '<p class="font-serif-sc text-stone-400 text-sm text-center py-8">还没有上传文件</p>';
+                }
+            } catch (e) { container.innerHTML = '<p class="font-serif-sc text-stone-400 text-sm text-center py-8">加载失败</p>'; }
+        }
+
+        function openUploadModal() { openModal('uploadModal'); }
+
+        async function uploadPrivateFile() {
+            const input = document.getElementById('private-file-input');
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('csrf_token', await API.getCSRFToken());
+            formData.append('action', 'upload');
+            try {
+                const res = await fetch('api/private-files.php', { method: 'POST', credentials: 'same-origin', body: formData });
+                const data = await res.json();
+                if (data.success) { showAlert('上传成功'); closeModal('uploadModal'); setTimeout(() => location.reload(), 600); }
+                else { showAlert(data.message || '上传失败'); }
+            } catch (e) { showAlert('上传失败'); }
+            input.value = '';
+        }
+
+        async function deletePrivateFile(fileId) {
+            if (!await showConfirm('确定要删除这个文件吗？')) return;
+            try {
+                const res = await API.post('api/private-files.php', { action: 'delete', file_id: fileId });
+                if (res.success) { showAlert('删除成功'); loadPrivateFiles(); }
+                else { showAlert(res.message || '删除失败'); }
+            } catch (e) { showAlert('删除失败'); }
+        }
+
+        // ── Notes ───────────────────────────────────────────
+        async function loadPrivateNotes() {
+            const container = document.getElementById('private-notes-container');
+            try {
+                const res = await API.post('api/private-notes.php', { action: 'get' });
+                if (res.success && res.notes && res.notes.length > 0) {
+                    container.innerHTML = res.notes.map((n, i) => {
+                        const rot = ((i % 3) - 1) * 1.5;
+                        return `<div class="torn-paper p-5 relative group hover-lift" style="transform:rotate(${rot}deg)">
+                            <div class="tape top-[-8px] left-8 w-10 h-4 rotate-[${i%2===0?5:-5}deg]"></div>
+                            ${n.title ? '<h4 class="font-serif-sc font-bold text-stone-700 mb-2">'+n.title+'</h4>' : ''}
+                            <p class="font-serif-sc text-sm text-stone-600 leading-relaxed">${n.content}</p>
+                            <div class="flex justify-between items-center mt-4 pt-3 border-t border-stone-50">
+                                <span class="text-[9px] text-stone-300 font-serif-sc">${n.created_at || ''}</span>
+                                <button onclick="deletePrivateNote('${n.id}')" class="text-[9px] text-stone-300 hover:text-red-400 font-serif-sc uppercase tracking-widest"><i class="fas fa-trash mr-1"></i>删除</button>
+                            </div>
+                        </div>`;
+                    }).join('');
+                } else {
+                    container.innerHTML = '<p class="font-serif-sc text-stone-400 text-sm text-center py-8">还没有写过悄悄话</p>';
+                }
+            } catch (e) { container.innerHTML = '<p class="font-serif-sc text-stone-400 text-sm text-center py-8">加载失败</p>'; }
+        }
+
+        function openNoteModal() { document.getElementById('note-title').value = ''; document.getElementById('note-content').value = ''; openModal('noteModal'); }
+
+        async function submitNote() {
+            const title = document.getElementById('note-title').value.trim();
+            const content = document.getElementById('note-content').value.trim();
+            if (!content) { showAlert('请写点什么吧'); return; }
+            closeModal('noteModal');
+            try {
+                const res = await API.post('api/private-notes.php', { action: 'add', title, content });
+                if (res.success) { showAlert('已保存'); loadPrivateNotes(); }
+                else { showAlert(res.message || '保存失败'); }
+            } catch (e) { showAlert('保存失败'); }
+        }
+
+        async function deletePrivateNote(noteId) {
+            if (!await showConfirm('确定要删除这条笔记吗？')) return;
+            try {
+                const res = await API.post('api/private-notes.php', { action: 'delete', note_id: noteId });
+                if (res.success) { showAlert('删除成功'); loadPrivateNotes(); }
+                else { showAlert(res.message || '删除失败'); }
+            } catch (e) { showAlert('删除失败'); }
+        }
+
+        // ── Init ─────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth(); // check if already authenticated
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('is-visible'); });
+            }, { threshold: 0.1 });
+            document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
+        });
+    </script>
+</body>
+</html>

@@ -4,6 +4,9 @@
  * 读取并解析 data/config.json 配置文件
  */
 
+// 设置时区为中国时区
+date_default_timezone_set('Asia/Shanghai');
+
 // 防止直接访问
 if (!defined('INCLUDED')) {
     define('INCLUDED', true);

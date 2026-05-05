@@ -71,7 +71,7 @@ if (performLogin($you, $baby)) {
         'success' => true,
         'message' => '登录成功',
         'user' => getCurrentUser(),
-        'redirect' => $redirect ?: 'home.php'
+        'redirect' => $redirect ?: 'home.html'
     ]);
 } else {
     // 登录失败，记录尝试

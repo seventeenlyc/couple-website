@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>整理 · 正在收纳记忆</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Noto+Serif+SC:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-paper: #fdfcf8;
+            --rose-accent: #fca5a5;
+            --stone-text: #4a4a4a;
+        }
+
+        body {
+            background-color: var(--bg-paper);
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            color: var(--stone-text);
+            overflow: hidden;
+            font-family: 'Noto Serif SC', serif;
+        }
+
+        .font-handwriting { font-family: 'Caveat', cursive; }
+
+        /* 磨砂胶带 */
+        .tape {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(2px);
+            border: 1px solid rgba(0,0,0,0.02);
+            z-index: 10;
+        }
+
+        /* 撕纸信纸风格 */
+        .torn-paper {
+            background: #fff;
+            position: relative;
+            box-shadow: 0 15px 50px -15px rgba(0, 0, 0, 0.1);
+            background-image: linear-gradient(transparent 95%, var(--rose-accent) 95%);
+            background-size: 100% 2rem;
+        }
+        .torn-paper::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -8px; bottom: 0; width: 16px;
+            background: radial-gradient(circle at 0 1rem, transparent 4px, #fff 5px);
+            background-size: 16px 2rem;
+            z-index: -1;
+        }
+
+        /* 悬浮动画 */
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(1deg); }
+            50% { transform: translateY(-15px) rotate(-1deg); }
+        }
+        .anim-float { animation: float 5s ease-in-out infinite; }
+
+        /* 旋转的小红花加载 */
+        @keyframes flower-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .flower-loader {
+            display: inline-block;
+            animation: flower-spin 8s linear infinite;
+        }
+
+        /* 点击碎光 */
+        .click-sparkle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            font-size: 14px;
+        }
+
+        /* 打字机光标 */
+        .cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: var(--rose-accent);
+            margin-left: 2px;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-6 selection:bg-rose-100">
+
+    <!-- 主容器 -->
+    <div class="w-full max-w-lg relative anim-float">
+        
+        <!-- 装饰性胶带 -->
+        <div class="tape top-[-20px] left-10 w-24 h-8 rotate-[-15deg] opacity-60"></div>
+        <div class="tape top-[-10px] right-8 w-20 h-6 rotate-[10deg] opacity-40"></div>
+
+        <!-- 维护便签卡片 -->
+        <div class="torn-paper p-10 md:p-16 text-center">
+            
+            <!-- 状态图标 -->
+            <div class="mb-10">
+                <span class="flower-loader text-5xl">🌸</span>
+            </div>
+
+            <!-- 主标题 -->
+            <h1 class="font-handwriting text-4xl md:text-5xl text-stone-700 mb-6 tracking-wide">
+                Gently Updating...
+            </h1>
+            
+            <!-- 描述文字 -->
+            <div class="space-y-4 mb-10">
+                <p class="font-serif-sc text-lg text-stone-600 font-medium">
+                    正在细心整理过往的记忆
+                </p>
+                <p class="font-serif-sc text-sm text-stone-400 tracking-widest leading-relaxed">
+                    为了给未来的故事留出更好的位置<br>
+                    网站正在进行一次温柔的维护
+                </p>
+            </div>
+
+            <!-- 进度示意 (手绘风) -->
+            <div class="w-48 h-px bg-stone-100 mx-auto relative mb-10">
+                <div class="absolute top-1/2 left-0 -translate-y-1/2 h-[2px] bg-rose-200 w-2/3 shadow-[0_0_8px_rgba(251,113,133,0.3)]"></div>
+                <div class="absolute top-[-4px] left-2/3 -translate-x-1/2 text-[10px] font-handwriting text-rose-300">Organizing...</div>
+            </div>
+
+            <!-- 预计时间 -->
+            <div class="bg-rose-50/50 rounded-2xl py-3 px-6 inline-block border border-rose-100/50">
+                <span class="font-serif-sc text-[11px] text-rose-400 uppercase tracking-[0.3em]">
+                    Estimated Return: <span id="time-display">Soon</span>
+                </span>
+            </div>
+
+        </div>
+
+        <!-- 装饰贴纸 -->
+        <div class="absolute -bottom-8 -left-4 sticker-item rotate-[-10deg] hidden md:block">
+            <div class="bg-white p-2 shadow-lg border border-stone-100">
+                <div class="w-24 h-24 bg-stone-50 flex items-center justify-center text-stone-200">
+                    <i class="fas fa-tools text-3xl"></i>
+                </div>
+                <p class="font-handwriting text-center text-stone-400 mt-2 text-sm">Drafting</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部版权或联系 -->
+    <footer class="mt-20 text-center opacity-40 hover:opacity-100 transition-opacity duration-500">
+        <p class="font-serif-sc text-[10px] text-stone-400 uppercase tracking-widest">
+            Handcrafted with love & patience
+        </p>
+    </footer>
+
+    <script>
+        // --- 鼠标点击浪漫特效 ---
+        document.addEventListener('click', function(e) {
+            const symbols = ['✨', '🌸', '🤍', '☁️', '·'];
+            const count = 6 + Math.floor(Math.random() * 4);
+            
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    const el = document.createElement('div');
+                    el.className = 'click-sparkle font-serif-sc';
+                    el.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+                    
+                    const size = Math.random() * 10 + 8;
+                    el.style.fontSize = size + 'px';
+                    el.style.left = e.clientX + 'px';
+                    el.style.top = e.clientY + 'px';
+                    el.style.color = `hsl(${Math.random() * 20 + 340}, 70%, 80%)`;
+                    
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = 40 + Math.random() * 50;
+                    const tx = Math.cos(angle) * dist;
+                    const ty = Math.sin(angle) * dist + 20; // 带有重力感
+                    
+                    document.body.appendChild(el);
+                    
+                    const duration = 600 + Math.random() * 400;
+                    const startTime = Date.now();
+                    
+                    function animate() {
+                        const p = (Date.now() - startTime) / duration;
+                        if (p >= 1) {
+                            el.remove();
+                            return;
+                        }
+                        
+                        const easeOut = 1 - Math.pow(1 - p, 3);
+                        el.style.transform = `translate(${tx * easeOut}px, ${ty * easeOut}px) rotate(${p * 360}deg)`;
+                        el.style.opacity = 1 - p;
+                        
+                        requestAnimationFrame(animate);
+                    }
+                    requestAnimationFrame(animate);
+                }, i * 20);
+            }
+        });
+
+        // --- 简单的随机旋转 ---
+        window.onload = () => {
+            const rot = (Math.random() * 4 - 2).toFixed(1);
+            // 这里可以动态设置预计返回时间
+            const now = new Date();
+            now.setHours(now.getHours() + 2); // 模拟2小时后
+            document.getElementById('time-display').innerText = now.getHours() + ":00 Today";
+        };
+    </script>
+</body>
+</html>
+

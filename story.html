@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>史诗 · 我们的漫长岁月</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Noto+Serif+SC:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #fdfcf8;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            color: #4a4a4a;
+            overflow-x: hidden;
+        }
+        .font-serif-sc { font-family: 'Noto Serif SC', serif; }
+        .font-handwriting { font-family: 'Caveat', cursive; }
+        .tape { position: absolute; background-color: rgba(255,255,255,0.42); backdrop-filter: blur(2px); border: 1px solid rgba(0,0,0,0.02); z-index: 10; }
+        .torn-paper {
+            background: #fff;
+            position: relative;
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.06);
+            background-image: linear-gradient(transparent 95%, #fca5a5 95%);
+            background-size: 100% 1.5rem;
+        }
+        .torn-paper::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -8px;
+            bottom: 0;
+            width: 16px;
+            background: radial-gradient(circle at 0 0.75rem, transparent 4px, #fff 5px);
+            background-size: 16px 1.5rem;
+            z-index: -1;
+        }
+        .ruled-bg {
+            background-color: white;
+            background-image: repeating-linear-gradient(transparent, transparent 39px, #fecdd3 39px, #fecdd3 40px);
+            background-position: 0 35px;
+        }
+        .timeline-line {
+            position: absolute;
+            left: 19px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: repeating-linear-gradient(#fecdd3 0, #fecdd3 8px, transparent 8px, transparent 12px);
+        }
+        .timeline-dot {
+            position: absolute;
+            left: -36px;
+            top: 18px;
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            z-index: 10;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @media (hover: hover) {
+            .hover-lift:hover {
+                transform: scale(1.02) rotate(0deg) !important;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.07);
+                z-index: 50;
+            }
+            .sticker-item:hover {
+                transform: scale(1.05) rotate(0deg) !important;
+                z-index: 50;
+            }
+        }
+        .reveal-item { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
+        .reveal-item.is-visible { opacity: 1; transform: none; }
+        .modal-enter { animation: modalFadeIn 0.3s ease-out forwards; }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.92) rotate(-1deg); }
+            to { opacity: 1; transform: scale(1) rotate(-1deg); }
+        }
+
+        /* Page push-up entrance (from bottom) */
+        .page-push-enter {
+            animation: pushUpPage 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes pushUpPage {
+            from { transform: translateY(105vh); }
+            to { transform: translateY(0); }
+        }
+
+        /* Pull-tab indicator at bottom of page */
+        .pull-tab-bottom {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: #fff5f5;
+            border: 1px solid #fecdd3;
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+            padding: 8px 20px 6px;
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.04);
+            animation: tabBounceUp 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            pointer-events: none;
+        }
+        @keyframes tabBounceUp {
+            0% { transform: translateX(-50%) translateY(60px); }
+            60% { transform: translateX(-50%) translateY(-4px); }
+            80% { transform: translateX(-50%) translateY(2px); }
+            100% { transform: translateX(-50%) translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-24 selection:bg-rose-100 relative">
+
+    <!-- 【下拉标签指示器（底部）】 -->
+    <div id="pull-tab-bottom" class="pull-tab-bottom">
+        <span class="font-handwriting text-rose-400 text-sm">时光轴</span>
+    </div>
+
+    <!-- 【整页上推动画容器】 -->
+    <div id="page-enter-wrapper" class="page-push-enter">
+
+    <a href="home.html" onclick="sessionStorage.setItem('home_from','story')" class="absolute top-6 left-6 md:left-12 z-30 group sticker-item rotate-[-5deg] transition-transform">
+        <div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-8 h-4 rotate-[10deg]"></div>
+        <div class="bg-white p-3 shadow-md flex items-center justify-center border border-stone-100">
+            <i class="fas fa-home text-stone-400 group-hover:text-rose-400 transition-colors"></i>
+            <span class="font-handwriting text-stone-500 ml-2 mt-1">Home</span>
+        </div>
+    </a>
+
+    <button onclick="openAddModal()" class="absolute top-6 right-6 md:right-12 z-30 group sticker-item rotate-[3deg] transition-transform">
+        <div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-10 h-4 rotate-[-8deg]"></div>
+        <div class="bg-white px-4 py-2 shadow-md border border-stone-100 flex items-center gap-2">
+            <i class="fas fa-pen-nib text-rose-300 group-hover:text-rose-400 transition-colors"></i>
+            <span class="font-serif-sc font-bold text-stone-600 text-sm">添加</span>
+        </div>
+    </button>
+
+    <div class="max-w-2xl mx-auto px-5 md:px-12 pt-28">
+        <header class="flex flex-col items-center mb-16 relative reveal-item is-visible">
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-rose-100/40 rounded-[100%] blur-3xl -z-10"></div>
+            <h1 class="font-handwriting text-5xl md:text-7xl text-stone-700 tracking-wider mb-2">Our Story</h1>
+            <h2 class="font-serif-sc text-2xl md:text-3xl font-black text-stone-700 tracking-widest">时光轴</h2>
+            <div id="love-summary" class="mt-6 text-center">
+                <p class="font-serif-sc text-stone-500 text-sm">正在加载...</p>
+            </div>
+        </header>
+
+        <div id="timeline-container" class="relative pl-12 space-y-10 pb-12">
+            <div class="timeline-line"></div>
+            <div class="text-center py-12">
+                <i class="fas fa-spinner fa-spin text-stone-300 text-xl"></i>
+                <p class="font-serif-sc text-stone-400 text-sm mt-3">正在展开时光卷轴...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="addModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-6 opacity-0 transition-opacity duration-300">
+        <div class="w-full max-w-md torn-paper ruled-bg p-8 shadow-2xl relative modal-enter">
+            <div class="tape top-[-12px] left-1/2 -translate-x-1/2 w-16 h-6 rotate-[-4deg]"></div>
+            <button onclick="closeAddModal()" class="absolute top-5 right-5 text-stone-300 hover:text-stone-600 transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+            <h3 class="font-handwriting text-4xl text-stone-700 text-center mb-8 pt-2">Add to Timeline</h3>
+
+            <form id="story-form" class="space-y-6">
+                <div>
+                    <label class="block text-xs font-serif-sc text-stone-500 mb-2 uppercase tracking-widest">是哪一天</label>
+                    <input type="date" id="story-date" name="date" class="w-full bg-white/70 border border-stone-200 rounded-xl p-3 text-stone-700 font-serif-sc focus:ring-1 focus:ring-rose-200 outline-none" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-serif-sc text-stone-500 mb-2 uppercase tracking-widest">小标题</label>
+                    <input type="text" id="story-title" name="title" placeholder="例如：第一次一起看海" class="w-full bg-white/70 border border-stone-200 rounded-xl p-3 text-stone-700 font-serif-sc focus:ring-1 focus:ring-rose-200 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-serif-sc text-stone-500 mb-2 uppercase tracking-widest">写点什么</label>
+                    <textarea id="story-content" name="content" rows="4" placeholder="把这一天贴进手账本..." class="w-full bg-white/70 border border-stone-200 rounded-xl p-3 text-stone-700 font-serif-sc focus:ring-1 focus:ring-rose-200 outline-none resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-serif-sc text-stone-500 mb-2 uppercase tracking-widest">配一张照片</label>
+                    <div onclick="document.getElementById('story-photo').click()" class="border-2 border-dashed border-stone-300 bg-white/50 rounded-xl p-5 text-center cursor-pointer hover:bg-rose-50/40 hover:border-rose-200 transition-colors">
+                        <i class="fas fa-image text-2xl text-stone-300 mb-2"></i>
+                        <p id="story-photo-name" class="font-serif-sc text-xs text-stone-500">点击选择照片</p>
+                        <input type="file" id="story-photo" name="photo" accept="image/*" class="hidden" onchange="updatePhotoName(this)">
+                    </div>
+                </div>
+                <button type="submit" id="story-submit" class="w-full bg-stone-800 text-white font-serif-sc font-bold py-3 rounded-full hover:bg-stone-700 transition-colors shadow-lg shadow-stone-800/10 uppercase tracking-widest text-sm">
+                    贴到时光轴
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="customAlert" class="fixed inset-0 flex items-center justify-center z-[100] hidden pointer-events-none">
+        <div class="bg-transparent transform scale-95 opacity-0 transition-all duration-300" id="alertContent">
+            <p class="font-serif-sc text-stone-600 text-center font-bold text-base tracking-widest drop-shadow-sm bg-white/90 backdrop-blur-md px-6 py-3 rounded-full border border-white" id="alertText"></p>
+        </div>
+    </div>
+
+    <script src="assets/js/api-client.js"></script>
+    <script>
+        const eventMeta = {
+            start: { color: 'bg-rose-300', icon: 'fa-heart', label: 'START' },
+            anniversary: { color: 'bg-red-300', icon: 'fa-ribbon', label: 'ANNIVERSARY' },
+            birthday: { color: 'bg-amber-300', icon: 'fa-cake-candles', label: 'BIRTHDAY' },
+            upload: { color: 'bg-blue-300', icon: 'fa-images', label: 'UPLOADS' },
+            manual: { color: 'bg-emerald-300', icon: 'fa-pen-nib', label: 'NOTE' }
+        };
+
+        function showAlert(msg) {
+            const modal = document.getElementById('customAlert');
+            const content = document.getElementById('alertContent');
+            const text = document.getElementById('alertText');
+            const rot = (Math.random() * 4 - 2).toFixed(1);
+            content.style.transform = `scale(0.95) rotate(${rot}deg)`;
+            text.innerText = msg;
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+                content.style.transform = `scale(1) rotate(${rot}deg)`;
+            }, 10);
+            setTimeout(() => {
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => modal.classList.add('hidden'), 300);
+            }, 2300);
+        }
+
+        function escapeHTML(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[ch]));
+        }
+
+        function formatDate(dateStr) {
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            return `${parts[0]}.${parts[1]}.${parts[2]}`;
+        }
+
+        async function loadStory() {
+            const container = document.getElementById('timeline-container');
+            try {
+                const story = await API.get('api/story.php');
+                if (!story.success) {
+                    showAlert(story.message || '时光轴加载失败');
+                    container.innerHTML = emptyStateHTML('加载失败，请刷新重试');
+                    return;
+                }
+
+                if (story.summary) {
+                    const d = story.summary;
+                    document.getElementById('love-summary').innerHTML = `
+                        <p class="font-handwriting text-3xl text-rose-400">${d.total_days} <span class="text-lg text-stone-400">Days Together</span></p>
+                        <p class="font-serif-sc text-stone-400 text-xs mt-1 tracking-widest uppercase">Since ${escapeHTML(d.start_date)}</p>
+                        <p class="font-serif-sc text-stone-300 text-[10px] mt-1">${d.years} 年 ${d.months} 月 ${d.days} 天 · ${d.event_count} 个时间点</p>
+                    `;
+                    const dateInput = document.getElementById('story-date');
+                    dateInput.min = d.start_date;
+                    dateInput.max = d.today;
+                    if (!dateInput.value) dateInput.value = d.today;
+                }
+
+                if (story.events && story.events.length > 0) {
+                    container.innerHTML = '<div class="timeline-line"></div>' + story.events.reverse().map(renderEvent).join('');
+                    observeRevealItems();
+                } else {
+                    container.innerHTML = emptyStateHTML('时光轴还没有内容');
+                }
+            } catch (e) {
+                container.innerHTML = emptyStateHTML('加载失败，请刷新重试');
+            }
+        }
+
+        function renderEvent(event, index) {
+            const meta = eventMeta[event.type] || eventMeta.manual;
+            const cardRot = ((index % 5) - 2) * 0.45;
+            const tapeSide = index % 2 === 0 ? 'left-5' : 'right-5';
+            const tapeRot = index % 2 === 0 ? 'rotate-[4deg]' : 'rotate-[-5deg]';
+            const photos = renderPhotos(event.photos || [], event.count || 0);
+            const byline = event.created_by ? `<span>由 ${escapeHTML(event.created_by)} 贴上</span>` : '';
+
+            return `
+                <article class="reveal-item relative">
+                    <div class="timeline-dot ${meta.color}"></div>
+                    <div class="torn-paper p-5 md:p-6 hover-lift" style="transform:rotate(${cardRot}deg)">
+                        <div class="tape top-[-7px] ${tapeSide} w-12 h-4 ${tapeRot}"></div>
+                        <div class="flex items-start justify-between gap-4 mb-3">
+                            <div>
+                                <p class="font-serif-sc text-[10px] text-stone-400 tracking-widest uppercase flex items-center gap-2 mb-1">
+                                    <i class="fas ${meta.icon} text-stone-300"></i>
+                                    ${meta.label}
+                                </p>
+                                <h3 class="font-handwriting text-3xl text-stone-700">${escapeHTML(event.title || '这一天')}</h3>
+                            </div>
+                            <time class="font-serif-sc text-[10px] text-stone-400 bg-white/70 border border-stone-100 rounded-full px-3 py-1 whitespace-nowrap">${formatDate(event.date)}</time>
+                        </div>
+                        ${event.content ? `<p class="font-serif-sc text-sm text-stone-600 leading-7 mb-4">${escapeHTML(event.content)}</p>` : ''}
+                        ${photos}
+                        <div class="mt-4 pt-3 border-t border-stone-100 flex justify-between items-center font-serif-sc text-[10px] text-stone-300 tracking-widest uppercase">
+                            <span>${event.count || 1} mark${(event.count || 1) > 1 ? 's' : ''}</span>
+                            ${byline}
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderPhotos(photos, count) {
+            if (!photos.length) return '';
+            const shown = photos.map(photo => `
+                <div class="flex-shrink-0 w-20 h-20 bg-white p-1 shadow-sm" style="transform:rotate(${(Math.random() * 5 - 2.5).toFixed(1)}deg)">
+                    <img src="${escapeHTML(photo.thumb_path || photo.path)}" alt="${escapeHTML(photo.title || 'timeline photo')}" class="w-full h-full object-cover" loading="lazy">
+                </div>
+            `).join('');
+            const hiddenCount = Math.max(0, count - photos.length);
+            return `
+                <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                    ${shown}
+                    ${hiddenCount > 0 ? `<div class="flex-shrink-0 w-20 h-20 bg-stone-50 border border-stone-100 flex items-center justify-center"><span class="font-serif-sc text-xs text-stone-400">+${hiddenCount}</span></div>` : ''}
+                </div>
+            `;
+        }
+
+        function emptyStateHTML(message) {
+            return `<div class="timeline-line"></div><div class="text-center py-16"><p class="font-serif-sc text-stone-400">${escapeHTML(message)}</p></div>`;
+        }
+
+        function observeRevealItems() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) entry.target.classList.add('is-visible');
+                });
+            }, { threshold: 0.1 });
+            document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
+        }
+
+        function openAddModal() {
+            const modal = document.getElementById('addModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        }
+
+        function closeAddModal() {
+            const modal = document.getElementById('addModal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function updatePhotoName(input) {
+            const name = input.files && input.files[0] ? input.files[0].name : '点击选择照片';
+            document.getElementById('story-photo-name').innerText = name;
+        }
+
+        document.getElementById('story-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submit = document.getElementById('story-submit');
+            submit.disabled = true;
+            submit.innerText = '正在贴上...';
+
+            const formData = new FormData(e.currentTarget);
+            formData.append('csrf_token', await API.getCSRFToken());
+
+            try {
+                await fetch('api/story.php', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    body: formData
+                });
+            } catch (err) {
+                // continue to reload regardless
+            }
+
+            location.reload();
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Remove pull-tab after entrance animation (0.7s + buffer)
+            setTimeout(() => {
+                const tab = document.getElementById('pull-tab-bottom');
+                if (tab) tab.style.display = 'none';
+            }, 800);
+
+            loadStory();
+            observeRevealItems();
+        });
+    </script>
+    </div><!-- /page-enter-wrapper -->
+</body>
+</html>

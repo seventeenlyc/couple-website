@@ -42,7 +42,28 @@ try {
             }
             
             $tasks = getTodayTasks();
-            
+
+            // Compute per-user state for each task
+            $userId = getCurrentUserId();
+            foreach ($tasks as &$task) {
+                $completedBy = $task['completed_by'] ?? [];
+                $confirmedBy = $task['confirmed_by'] ?? [];
+                $iCompleted = in_array($userId, $completedBy);
+                $partnerCompleted = !empty(array_diff($completedBy, [$userId]));
+                $isRewarded = !empty($confirmedBy);
+
+                if ($isRewarded) {
+                    $task['state'] = 'done';
+                } elseif ($iCompleted) {
+                    $task['state'] = 'my_completed'; // I did it, waiting for partner to confirm
+                } elseif ($partnerCompleted) {
+                    $task['state'] = 'pending_partner'; // partner did it, I need to confirm
+                } else {
+                    $task['state'] = 'pending';
+                }
+            }
+            unset($task);
+
             http_response_code(200);
             echo json_encode([
                 'success' => true,
@@ -120,7 +141,7 @@ try {
                 echo json_encode([
                     'success' => true,
                     'message' => $result['message'],
-                    'can_claim' => $result['can_claim'] ?? false
+                    'reward' => $result['reward'] ?? 0
                 ], JSON_UNESCAPED_UNICODE);
             } else {
                 http_response_code(400);

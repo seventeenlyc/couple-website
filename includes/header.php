@@ -283,7 +283,7 @@ if (isLoggedIn()) {
                     <a href="home.php" class="nav-link px-4 py-2 rounded-lg <?php echo $currentPage === 'home' ? 'active' : 'text-gray-700 hover:bg-gray-100'; ?>">
                         <i class="fas fa-home"></i> 主页
                     </a>
-                    <a href="album-fixed.php" class="nav-link px-4 py-2 rounded-lg <?php echo ($currentPage === 'album' || $currentPage === 'album-fixed') ? 'active' : 'text-gray-700 hover:bg-gray-100'; ?>"></a>
+                    <a href="album-fixed.php" class="nav-link px-4 py-2 rounded-lg <?php echo ($currentPage === 'album' || $currentPage === 'album-fixed') ? 'active' : 'text-gray-700 hover:bg-gray-100'; ?>">
                         <i class="fas fa-images"></i> 相册
                     </a>
                     <a href="achievements.php" class="nav-link px-4 py-2 rounded-lg <?php echo $currentPage === 'achievements' ? 'active' : 'text-gray-700 hover:bg-gray-100'; ?>">
@@ -347,7 +347,7 @@ if (isLoggedIn()) {
                 <a href="home.php" class="block px-3 py-2 rounded-md <?php echo $currentPage === 'home' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-100'; ?>">
                     <i class="fas fa-home"></i> 主页
                 </a>
-                <a href="album-fixed.php" class="block px-3 py-2 rounded-md <?php echo ($currentPage === 'album' || $currentPage === 'album-fixed') ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-100'; ?>"></a>
+                <a href="album-fixed.php" class="block px-3 py-2 rounded-md <?php echo $currentPage === 'album' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-100'; ?>">
                     <i class="fas fa-images"></i> 相册
                 </a>
                 <a href="achievements.php" class="block px-3 py-2 rounded-md <?php echo $currentPage === 'achievements' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-100'; ?>">

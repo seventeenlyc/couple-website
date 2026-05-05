@@ -1,8 +1,111 @@
 {
-    "enabled": true,
-    "api_key": "your_api_key_here",
+    "_comment": "AI功能配置文件示例 - 复制为 ai_config.json 并填入你的配置",
+    
+    "enabled": false,
+    "_enabled_comment": "是否启用AI功能。设置为true启用，false禁用",
+    
+    "api_provider": "openai",
+    "_api_provider_comment": "API提供商: openai, deepseek, anthropic",
+    
+    "api_key": "YOUR_API_KEY_HERE",
+    "_api_key_comment": "你的API密钥。OpenAI: sk-xxx, DeepSeek: sk-xxx",
+    
+    "api_endpoint": "",
+    "_api_endpoint_comment": "自定义API端点（可选）。留空使用默认端点",
+    
     "model": "gpt-3.5-turbo",
-    "base_url": "https://api.openai.com/v1",
-    "max_tokens": 1000,
-    "temperature": 0.7
+    "_model_comment": "使用的模型。OpenAI: gpt-3.5-turbo, gpt-4; DeepSeek: deepseek-chat",
+    
+    "max_tokens": 150,
+    "_max_tokens_comment": "生成内容的最大令牌数",
+    
+    "temperature": 0.7,
+    "_temperature_comment": "温度参数(0-1)。越高越随机，越低越确定",
+    
+    "timeout": 30,
+    "_timeout_comment": "API调用超时时间（秒）",
+    
+    "retry_attempts": 3,
+    "_retry_attempts_comment": "失败后重试次数",
+    
+    "retry_delay": 2,
+    "_retry_delay_comment": "重试间隔（秒）",
+    
+    "rate_limit": {
+        "enabled": true,
+        "_enabled_comment": "是否启用速率限制",
+        
+        "max_calls_per_day": 100,
+        "_max_calls_per_day_comment": "每天最大调用次数",
+        
+        "max_calls_per_hour": 20,
+        "_max_calls_per_hour_comment": "每小时最大调用次数"
+    },
+    
+    "cache": {
+        "enabled": true,
+        "_enabled_comment": "是否启用缓存",
+        
+        "ttl": 86400,
+        "_ttl_comment": "默认缓存时间（秒），86400=24小时",
+        
+        "daily_quote_ttl": 86400,
+        "_daily_quote_ttl_comment": "每日情话缓存时间（秒）",
+        
+        "anniversary_ttl": 3600,
+        "_anniversary_ttl_comment": "纪念日提醒缓存时间（秒），3600=1小时"
+    },
+    
+    "fallback": {
+        "enabled": true,
+        "_enabled_comment": "是否启用备用内容（当AI不可用时）",
+        
+        "quotes": [
+            "愿我们的爱情如同星辰，永恒闪耀。",
+            "每一天与你在一起，都是最美好的时光。",
+            "你是我生命中最美的遇见。",
+            "爱你，是我做过最对的决定。",
+            "余生很长，我只想和你一起走。"
+        ],
+        "_quotes_comment": "备用情话列表，可以自定义添加",
+        
+        "anniversary_messages": {
+            "monthly": [
+                "又一个月过去了，我们的爱情越来越深厚 💑",
+                "每个月的今天，都是值得纪念的日子 💕",
+                "时光荏苒，感谢有你相伴每一个月 🌹"
+            ],
+            "yearly": [
+                "又一年的相伴，感谢你一直在我身边 🎉",
+                "周年快乐！愿我们的爱情天长地久 💖",
+                "一年又一年，我们的爱情历久弥新 ✨"
+            ],
+            "special": [
+                "这是我们在一起的特殊日子，值得纪念 ✨",
+                "每一个里程碑，都见证着我们的爱情 💫",
+                "特殊的日子，特别的你，特别的爱 💝"
+            ]
+        },
+        "_anniversary_messages_comment": "备用纪念日祝福语，按类型分类"
+    },
+    
+    "prompts": {
+        "daily_quote": "请生成一句温馨浪漫的情话，适合情侣之间表达爱意。要求：简短（20字以内）、真挚、富有诗意。",
+        "_daily_quote_comment": "每日情话的提示词模板",
+        
+        "anniversary": "请为{type}纪念日生成一句祝福语。今天是我们在一起的第{days}天。要求：温馨、浪漫、有纪念意义，20字以内。",
+        "_anniversary_comment": "纪念日祝福的提示词模板。{type}和{days}会被自动替换",
+        
+        "photo_description": "请为这张照片生成一段温馨的描述，捕捉照片中的美好瞬间和情感。要求：简短、温馨、富有感染力。",
+        "_photo_description_comment": "照片描述的提示词模板"
+    },
+    
+    "statistics": {
+        "total_calls": 0,
+        "successful_calls": 0,
+        "failed_calls": 0,
+        "cache_hits": 0,
+        "last_call_time": null
+    },
+    "_statistics_comment": "API调用统计，自动更新"
 }

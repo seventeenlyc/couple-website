@@ -3,7 +3,7 @@
 # 类别：virtual（虚拟商品）或 physical（实体商品）
 # 修改此文件后，系统会自动同步到 products.json
 
-贴贴券 | 52 | assets/images/products/hug.png | 贴贴专用~10分钟内随便贴 | virtual | 15
+贴贴券 | 52 | assets/images/products/hug.png | 贴贴专用~10分钟内随便贴 | virtual | 999
 亲亲券 | 52 | assets/images/products/qinqinquan.png | 要一个5分钟的亲亲~ | virtual | 999
 按摩券 | 68 | assets/images/products/anmoquan.png | 可以要求对方为你按摩30分钟 | virtual | 999
 约会券 | 128 | assets/images/products/yuehuiquan.png | 可以要求对方陪你去任何地方约会一次 | virtual | 999
@@ -12,5 +12,5 @@
 和好券 | 288 | assets/images/products/hehaoquan.jpg | 使用后就不许再闹脾气啦 | virtual | 99
 电影票 | 328 | assets/images/products/film.jpg | 两张电影票，一起去看电影吧 | physical | 20
 做饭券 | 328 | assets/images/products/zuofanquan.png | 可以要求对方为你做一顿饭 | virtual | 999
-玫瑰花束 | 520 | assets/images/products/roses.png | 一束美丽的玫瑰花 | physical | 10
+玫瑰花束 | 520 | assets/images/products/roses.png | 一束美丽的玫瑰花 | physical | 100
 无理券 | 648 | assets/images/products/wuliquan.png | 不超出道德、能力范围下无条件答应对方一个要求 | virtual | 99

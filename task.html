@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>契约 · 双向奔赴的清单</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Noto+Serif+SC:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            background-color: #fdfcf8;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+            color: #4a4a4a;
+            overflow-x: hidden;
+        }
+
+        .font-serif-sc { font-family: 'Noto Serif SC', serif; }
+        .font-handwriting { font-family: 'Caveat', cursive; }
+
+        /* 磨砂胶带 */
+        .tape {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(2px);
+            border: 1px solid rgba(0,0,0,0.02);
+            z-index: 10;
+        }
+
+        /* 撕纸风格 */
+        .torn-paper {
+            background: #fff;
+            position: relative;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+            background-image: linear-gradient(transparent 95%, #fca5a5 95%);
+            background-size: 100% 1.5rem;
+        }
+        .torn-paper::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -8px; bottom: 0; width: 16px;
+            background: radial-gradient(circle at 0 0.75rem, transparent 4px, #fff 5px);
+            background-size: 16px 1.5rem;
+            z-index: -1;
+        }
+
+        /* 虚线优惠券风格 (用于签到) */
+        .coupon-card {
+            background: #fff;
+            border: 2px dashed #fcd34d; /* 琥珀色 */
+            border-radius: 12px;
+            position: relative;
+            box-shadow: 0 8px 20px -8px rgba(251, 191, 36, 0.15);
+        }
+        .coupon-card::before, .coupon-card::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 20px;
+            height: 20px;
+            background-color: #fdfcf8;
+            border-radius: 50%;
+            border: 2px dashed #fcd34d;
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+        .coupon-card::before { left: -12px; border-left-color: transparent; border-top-color: transparent; border-bottom-color: transparent; }
+        .coupon-card::after { right: -12px; border-right-color: transparent; border-top-color: transparent; border-bottom-color: transparent; }
+
+        /* 拍立得风格 */
+        .polaroid-card {
+            background: #ffffff;
+            padding: 10px 10px 35px 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            position: relative;
+        }
+
+        /* 盖章动画 */
+        @keyframes stampEffect {
+            0% { transform: scale(3) rotate(-20deg); opacity: 0; }
+            50% { transform: scale(0.9) rotate(-5deg); opacity: 1; }
+            100% { transform: scale(1) rotate(-10deg); opacity: 1; }
+        }
+        .anim-stamp {
+            animation: stampEffect 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        @media (hover: hover) {
+            .sticker-item:hover {
+                transform: scale(1.02) rotate(0deg) !important;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
+                z-index: 50;
+            }
+        }
+
+        .reveal-item { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
+        .reveal-item.is-visible { opacity: 1; transform: none; }
+        
+        .modal-enter { animation: modalFadeIn 0.3s ease-out forwards; }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Page slide-in entrance (from left) */
+        .page-slide-enter {
+            animation: slideInPage 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes slideInPage {
+            from { transform: translateX(-105vw); }
+            to { transform: translateX(0); }
+        }
+
+        /* Pull-tab indicator on left side */
+        .pull-tab-left {
+            position: fixed;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            z-index: 100;
+            background: #fff5f5;
+            border: 1px solid #fecdd3;
+            border-left: none;
+            border-radius: 0 10px 10px 0;
+            padding: 20px 6px;
+            box-shadow: 4px 0 10px rgba(0,0,0,0.04);
+            animation: tabBounceLeft 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            pointer-events: none;
+        }
+        @keyframes tabBounceLeft {
+            0% { transform: translateY(-50%) translateX(-60px); }
+            60% { transform: translateY(-50%) translateX(4px); }
+            80% { transform: translateY(-50%) translateX(-2px); }
+            100% { transform: translateY(-50%) translateX(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-24 selection:bg-rose-100 relative">
+
+    <!-- 【左侧拉标签指示器】 -->
+    <div id="pull-tab-left" class="pull-tab-left">
+        <span class="font-handwriting text-rose-400 text-sm" style="writing-mode: vertical-rl;">任务</span>
+    </div>
+
+    <!-- 【整页右滑动画容器】 -->
+    <div id="page-enter-wrapper" class="page-slide-enter">
+
+    <!-- 【左上角：返回主页贴纸】 -->
+    <a href="home.html" onclick="sessionStorage.setItem('home_from','tasks')" class="absolute top-6 left-6 md:left-12 z-30 group sticker-item rotate-[-5deg] transition-transform">
+        <div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-8 h-4 rotate-[10deg]"></div>
+        <div class="bg-white p-3 shadow-md flex items-center justify-center border border-stone-100">
+            <i class="fas fa-home text-rose-300"></i>
+            <span class="font-handwriting text-stone-500 ml-2 mt-1">Home</span>
+        </div>
+    </a>
+
+    <!-- 【右上角：积分】 -->
+    <div class="absolute top-6 right-6 md:right-12 z-30 sticker-item rotate-[3deg] cursor-pointer hover:rotate-0 transition-transform" onclick="showAlert('这是我们共同积攒的 🌸')">
+        <div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-10 h-4 rotate-[-8deg]"></div>
+        <div class="bg-rose-50 px-4 py-2 shadow-sm border border-rose-100 rounded flex items-center gap-2">
+            <i class="fas fa-seedling text-rose-400 animate-pulse"></i>
+            <span id="score-display" class="font-serif-sc font-bold text-stone-700 transition-all duration-300">842</span>
+        </div>
+    </div>
+
+    <!-- 【页头区块】 -->
+    <div class="max-w-3xl mx-auto px-5 md:px-12 pt-28">
+        <header class="flex flex-col items-center mb-12 relative reveal-item is-visible">
+            <!-- 柔和的背景光晕 -->
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-rose-100/40 rounded-[100%] blur-3xl -z-10"></div>
+            
+            <h1 class="font-handwriting text-5xl md:text-7xl text-stone-700 tracking-wider mb-2">Daily Tasks</h1>
+            <p class="font-serif-sc text-stone-400 text-sm tracking-[0.4em] uppercase text-center">
+                双向奔赴的日常<br>
+                <span class="text-[10px] text-stone-300 tracking-normal mt-1 block">一方完成，另一方确认后奖励到账</span>
+            </p>
+        </header>
+
+        <!-- 【模块 1：每日签到 (带日历和渐进奖励)】 -->
+        <div class="mb-12 reveal-item">
+            <div class="coupon-card p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 sticker-item rotate-[1deg] bg-amber-50/30">
+                <div class="tape top-[-10px] left-1/2 -translate-x-1/2 w-12 h-5 rotate-[-2deg]"></div>
+                
+                <!-- 左侧：小日历挂件 -->
+                <div class="bg-white rounded-xl shadow-[2px_4px_10px_rgba(0,0,0,0.06)] border border-stone-100 w-24 overflow-hidden rotate-[-4deg] flex-shrink-0 relative group">
+                    <!-- 模拟日历顶部的环扣孔洞 -->
+                    <div class="absolute top-2 left-0 w-full flex justify-center gap-5 z-10">
+                        <div class="w-1.5 h-1.5 rounded-full bg-stone-800 shadow-inner"></div>
+                        <div class="w-1.5 h-1.5 rounded-full bg-stone-800 shadow-inner"></div>
+                    </div>
+                    <!-- 日历内容 -->
+                    <div class="bg-rose-400 text-white font-serif-sc text-[10px] pt-5 pb-1 text-center tracking-widest uppercase relative" id="cal-month">MONTH</div>
+                    <div class="text-4xl font-black text-stone-700 py-2 text-center font-serif-sc" id="cal-date">00</div>
+                    <div class="text-[9px] text-stone-400 pb-2 text-center font-handwriting tracking-widest uppercase" id="cal-day">DAY</div>
+                </div>
+
+                <!-- 中间：签到信息与连签规则 -->
+                <div class="flex flex-col items-center md:items-start text-center md:text-left flex-1">
+                    <h3 class="font-serif-sc font-bold text-xl text-stone-700 mb-2 flex items-center gap-2">
+                        今日签到
+                    </h3>
+                    <p class="font-serif-sc text-xs text-stone-500 mb-2">
+                        已连续相爱并打卡 <span id="streak-days" class="font-bold text-rose-400 text-sm mx-1">12</span> 天
+                    </p>
+                    <div class="font-serif-sc text-[10px] text-stone-500 bg-white/60 px-3 py-1.5 rounded-lg border border-white shadow-sm inline-block">
+                        签到可获 <span id="today-reward-text" class="text-amber-500 font-bold text-xs mx-1">🌸 0</span><br>
+                        <span class="text-stone-400 scale-90 inline-block origin-left mt-0.5">(基础 5，每日连签 +2，上限 20)</span>
+                    </div>
+                </div>
+
+                <!-- 右侧：签到按钮 -->
+                <div class="relative">
+                    <button id="checkin-btn" onclick="doCheckIn()" class="bg-amber-400 text-white font-serif-sc font-bold text-sm px-8 py-3 rounded-full shadow-lg shadow-amber-400/30 hover:bg-amber-500 transition-colors uppercase tracking-widest whitespace-nowrap">
+                        点击盖章
+                    </button>
+                    <!-- 盖章印记 (初始隐藏) -->
+                    <div id="checkin-stamp" class="absolute -top-4 -right-4 text-red-500/80 font-serif-sc font-black text-2xl border-4 border-red-500/80 rounded-full w-16 h-16 flex items-center justify-center hidden pointer-events-none">
+                        已签
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4 mb-8 reveal-item">
+            <div class="h-[1px] flex-1 bg-stone-200"></div>
+            <h2 class="font-handwriting text-2xl text-stone-400">Our Shared Tasks</h2>
+            <div class="h-[1px] flex-1 bg-stone-200"></div>
+        </div>
+
+        <!-- 【模块 2：双人公共任务列表】 -->
+        <div id="tasks-container" class="space-y-8 pb-20">
+            <div class="text-center py-12">
+                <i class="fas fa-spinner fa-spin text-stone-300 text-2xl"></i>
+                <p class="font-serif-sc text-stone-400 text-sm mt-3">正在加载今日任务...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义轻提示弹窗 (Toast) -->
+    <div id="customAlert" class="fixed inset-0 flex items-center justify-center z-[100] hidden pointer-events-none">
+        <!-- 完全透明设计，仅保留文字与极轻的阴影保证可读性 -->
+        <div class="bg-transparent transform scale-95 opacity-0 transition-all duration-300" id="alertContent">
+            <p class="font-serif-sc text-stone-600 text-center font-bold text-base tracking-widest drop-shadow-sm" id="alertText">消息内容</p>
+        </div>
+    </div>
+
+    <script src="assets/js/api-client.js"></script>
+    <script>
+        // ── Globals ─────────────────────────────────────────
+        let currentScore = 0;
+        let hasCheckedIn = false;
+        let consecutiveDays = 0;
+        let loadedTasks = [];
+
+        const REWARD_BASE = 5;
+        const REWARD_INCREMENT = 2;
+        const REWARD_MAX = 20;
+        function calculateReward(days) { return Math.min(REWARD_BASE + days * REWARD_INCREMENT, REWARD_MAX); }
+
+        // ── Toast ────────────────────────────────────────────
+        function showAlert(msg) {
+            const modal = document.getElementById('customAlert');
+            const content = document.getElementById('alertContent');
+            const text = document.getElementById('alertText');
+            text.innerText = msg;
+            modal.classList.remove('hidden');
+            setTimeout(() => { content.classList.remove('scale-95', 'opacity-0'); content.classList.add('scale-100', 'opacity-100'); }, 10);
+            setTimeout(() => {
+                content.classList.remove('scale-100', 'opacity-100'); content.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => { modal.classList.add('hidden'); }, 300);
+            }, 2000);
+        }
+
+        function updateScoreDisplay(addAmount) {
+            if (addAmount) { currentScore += addAmount; }
+            const el = document.getElementById('score-display');
+            el.style.transform = 'scale(1.5)'; el.style.color = '#fb7185';
+            el.innerText = currentScore;
+            setTimeout(() => { el.style.transform = 'scale(1)'; el.style.color = '#44403c'; }, 300);
+        }
+
+        // ── Calendar init ────────────────────────────────────
+        function initCalendar() {
+            const today = new Date();
+            const months = ["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+            const daysOfWeek = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+            document.getElementById('cal-month').innerText = months[today.getMonth()];
+            document.getElementById('cal-date').innerText = String(today.getDate()).padStart(2,'0');
+            document.getElementById('cal-day').innerText = daysOfWeek[today.getDay()];
+        }
+
+        // ── Load balance & checkin status ────────────────────
+        async function loadBalance() {
+            try {
+                const data = await API.get('api/balance.php');
+                if (data.success) {
+                    currentScore = data.balance;
+                    consecutiveDays = data.streak_days || 0;
+                    hasCheckedIn = data.checked_in_today || false;
+                    document.getElementById('score-display').innerText = currentScore;
+                    document.getElementById('streak-days').innerText = consecutiveDays;
+                    document.getElementById('today-reward-text').innerText = '🌸 ' + calculateReward(consecutiveDays);
+
+                    if (hasCheckedIn) {
+                        disableCheckinButton();
+                    }
+                }
+            } catch (e) { /* keep defaults */ }
+        }
+
+        function disableCheckinButton() {
+            const btn = document.getElementById('checkin-btn');
+            const stamp = document.getElementById('checkin-stamp');
+            btn.innerHTML = '&nbsp;';
+            btn.classList.remove('hover:bg-amber-500', 'shadow-lg');
+            btn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-amber-200');
+            stamp.classList.remove('hidden');
+            stamp.classList.add('anim-stamp');
+        }
+
+        // ── Check-in ─────────────────────────────────────────
+        async function doCheckIn() {
+            if (hasCheckedIn) return;
+            try {
+                const data = await API.post('api/checkin.php');
+                if (data.success) {
+                    hasCheckedIn = true;
+                    consecutiveDays = data.streak_days;
+                    disableCheckinButton();
+                    updateScoreDisplay(data.reward);
+                    document.getElementById('streak-days').innerText = consecutiveDays;
+                    document.getElementById('today-reward-text').innerText = '🌸 ' + calculateReward(consecutiveDays) + ' (明天)';
+                    showAlert('签到成功！连续 ' + consecutiveDays + ' 天，获得 🌸 ' + data.reward);
+                } else {
+                    if (data.already_checked_in) { hasCheckedIn = true; disableCheckinButton(); }
+                    showAlert(data.message || '签到失败');
+                }
+            } catch (e) { showAlert('签到失败，请重试'); }
+        }
+
+        // ── Load tasks ───────────────────────────────────────
+        async function loadTasks() {
+            const container = document.getElementById('tasks-container');
+            try {
+                const data = await API.get('api/tasks.php?action=get_today');
+                if (data.success && data.tasks && data.tasks.length > 0) {
+                    loadedTasks = data.tasks;
+                    container.innerHTML = loadedTasks.map((t, i) => renderTaskCard(t, i)).join('');
+                    document.querySelectorAll('#tasks-container .reveal-item').forEach(el => observer.observe(el));
+                } else {
+                    container.innerHTML = '<div class="text-center py-12"><p class="font-serif-sc text-stone-400">今日暂无任务，明天再来吧</p></div>';
+                }
+            } catch (e) {
+                container.innerHTML = '<div class="text-center py-12"><p class="font-serif-sc text-stone-400">加载失败，请刷新重试</p></div>';
+            }
+        }
+
+        function renderTaskCard(task, index) {
+            const isAlternate = index % 2 === 1;
+            const rot = ((index % 3) - 1);
+            const state = task.state || 'pending';
+            let badgeText = '未完成', badgeClass = 'bg-stone-100 text-stone-500', btnText = '我完成了', btnClass = 'bg-stone-800 text-white hover:bg-stone-700', btnDisabled = '';
+
+            if (state === 'done') {
+                badgeText = '已完成'; badgeClass = 'bg-rose-100 text-rose-500';
+                btnText = '已完成'; btnClass = 'bg-stone-100 text-stone-400 cursor-not-allowed'; btnDisabled = 'disabled';
+            } else if (state === 'my_completed') {
+                badgeText = '等待对方确认'; badgeClass = 'bg-amber-100 text-amber-600';
+                btnText = '等待对方...'; btnClass = 'bg-stone-100 text-stone-400 cursor-not-allowed'; btnDisabled = 'disabled';
+            } else if (state === 'pending_partner') {
+                badgeText = '待确认'; badgeClass = 'bg-amber-100 text-amber-600 animate-pulse';
+                btnText = '确认完成'; btnClass = 'bg-amber-400 text-white hover:bg-amber-500';
+            }
+
+            const reward = task.reward || task.reward_min || 15;
+
+            if (isAlternate) {
+                // polaroid style
+                return `<div class="reveal-item sticker-item" style="transform:rotate(${rot}deg)" id="task-card-${task.id}">
+                    <div class="polaroid-card !px-6 !pt-6 !pb-8 bg-[#f8fafc]">
+                        <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-rose-300 shadow-[2px_4px_6px_rgba(0,0,0,0.1)] border-2 border-rose-200 z-10 before:content-[''] before:absolute before:w-2 before:h-2 before:bg-white/50 before:rounded-full before:top-1 before:left-1"></div>
+                        <div class="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center mt-2">
+                            <div class="flex-1"><div class="flex justify-between items-start mb-2"><h3 class="font-serif-sc font-bold text-lg text-stone-700">${task.title}</h3><span class="font-serif-sc text-[10px] px-2 py-1 rounded ${badgeClass} tracking-widest uppercase">${badgeText}</span></div><p class="font-serif-sc text-sm text-stone-500 mb-4">${task.description || ''}</p><div class="font-serif-sc font-black text-rose-400 text-sm bg-rose-50 inline-block px-3 py-1 rounded-full border border-rose-100">奖励: 🌸 ${reward}</div></div>
+                            <div class="w-full md:w-auto text-right border-t md:border-t-0 md:border-l border-stone-200 pt-4 md:pt-0 md:pl-6 flex flex-col justify-center"><button onclick="handleTask('${task.id}')" class="w-full md:w-32 font-serif-sc font-bold text-xs py-3 rounded-xl uppercase tracking-widest shadow-md transition-colors ${btnClass}" ${btnDisabled}>${btnText}</button><p class="text-[9px] text-stone-400 mt-2 font-serif-sc text-center md:hidden">对方确认后发放奖励</p></div>
+                        </div>
+                    </div>
+                </div>`;
+            } else {
+                // torn-paper style
+                return `<div class="reveal-item sticker-item" style="transform:rotate(${rot}deg)" id="task-card-${task.id}">
+                    <div class="torn-paper p-6 md:p-8"><div class="tape top-[-10px] right-8 w-12 h-5 rotate-[12deg]"></div>
+                        <div class="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
+                            <div class="flex-1"><div class="flex justify-between items-start mb-2"><h3 class="font-serif-sc font-bold text-lg text-stone-700">${task.title}</h3><span class="font-serif-sc text-[10px] px-2 py-1 rounded ${badgeClass} tracking-widest uppercase">${badgeText}</span></div><p class="font-serif-sc text-sm text-stone-500 mb-4">${task.description || ''}</p><div class="font-serif-sc font-black text-rose-400 text-sm bg-rose-50 inline-block px-3 py-1 rounded-full border border-rose-100">奖励: 🌸 ${reward}</div></div>
+                            <div class="w-full md:w-auto text-right border-t md:border-t-0 md:border-l border-stone-100 pt-4 md:pt-0 md:pl-6 flex flex-col justify-center"><button onclick="handleTask('${task.id}')" class="w-full md:w-32 font-serif-sc font-bold text-xs py-3 rounded-xl uppercase tracking-widest shadow-md transition-colors ${btnClass}" ${btnDisabled}>${btnText}</button><p class="text-[9px] text-stone-300 mt-2 font-serif-sc text-center md:text-right hidden md:block">对方点击确认后<br>双方获得奖励</p></div>
+                        </div>
+                    </div>
+                </div>`;
+            }
+        }
+
+        // ── Task state machine ───────────────────────────────
+        async function handleTask(taskId) {
+            const task = loadedTasks.find(t => t.id === taskId);
+            if (!task) return;
+            const state = task.state || 'pending';
+
+            try {
+                if (state === 'pending') {
+                    // Mark as completed (I did it)
+                    const res = await API.post('api/tasks.php?action=mark_complete', { task_id: taskId });
+                    if (res.success) {
+                        showAlert('已提交，等待对方确认');
+                        loadTasks();
+                    } else {
+                        showAlert(res.message || '操作失败');
+                    }
+                } else if (state === 'pending_partner') {
+                    // Confirm partner's completion → both get rewarded
+                    const res = await API.post('api/tasks.php?action=confirm', { task_id: taskId });
+                    if (res.success) {
+                        if (res.reward) updateScoreDisplay(res.reward);
+                        showAlert(res.message || '任务完成，奖励已发放！');
+                        loadTasks();
+                    } else {
+                        showAlert(res.message || '确认失败');
+                    }
+                }
+            } catch (e) {
+                showAlert('操作失败，请重试');
+            }
+        }
+
+        // ── Polling for task sync ─────────────────────────────
+        let taskPollTimer = null;
+        function startTaskPolling() {
+            if (taskPollTimer) clearInterval(taskPollTimer);
+            taskPollTimer = setInterval(async () => {
+                try {
+                    const data = await API.get('api/tasks.php?action=get_today');
+                    if (data.success && data.tasks) {
+                        const oldStates = loadedTasks.map(t => t.id + ':' + (t.state || '')).join(',');
+                        const newStates = data.tasks.map(t => t.id + ':' + (t.state || '')).join(',');
+                        if (oldStates !== newStates) {
+                            loadedTasks = data.tasks;
+                            const container = document.getElementById('tasks-container');
+                            container.innerHTML = loadedTasks.map((t, i) => renderTaskCard(t, i)).join('');
+                            document.querySelectorAll('#tasks-container .reveal-item').forEach(el => observer.observe(el));
+                        }
+                    }
+                } catch (e) { /* silent poll */ }
+            }, 15000);
+        }
+
+        // ── Observer ─────────────────────────────────────────
+        let observer;
+        document.addEventListener('DOMContentLoaded', () => {
+            // Remove pull-tab after entrance animation (0.7s + buffer)
+            setTimeout(() => {
+                const tab = document.getElementById('pull-tab-left');
+                if (tab) tab.style.display = 'none';
+            }, 800);
+
+            initCalendar();
+            loadBalance();
+            loadTasks();
+            startTaskPolling();
+
+            observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        setTimeout(() => { entry.target.classList.add('is-visible'); }, Math.random() * 200);
+                    }
+                });
+            }, { threshold: 0.1 });
+            document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
+        });
+    </script>
+    </div><!-- /page-enter-wrapper -->
+</body>
+</html>

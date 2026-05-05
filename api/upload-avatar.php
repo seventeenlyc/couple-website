@@ -4,9 +4,11 @@
  * 处理用户头像上传请求
  */
 
-// 清理输出缓冲区，防止任何意外输出
+// 确保输出缓冲开启，防止任何意外输出污染JSON
 if (ob_get_level()) {
-    ob_end_clean();
+    ob_clean();
+} else {
+    ob_start();
 }
 
 // 禁止显示错误（只记录到日志）
@@ -44,17 +46,19 @@ if (!validateCSRFToken($csrf_token)) {
     exit();
 }
 
-// 获取当前用户
-$currentUser = getCurrentUser();
+// 确定目标用户：side 参数（left=name1, right=name2）优先
+$side = $_POST['side'] ?? '';
+$sideUserMap = ['left' => 'name1', 'right' => 'name2'];
+$targetUserName = $sideUserMap[$side] ?? getCurrentUser();
 
 // 处理上传请求
 if (isset($_FILES['avatar'])) {
     try {
         // 记录调试信息
-        error_log('头像上传开始 - 用户: ' . $currentUser);
+        error_log('头像上传开始 - 用户: ' . $targetUserName);
         error_log('文件信息: ' . print_r($_FILES['avatar'], true));
-        
-        $result = saveUserAvatar($currentUser, $_FILES['avatar']);
+
+        $result = saveUserAvatar($targetUserName, $_FILES['avatar']);
         
         // 记录结果
         error_log('头像上传结果: ' . print_r($result, true));

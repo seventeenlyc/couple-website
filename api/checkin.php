@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 try {
     $userId = getCurrentUserId();
-    
+
     // 检查今日是否已签到
     if (hasCheckedInToday($userId)) {
         http_response_code(400);

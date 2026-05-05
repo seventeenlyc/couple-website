@@ -4,10 +4,28 @@
  * 处理照片上传请求，支持多照片上传
  */
 define('INCLUDED', true);
+
+// 禁止显示错误（只记录到日志）
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
+// 确保输出缓冲开启，防止任何意外输出污染JSON
+if (ob_get_level()) {
+    ob_clean();
+} else {
+    ob_start();
+}
+
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/json-helper.php';
+
+// 条件加载缩略图助手（服务器可能未部署此文件）
+$thumbnailHelperPath = __DIR__ . '/../includes/thumbnail-helper.php';
+if (file_exists($thumbnailHelperPath)) {
+    require_once $thumbnailHelperPath;
+}
 
 // 设置JSON响应头
 header('Content-Type: application/json');
@@ -76,13 +94,15 @@ function validateImageFile($file) {
         return ['success' => false, 'message' => '文件大小不能超过 10MB'];
     }
     
-    // 验证MIME类型
-    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-    $mimeType = finfo_file($finfo, $file['tmp_name']);
-    finfo_close($finfo);
-    
-    if (!in_array($mimeType, $allowedMimeTypes)) {
-        return ['success' => false, 'message' => '文件类型验证失败'];
+    // 验证MIME类型（需要fileinfo扩展）
+    if (function_exists('finfo_open')) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $file['tmp_name']);
+        finfo_close($finfo);
+
+        if (!in_array($mimeType, $allowedMimeTypes)) {
+            return ['success' => false, 'message' => '文件类型验证失败'];
+        }
     }
     
     // 验证是否为真实图片
@@ -129,11 +149,22 @@ function uploadPhoto($file, $metadata, $folderPath = '') {
         return ['success' => false, 'message' => '文件保存失败'];
     }
     
+    // Generate thumbnail (requires GD extension and thumbnail helper)
+    $thumbRelativePath = null;
+    if (function_exists('getThumbnailPath') && function_exists('generateThumbnail') && extension_loaded('gd')) {
+        $thumbRelativePath = getThumbnailPath($relativePath);
+        $thumbFullPath = __DIR__ . '/../' . $thumbRelativePath;
+        if (!generateThumbnail($filePath, $thumbFullPath)) {
+            $thumbRelativePath = null;
+        }
+    }
+
     // 创建照片数据
     $photoData = [
         'id' => uniqid() . '_' . $timestamp,
         'filename' => $fileName,
         'path' => $relativePath,
+        'thumb_path' => $thumbRelativePath,
         'title' => sanitizeInput($metadata['title'] ?? ''),
         'description' => sanitizeInput($metadata['description'] ?? ''),
         'uploaded_by' => $currentUser,

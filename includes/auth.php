@@ -73,7 +73,7 @@ function performLogin($you, $baby) {
  * 如果用户未登录，重定向到登录页面
  * @param string $loginPage 登录页面路径，默认为 index.php
  */
-function requireLogin($loginPage = 'index.php') {
+function requireLogin($loginPage = 'index.html') {
     if (!isLoggedIn()) {
         // 保存当前页面URL，登录后可以返回
         $_SESSION['redirect_after_login'] = $_SERVER['REQUEST_URI'];

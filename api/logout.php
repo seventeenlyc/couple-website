@@ -12,5 +12,5 @@ require_once __DIR__ . '/../includes/session.php';
 destroySession();
 
 // 重定向到登录页面
-header('Location: ../index.php');
+header('Location: ../index.html');
 exit();
