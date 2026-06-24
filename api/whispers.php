@@ -37,7 +37,8 @@ try {
                 exit;
             }
 
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = getRequestInput();
+            requireCSRFTokenFromInput($input);
             $content = $input['content'] ?? '';
 
             if (empty(trim($content))) {
@@ -93,7 +94,8 @@ try {
                 exit;
             }
 
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = getRequestInput();
+            requireCSRFTokenFromInput($input);
             $whisperId = $input['whisper_id'] ?? '';
 
             if (empty($whisperId)) {

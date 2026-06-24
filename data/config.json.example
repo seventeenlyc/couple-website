@@ -8,6 +8,7 @@
         "name1": {
             "id": "id1",
             "partner": "name2",
+            "password": "change-this-login-password",
             "privatePassword": "password1",
             "birthday": "01-01",
             "name": "name1",
@@ -17,6 +18,7 @@
         "name2": {
             "id": "id2",
             "partner": "name1",
+            "password": "change-this-login-password-too",
             "privatePassword": "password2",
             "birthday": "02-14",
             "name": "name2",

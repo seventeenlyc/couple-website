@@ -155,7 +155,9 @@ function saveUserAvatar($username, $file) {
     // 删除旧头像
     $oldAvatar = $userConfig['avatar'] ?? null;
     if ($oldAvatar && file_exists(__DIR__ . '/../' . $oldAvatar)) {
-        @unlink(__DIR__ . '/../' . $oldAvatar);
+        if (function_exists('safeUnlinkInside')) {
+            @safeUnlinkInside(AVATAR_UPLOAD_DIR, __DIR__ . '/../' . $oldAvatar);
+        }
     }
     
     // 移动文件
@@ -175,7 +177,9 @@ function saveUserAvatar($username, $file) {
     $updateResult = updateUserAvatar($username, $uploadPath);
     if (!$updateResult) {
         // 如果配置更新失败，删除已上传的文件
-        @unlink($fullPath);
+        if (function_exists('safeUnlinkInside')) {
+            @safeUnlinkInside(AVATAR_UPLOAD_DIR, $fullPath);
+        }
         return ['success' => false, 'message' => '配置文件更新失败'];
     }
     

@@ -82,7 +82,8 @@ try {
                 exit;
             }
             
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = getRequestInput();
+            requireCSRFTokenFromInput($input);
             $taskId = $input['task_id'] ?? '';
             
             if (empty($taskId)) {
@@ -122,7 +123,8 @@ try {
                 exit;
             }
             
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = getRequestInput();
+            requireCSRFTokenFromInput($input);
             $taskId = $input['task_id'] ?? '';
             
             if (empty($taskId)) {
@@ -163,7 +165,8 @@ try {
                 exit;
             }
             
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = getRequestInput();
+            requireCSRFTokenFromInput($input);
             $taskId = $input['task_id'] ?? '';
             
             if (empty($taskId)) {
@@ -203,7 +206,8 @@ try {
                 exit;
             }
             
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = getRequestInput();
+            requireCSRFTokenFromInput($input);
             $taskId = $input['task_id'] ?? '';
             
             if (empty($taskId)) {

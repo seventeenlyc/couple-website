@@ -15,6 +15,7 @@ if (ob_get_level()) {
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/json-helper.php';
 
 // 设置JSON响应头
 header('Content-Type: application/json');
@@ -34,12 +35,12 @@ if (!isPrivateAuthenticated()) {
 }
 
 $currentUserId = getCurrentUserId();
-$userUploadDir = __DIR__ . "/../uploads/{$currentUserId}/";
+$userUploadDir = __DIR__ . "/../uploads/private/{$currentUserId}/";
 $privateFile = __DIR__ . "/../data/private_{$currentUserId}.json";
 
 // 确保用户上传目录存在
 if (!file_exists($userUploadDir)) {
-    mkdir($userUploadDir, 0755, true);
+    mkdir($userUploadDir, 0750, true);
 }
 
 /**
@@ -62,7 +63,14 @@ function getPrivateFiles($folderPath = null) {
             });
         }
         
-        return array_values($files);
+        return array_values(array_map(function($file) {
+            if (isset($file['id'])) {
+                $downloadUrl = 'api/private-files.php?action=download&file_id=' . rawurlencode($file['id']);
+                $file['download_url'] = $downloadUrl;
+                $file['path'] = $downloadUrl;
+            }
+            return $file;
+        }, $files));
     }
     
     return [];
@@ -107,8 +115,16 @@ function uploadPrivateFile($file, $folderPath = '') {
     $tmpName = $file['tmp_name'];
     
     // 生成唯一文件名
-    $extension = pathinfo($originalName, PATHINFO_EXTENSION);
-    $uniqueName = uniqid() . '_' . time() . '.' . $extension;
+    $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+    $extension = preg_replace('/[^a-z0-9]/', '', $extension);
+    if (isDangerousPrivateUploadExtension($extension)) {
+        return ['success' => false, 'message' => '不支持上传此类型文件'];
+    }
+
+    $uniqueName = uniqid('private_', true) . '_' . time();
+    if ($extension !== '') {
+        $uniqueName .= '.' . $extension;
+    }
     $targetPath = $userUploadDir . $uniqueName;
     
     // 移动文件
@@ -127,21 +143,25 @@ function uploadPrivateFile($file, $folderPath = '') {
     }
     
     // 创建文件记录
+    $fileId = uniqid('file_', true);
+    $downloadUrl = 'api/private-files.php?action=download&file_id=' . rawurlencode($fileId);
     $fileRecord = [
-        'id' => uniqid(),
-        'original_name' => $originalName,
+        'id' => $fileId,
+        'original_name' => sanitizeInput($originalName),
         'stored_name' => $uniqueName,
         'size' => $fileSize,
         'extension' => $extension,
         'uploaded_at' => date('Y-m-d H:i:s'),
-        'path' => "uploads/{$currentUserId}/{$uniqueName}",
-        'folder_path' => $folderPath
+        'path' => $downloadUrl,
+        'download_url' => $downloadUrl,
+        'storage_path' => "uploads/private/{$currentUserId}/{$uniqueName}",
+        'folder_path' => sanitizeInput($folderPath)
     ];
     
     $privateData['files'][] = $fileRecord;
     
     // 保存记录
-    if (file_put_contents($privateFile, json_encode($privateData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
+    if (safeWriteJSON($privateFile, $privateData)) {
         return [
             'success' => true,
             'message' => '文件上传成功',
@@ -150,7 +170,7 @@ function uploadPrivateFile($file, $folderPath = '') {
     }
     
     // 如果保存记录失败，删除已上传的文件
-    unlink($targetPath);
+    safeUnlinkInside($userUploadDir, $targetPath);
     return ['success' => false, 'message' => '保存文件记录失败'];
 }
 
@@ -186,9 +206,9 @@ function deletePrivateFile($fileId) {
     }
     
     // 删除物理文件
-    $filePath = $userUploadDir . $fileToDelete['stored_name'];
+    $filePath = $userUploadDir . basename($fileToDelete['stored_name']);
     if (file_exists($filePath)) {
-        unlink($filePath);
+        safeUnlinkInside($userUploadDir, $filePath);
     }
     
     // 从记录中删除
@@ -197,19 +217,68 @@ function deletePrivateFile($fileId) {
         function($file) use ($fileId) { return $file['id'] !== $fileId; }
     ));
     
-    if (file_put_contents($privateFile, json_encode($privateData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
+    if (safeWriteJSON($privateFile, $privateData)) {
         return ['success' => true, 'message' => '文件删除成功'];
     }
     
     return ['success' => false, 'message' => '删除失败'];
 }
 
-// 处理请求
-$postInput = $_POST;
-// Support JSON input (API.post() sends JSON, which doesn't populate $_POST)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($postInput)) {
-    $postInput = json_decode(file_get_contents('php://input'), true) ?: [];
+function isDangerousPrivateUploadExtension($extension) {
+    $blockedExtensions = [
+        'php', 'php3', 'php4', 'php5', 'phtml', 'phar',
+        'cgi', 'pl', 'asp', 'aspx', 'jsp', 'jspx', 'shtml',
+        'htaccess', 'html', 'htm', 'svg', 'xml', 'js', 'mjs'
+    ];
+
+    return in_array($extension, $blockedExtensions, true);
 }
+
+function downloadPrivateFile($fileId) {
+    global $privateFile, $userUploadDir;
+
+    if (!file_exists($privateFile)) {
+        return ['success' => false, 'message' => '文件不存在'];
+    }
+
+    $privateData = json_decode(file_get_contents($privateFile), true) ?: [];
+    $files = $privateData['files'] ?? [];
+    $fileToDownload = null;
+
+    foreach ($files as $file) {
+        if (($file['id'] ?? '') === $fileId) {
+            $fileToDownload = $file;
+            break;
+        }
+    }
+
+    if (!$fileToDownload || empty($fileToDownload['stored_name'])) {
+        return ['success' => false, 'message' => '文件不存在'];
+    }
+
+    $filePath = $userUploadDir . basename($fileToDownload['stored_name']);
+    $resolvedPath = resolvePathInside($userUploadDir, $filePath);
+    if ($resolvedPath === false || !is_file($resolvedPath)) {
+        return ['success' => false, 'message' => '文件不存在'];
+    }
+
+    if (ob_get_level()) {
+        ob_clean();
+    }
+
+    $originalName = basename($fileToDownload['original_name'] ?? 'download');
+    $originalName = str_replace(['"', '\\', "\r", "\n"], '_', $originalName);
+
+    header('Content-Type: application/octet-stream');
+    header('X-Content-Type-Options: nosniff');
+    header('Content-Disposition: attachment; filename="' . $originalName . '"');
+    header('Content-Length: ' . filesize($resolvedPath));
+    readfile($resolvedPath);
+    exit();
+}
+
+// 处理请求
+$postInput = getRequestInput();
 $action = $postInput['action'] ?? $_GET['action'] ?? '';
 
 switch ($action) {
@@ -222,6 +291,20 @@ switch ($action) {
             'files' => array_reverse($files), // 最新的在前面
             'total' => count($files)
         ]);
+        break;
+
+    case 'download':
+        $fileId = $_GET['file_id'] ?? '';
+
+        if (empty($fileId)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => '文件ID不能为空']);
+            exit();
+        }
+
+        $result = downloadPrivateFile($fileId);
+        http_response_code(404);
+        echo json_encode($result);
         break;
         
     case 'upload':

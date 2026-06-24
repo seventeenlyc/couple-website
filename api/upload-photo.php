@@ -64,6 +64,7 @@ function validateImageFile($file) {
     $allowedTypes = ['jpg', 'jpeg', 'png', 'gif'];
     $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
     $maxSize = 10 * 1024 * 1024; // 10MB
+    $mimeType = null;
     
     // 检查文件是否上传成功
     if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -169,7 +170,9 @@ function uploadPhoto($file, $metadata, $folderPath = '') {
         'description' => sanitizeInput($metadata['description'] ?? ''),
         'uploaded_by' => $currentUser,
         'uploaded_at' => date('Y-m-d H:i:s'),
-        'tags' => array_filter(array_map('trim', explode(',', $metadata['tags'] ?? ''))),
+        'tags' => array_filter(array_map(function($tag) {
+            return sanitizeInput($tag);
+        }, array_map('trim', explode(',', $metadata['tags'] ?? '')))),
         'folder_path' => $folderPath,
         'file_size' => $file['size'],
         'mime_type' => $validation['mime_type']

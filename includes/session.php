@@ -20,9 +20,25 @@ function initSession() {
     }
     
     // 配置会话安全参数
-    ini_set('session.cookie_httponly', 1);
+    $isHttps = (
+        (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+        (isset($_SERVER['SERVER_PORT']) && (string)$_SERVER['SERVER_PORT'] === '443') ||
+        (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+    );
     ini_set('session.use_only_cookies', 1);
-    ini_set('session.cookie_secure', 0); // 开发环境设为0，生产环境应设为1
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.cookie_secure', $isHttps ? 1 : 0);
+    ini_set('session.cookie_samesite', 'Lax');
+
+    if (PHP_VERSION_ID >= 70300) {
+        session_set_cookie_params([
+            'lifetime' => 0,
+            'path' => '/',
+            'secure' => $isHttps,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
+    }
     
     // 设置会话超时时间（24小时）
     ini_set('session.gc_maxlifetime', 86400);
@@ -98,7 +114,7 @@ function destroySession() {
     
     // 删除会话cookie
     if (isset($_COOKIE[session_name()])) {
-        setcookie(session_name(), '', time() - 3600, '/');
+        setcookie(session_name(), '', time() - 3600, '/', '', false, true);
     }
     
     // 销毁会话

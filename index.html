@@ -151,6 +151,22 @@
                     >
                 </div>
 
+                <div>
+                    <label for="password" class="flex items-end gap-2 mb-2">
+                        <i class="fas fa-lock text-stone-300 text-sm mb-1"></i>
+                        <span class="font-handwriting text-2xl text-stone-600">Secret key</span>
+                    </label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        required
+                        class="w-full bg-stone-50/50 border-none rounded-xl p-4 text-stone-700 font-serif-sc focus:ring-2 focus:ring-rose-200 shadow-inner outline-none transition-shadow translate-y-[5px]"
+                        placeholder="请输入登录密码"
+                        autocomplete="current-password"
+                    >
+                </div>
+
                 <div class="pt-8">
                     <button 
                         type="submit" 
@@ -188,14 +204,6 @@
 
     <script src="assets/js/api-client.js"></script>
     <script>
-        // 检查维护页面，存在则重定向
-        (async function() {
-            try {
-                const res = await fetch('maintaining.html', { method: 'HEAD' });
-                if (res.ok) { window.location.href = 'maintaining.html'; }
-            } catch(e) { /* 文件不存在，正常进入 */ }
-        })();
-
         // --- 轻提示逻辑 ---
         function showAlert(msg) {
             const modal = document.getElementById('customAlert');
@@ -237,15 +245,16 @@
 
             const you = document.getElementById('you').value.trim();
             const baby = document.getElementById('baby').value.trim();
+            const password = document.getElementById('password').value;
 
-            if (!you || !baby) {
-                showAlert('请输入双方的名字');
+            if (!you || !baby || !password) {
+                showAlert('请输入双方名字和登录密码');
                 resetLoginButton();
                 return;
             }
 
             try {
-                const data = await API.postForm('api/login.php', { you, baby });
+                const data = await API.postForm('api/login.php', { you, baby, password });
 
                 if (data.success) {
                     loginButton.innerHTML = '<i class="fas fa-check"></i> <span>欢迎回家</span>';

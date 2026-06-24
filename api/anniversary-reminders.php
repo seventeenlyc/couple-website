@@ -6,9 +6,16 @@
 
 header('Content-Type: application/json');
 
+require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/anniversary-helper.php';
 require_once __DIR__ . '/../includes/ai-helper.php';
 require_once __DIR__ . '/../includes/config.php';
+
+if (!isLoggedIn()) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => '请先登录'], JSON_UNESCAPED_UNICODE);
+    exit();
+}
 
 try {
     // 获取开始日期

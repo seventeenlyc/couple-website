@@ -41,6 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+requireCSRFTokenFromInput();
+
 try {
     $userId = getCurrentUserId();
 
