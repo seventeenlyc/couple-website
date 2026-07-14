@@ -20,6 +20,7 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/json-helper.php';
+require_once __DIR__ . '/../includes/photo-tag-helper.php';
 
 // 条件加载缩略图助手（服务器可能未部署此文件）
 $thumbnailHelperPath = __DIR__ . '/../includes/thumbnail-helper.php';
@@ -172,7 +173,7 @@ function uploadPhoto($file, $metadata, $folderPath = '') {
         'uploaded_at' => date('Y-m-d H:i:s'),
         'tags' => array_filter(array_map(function($tag) {
             return sanitizeInput($tag);
-        }, array_map('trim', explode(',', $metadata['tags'] ?? '')))),
+        }, splitPhotoTags($metadata['tags'] ?? ''))),
         'folder_path' => $folderPath,
         'file_size' => $file['size'],
         'mime_type' => $validation['mime_type']

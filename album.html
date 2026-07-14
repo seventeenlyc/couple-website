@@ -807,7 +807,7 @@
 
             showAlert(total > 1 ? '已上传 ' + total + ' 张照片' : '上传成功！');
             closeModal('uploadModal');
-            setTimeout(() => location.reload(), 600);
+            setTimeout(() => loadAlbum(currentPath), 600);
             fileInput.value = '';
             document.getElementById('photo-preview').classList.add('hidden');
             document.getElementById('photo-preview').innerHTML = '';
