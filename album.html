@@ -383,6 +383,7 @@
     </div>
 
     <script src="assets/js/api-client.js"></script>
+    <script src="assets/js/album-folder-select.js"></script>
     <script>
         // ── Globals ─────────────────────────────────────────
         let currentPath = '';
@@ -665,14 +666,19 @@
 
         async function refreshUploadFolders() {
             try {
-                const data = await API.get('api/folders.php?action=list&context=album&path=');
+                const data = await API.get('api/folders.php?action=list&context=album&path=&include_all_folders=1');
                 if (data.success) {
-                    const options = '<option value="">根目录</option>' + (data.folders || []).map(f => '<option value="'+f.path+'">'+f.name+'</option>').join('');
                     const sel = document.getElementById('uploadFolderSelect');
                     if (sel) {
-                        sel.innerHTML = options;
-                        // Default to current subfolder if browsing one
-                        if (currentPath) sel.value = currentPath;
+                        const model = AlbumFolderSelect.buildOptions(data.all_folders || [], currentPath);
+                        sel.innerHTML = '';
+                        model.options.forEach(item => {
+                            const option = document.createElement('option');
+                            option.value = item.value;
+                            option.textContent = item.label;
+                            sel.appendChild(option);
+                        });
+                        sel.value = model.selectedValue;
                     }
                 }
             } catch (e) { /* keep existing options */ }

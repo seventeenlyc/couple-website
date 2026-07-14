@@ -129,6 +129,7 @@ function handleList($dataFile) {
     // 获取路径参数
     $path = $_GET['path'] ?? '';
     $all = ($_GET['all'] ?? '') === '1';
+    $includeAllFolders = ($_GET['include_all_folders'] ?? '') === '1';
 
     if ($all) {
         // Return all files regardless of folder
@@ -202,13 +203,19 @@ function handleList($dataFile) {
     // 生成面包屑
     $breadcrumbs = generateBreadcrumbs($path);
 
-    echo json_encode([
+    $response = [
         'success' => true,
         'folders' => $contents['folders'],
         'files' => $contents['files'],
         'breadcrumbs' => $breadcrumbs,
         'total_count' => $totalCount
-    ]);
+    ];
+
+    if ($includeAllFolders) {
+        $response['all_folders'] = getAllFolders($dataFile);
+    }
+
+    echo json_encode($response);
 }
 
 /**
