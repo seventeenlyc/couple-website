@@ -50,7 +50,7 @@ export default async function authRoutes(fastify) {
     }
 
     const { you, baby, password } = body;
-    if (!you || !baby || password === undefined || password === '') {
+    if (!you || !baby) {
       return {
         success: false,
         message: '请输入你和对方的称呼'
@@ -71,7 +71,9 @@ export default async function authRoutes(fastify) {
       return { success: false, message: '设备验证暂不可用' };
     }
 
-    const authRes = authenticateUser(db, you.trim(), baby.trim(), String(password));
+    // Legacy production users may have no configured login password. The
+    // authentication service enforces a password whenever a hash is present.
+    const authRes = authenticateUser(db, you.trim(), baby.trim(), password == null ? '' : String(password));
     if (!authRes.success) {
       return { success: false, message: authRes.message };
     }

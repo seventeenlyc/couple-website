@@ -160,9 +160,8 @@
                         type="password"
                         id="password"
                         name="password"
-                        required
                         class="w-full bg-stone-50/50 border-none rounded-xl p-4 text-stone-700 font-serif-sc focus:ring-2 focus:ring-rose-200 shadow-inner outline-none transition-shadow translate-y-[5px]"
-                        placeholder="请输入登录密码"
+                        placeholder="已设置登录密码时填写"
                         autocomplete="current-password"
                     >
                 </div>
@@ -248,8 +247,8 @@
             const baby = document.getElementById('baby').value.trim();
             const password = document.getElementById('password').value;
 
-            if (!you || !baby || !password) {
-                showAlert('请输入双方名字和登录密码');
+            if (!you || !baby) {
+                showAlert('请输入双方名字');
                 resetLoginButton();
                 return;
             }
