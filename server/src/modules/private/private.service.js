@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { getNowDateTimeString } from '../../utils/date.js';
+import { normalizeFolderPath, filePathVariants } from '../../utils/folder-path.js';
 
 export function escapeHtml(str) {
   if (typeof str !== 'string') return '';
@@ -64,8 +65,9 @@ export function getPrivateFiles(db, userId, folderPath = null) {
   let query = 'SELECT * FROM private_files WHERE user_id = ?';
   const params = [userId];
   if (folderPath !== null && folderPath !== undefined) {
-    query += ' AND folder_path = ?';
-    params.push(folderPath);
+    const variants = filePathVariants(folderPath);
+    query += ` AND (${variants.map(() => 'folder_path = ?').join(' OR ')})`;
+    params.push(...variants);
   }
   query += ' ORDER BY created_at DESC';
   const files = db.prepare(query).all(...params);
@@ -95,6 +97,7 @@ export function savePrivateFile(db, uploadsDir, userId, fileBuffer, originalName
 
   const relativeStored = `uploads/private/${userId}/${storedFilename}`;
   const now = getNowDateTimeString();
+  const canonicalFolder = normalizeFolderPath(folderPath);
 
   db.prepare(`
     INSERT INTO private_files (id, user_id, folder_path, original_name, stored_filename, stored_path, mime_type, size, created_at)
@@ -102,7 +105,7 @@ export function savePrivateFile(db, uploadsDir, userId, fileBuffer, originalName
   `).run(
     fileId,
     userId,
-    folderPath || '/',
+    canonicalFolder,
     originalName,
     storedFilename,
     relativeStored,
@@ -116,7 +119,7 @@ export function savePrivateFile(db, uploadsDir, userId, fileBuffer, originalName
     file: {
       id: fileId,
       original_name: originalName,
-      folder_path: folderPath || '/',
+      folder_path: canonicalFolder,
       size: fileBuffer.length,
       download_url: `api/private-files.php?action=download&file_id=${encodeURIComponent(fileId)}`
     },

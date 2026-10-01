@@ -3,6 +3,55 @@ import path from 'node:path';
 import bcrypt from 'bcryptjs';
 import { ROOT_DIR, DATA_DIR, loadConfig } from '../src/config.js';
 import { initDb, closeDb } from '../src/storage/db.js';
+import { getTodayDateString } from '../src/utils/date.js';
+import { normalizeFolderPath } from '../src/utils/folder-path.js';
+
+/** Legacy completed_by/confirmed_by are arrays, but tolerate a single id string. */
+function normalizeUserList(value) {
+  if (Array.isArray(value)) {
+    return value.filter(v => typeof v === 'string' && v !== '');
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    return value.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+/**
+ * The old PHP task helper kept the reward flag in `status`:
+ * 'pending' | 'completed' (done, awaiting partner confirmation) | 'rewarded'
+ * (paid out). Only 'rewarded' (or an existing confirmer) may not pay again.
+ */
+function isLegacyRewardGiven(task) {
+  const status = String(task.status || '').toLowerCase();
+  if (status === 'rewarded' || status === 'claimed' || status === 'paid') return true;
+  if (normalizeUserList(task.confirmed_by).length > 0) return true;
+  return task.reward_given === true || task.reward_given === 1 || task.reward_given === '1';
+}
+
+/**
+ * Flatten both legacy shapes of tasks.json daily_tasks:
+ *   { "2026-10-01": [ {...}, ... ] }   (real PHP layout)
+ *   [ { date: "2026-10-01", ... } ]    (flat array fixtures)
+ */
+function flattenDailyTasks(rawDailyTasks) {
+  const entries = [];
+  if (Array.isArray(rawDailyTasks)) {
+    for (const task of rawDailyTasks) {
+      if (!task || typeof task !== 'object') continue;
+      entries.push({ date: task.date || task.business_date || null, task });
+    }
+  } else if (rawDailyTasks && typeof rawDailyTasks === 'object') {
+    for (const [day, list] of Object.entries(rawDailyTasks)) {
+      if (!Array.isArray(list)) continue;
+      for (const task of list) {
+        if (!task || typeof task !== 'object') continue;
+        entries.push({ date: day, task });
+      }
+    }
+  }
+  return entries;
+}
 
 function safeReadJson(filePath, defaultValue = null) {
   if (!fs.existsSync(filePath)) return defaultValue;
@@ -277,29 +326,68 @@ export function runImport(options = {}) {
           t.id || `task_${++sort}`,
           t.title,
           t.description || '',
-          Number(t.reward || 10),
+          // Legacy pools store reward_min/reward_max; the daily instance keeps
+          // the actually rolled reward.
+          Number(t.reward ?? t.reward_min ?? 10),
           t.category || 'daily',
           t.icon || '',
           sort
         );
         report.tasks++;
       }
-      if (Array.isArray(tData?.daily_tasks)) {
+      // Daily instances: real PHP data is date-keyed ({ "YYYY-MM-DD": [task] }),
+      // so treat the whole daily_tasks object as the source of truth instead of
+      // only accepting an array.
+      const dailyEntries = flattenDailyTasks(tData?.daily_tasks);
+      if (dailyEntries.length > 0) {
         const insertDaily = db.prepare(`
           INSERT OR REPLACE INTO task_daily_instances (id, business_date, task_id, title, description, reward, completed_by, confirmed_by, reward_given)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
-        for (const dt of tData.daily_tasks) {
+        const findTask = db.prepare('SELECT id FROM tasks WHERE id = ?');
+        const insertPlaceholderTask = db.prepare(`
+          INSERT OR IGNORE INTO tasks (id, title, description, reward, category, sort_order)
+          VALUES (?, ?, ?, ?, 'daily', 999)
+        `);
+        const missingTaskIds = new Set();
+
+        for (const { date, task } of dailyEntries) {
+          const taskId = task.task_id || task.taskId;
+          if (!taskId) {
+            report.warnings.push(`Skipped a daily task entry without task_id on ${date || 'unknown date'}.`);
+            continue;
+          }
+
+          const businessDate = String(date || task.date || task.business_date || '').slice(0, 10)
+            || getTodayDateString();
+          const reward = Number(task.reward ?? 10);
+          const completedBy = normalizeUserList(task.completed_by);
+          const confirmedBy = normalizeUserList(task.confirmed_by);
+          const rewardGiven = isLegacyRewardGiven(task) ? 1 : 0;
+
+          // task_daily_instances.task_id references tasks(id); a task that was
+          // removed from the pool must not abort the whole import.
+          if (!findTask.get(taskId) && !missingTaskIds.has(taskId)) {
+            missingTaskIds.add(taskId);
+            insertPlaceholderTask.run(
+              taskId,
+              task.title || taskId,
+              task.description || '',
+              reward
+            );
+            report.warnings.push(`daily_tasks referenced unknown task_id '${taskId}'; created a placeholder task row.`);
+          }
+
           insertDaily.run(
-            dt.id || `dt_${dt.task_id}_${dt.date}`,
-            dt.date || new Date().toISOString().slice(0, 10),
-            dt.task_id,
-            dt.title || '',
-            dt.description || '',
-            Number(dt.reward || 10),
-            JSON.stringify(dt.completed_by || []),
-            JSON.stringify(dt.confirmed_by || []),
-            dt.reward_given ? 1 : 0
+            task.id || `dt_${taskId}_${businessDate}`,
+            businessDate,
+            taskId,
+            task.title || '',
+            task.description || '',
+            reward,
+            JSON.stringify(completedBy),
+            JSON.stringify(confirmedBy),
+            rewardGiven
           );
           report.taskInstances++;
         }
@@ -415,8 +503,10 @@ export function runImport(options = {}) {
         insertFolder.run(
           f.id || `f_${Math.random().toString(36).slice(2)}`,
           f.name,
-          f.path,
-          f.parent_path || '/',
+          // Canonicalize legacy values ("legacy/child") to the Node API form
+          // ("/legacy/child") so renames, deletes and counts all agree.
+          normalizeFolderPath(f.path),
+          normalizeFolderPath(f.parent_path),
           f.created_at || new Date().toISOString()
         );
         report.albumFolders++;
@@ -429,7 +519,7 @@ export function runImport(options = {}) {
       for (const p of photos) {
         insertPhoto.run(
           p.id || `p_${Math.random().toString(36).slice(2)}`,
-          p.folder_path || '/',
+          normalizeFolderPath(p.folder_path),
           p.filename || path.basename(p.path || ''),
           p.path || p.original_path,
           p.thumbnail_path || null,
@@ -498,7 +588,7 @@ export function runImport(options = {}) {
         insertPFile.run(
           f.id,
           uid,
-          f.folder_path || '/',
+          normalizeFolderPath(f.folder_path),
           f.original_name || f.filename || '',
           storedFilename,
           storedPath,
@@ -518,8 +608,8 @@ export function runImport(options = {}) {
           f.id || `pf_${Math.random().toString(36).slice(2)}`,
           uid,
           f.name,
-          f.path,
-          f.parent_path || '/',
+          normalizeFolderPath(f.path),
+          normalizeFolderPath(f.parent_path),
           f.created_at || new Date().toISOString()
         );
       }

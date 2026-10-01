@@ -269,12 +269,28 @@ export function confirmVirtualItemUse(db, userId, itemId) {
       return { success: false, message: '该商品不是待确认状态' };
     }
 
+    // The owner must never confirm their own use: confirmation is the partner's
+    // action (legacy PHP behaviour), so the pending -> used transition happens
+    // exactly once and only across the couple.
+    if (item.user_id === userId) {
+      return { success: false, message: '不能确认自己使用的商品，请等对方确认' };
+    }
+
+    const confirmer = db.prepare('SELECT id, partner_id FROM users WHERE id = ?').get(userId);
+    if (!confirmer) {
+      return { success: false, message: '确认者不存在' };
+    }
+    const owner = db.prepare('SELECT id, partner_id FROM users WHERE id = ?').get(item.user_id);
+    const isPartner =
+      (owner && owner.partner_id === userId) ||
+      (confirmer.partner_id && confirmer.partner_id === item.user_id);
+    if (!isPartner) {
+      return { success: false, message: '只有对方的确认才有效' };
+    }
+
     const nowTime = getNowDateTimeString();
-    db.prepare("UPDATE virtual_items SET status = 'used', confirmed_by = ?, confirmed_at = ? WHERE id = ?").run(
-      userId,
-      nowTime,
-      itemId
-    );
+    db.prepare("UPDATE virtual_items SET status = 'used', confirmed_by = ?, confirmed_at = ? WHERE id = ?")
+      .run(userId, nowTime, itemId);
     return { success: true, message: '已确认使用！💕' };
   })();
 }

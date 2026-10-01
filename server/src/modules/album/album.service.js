@@ -3,6 +3,15 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import sharp from 'sharp';
 import { getNowDateTimeString } from '../../utils/date.js';
+import {
+  normalizePath,
+  normalizeFolderPath,
+  escapeLike,
+  folderPathVariants,
+  filePathVariants
+} from '../../utils/folder-path.js';
+
+export { escapeLike };
 
 export function listFolders(db, context = 'album', userId = null) {
   if (context === 'private') {
@@ -11,13 +20,21 @@ export function listFolders(db, context = 'album', userId = null) {
   return db.prepare("SELECT * FROM album_folders WHERE context = 'album' ORDER BY path ASC").all();
 }
 
-function normalizePath(p) {
-  if (!p || p === '/' || p === '.') return '';
-  return p.replace(/^\/+|\/+$/g, '');
+/** `column = ? OR column = ?` clauses plus their parameters, one per spelling. */
+function exactMatch(column, values) {
+  return {
+    sql: values.map(() => `${column} = ?`).join(' OR '),
+    params: [...values]
+  };
 }
 
-export function escapeLike(str) {
-  return (str || '').replace(/([%_\\])/g, '\\$1');
+/** `column LIKE ? ESCAPE '\'` clauses plus their escaped subtree patterns. */
+function subtreeMatch(column, values) {
+  const patterns = values.filter(Boolean).map(v => `${escapeLike(v)}/%`);
+  return {
+    sql: patterns.map(() => `${column} LIKE ? ESCAPE '\\'`).join(' OR '),
+    params: patterns
+  };
 }
 
 export function createFolder(db, context, userId, name, parentPath = '') {
@@ -56,10 +73,12 @@ export function renameFolder(db, context, userId, rawOldPath, newName) {
   if (!cleanName) return { success: false, message: '名称无效' };
 
   return db.transaction(() => {
-    const oldNorm = normalizePath(rawOldPath);
+    // The caller may send either spelling; legacy rows use "a/b", rows created
+    // through the Node API use "/a/b".
+    const lookup = exactMatch('path', folderPathVariants(rawOldPath));
     const existing = context === 'private'
-      ? db.prepare("SELECT * FROM album_folders WHERE context = 'private' AND user_id = ? AND (path = ? OR path = ? OR path = ?)").get(userId, rawOldPath, `/${oldNorm}`, oldNorm)
-      : db.prepare("SELECT * FROM album_folders WHERE context = 'album' AND (path = ? OR path = ? OR path = ?)").get(rawOldPath, `/${oldNorm}`, oldNorm);
+      ? db.prepare(`SELECT * FROM album_folders WHERE context = 'private' AND user_id = ? AND (${lookup.sql})`).get(userId, ...lookup.params)
+      : db.prepare(`SELECT * FROM album_folders WHERE context = 'album' AND (${lookup.sql})`).get(...lookup.params);
 
     if (!existing) {
       return { success: false, message: '文件夹不存在' };
@@ -71,35 +90,53 @@ export function renameFolder(db, context, userId, rawOldPath, newName) {
 
     db.prepare("UPDATE album_folders SET name = ?, path = ? WHERE id = ?").run(cleanName, newPath, existing.id);
 
-    // Update child folders
-    const escapedOld = `${escapeLike(currentOldPath)}/%`;
-    const childFolders = context === 'private'
-      ? db.prepare("SELECT * FROM album_folders WHERE context = 'private' AND user_id = ? AND path LIKE ? ESCAPE '\\'").all(userId, escapedOld)
-      : db.prepare("SELECT * FROM album_folders WHERE context = 'album' AND path LIKE ? ESCAPE '\\'").all(escapedOld);
+    // Descendants: rebuild each path from the variant that actually matched.
+    const variants = [...new Set([currentOldPath, ...folderPathVariants(currentOldPath)])].filter(Boolean);
 
-    for (const cf of childFolders) {
-      const tail = cf.path.substring(currentOldPath.length);
-      const updatedPath = newPath + tail;
-      const updatedParent = (cf.parent_path && cf.parent_path.startsWith(currentOldPath))
-        ? newPath + cf.parent_path.substring(currentOldPath.length)
-        : cf.parent_path;
-      db.prepare("UPDATE album_folders SET path = ?, parent_path = ? WHERE id = ?").run(updatedPath, updatedParent, cf.id);
+    const movedFolders = new Set();
+    for (const variant of variants) {
+      const childFolders = context === 'private'
+        ? db.prepare("SELECT * FROM album_folders WHERE context = 'private' AND user_id = ? AND path LIKE ? ESCAPE '\\'").all(userId, `${escapeLike(variant)}/%`)
+        : db.prepare("SELECT * FROM album_folders WHERE context = 'album' AND path LIKE ? ESCAPE '\\'").all(`${escapeLike(variant)}/%`);
+
+      for (const cf of childFolders) {
+        if (movedFolders.has(cf.id)) continue;
+        movedFolders.add(cf.id);
+        const updatedPath = newPath + cf.path.substring(variant.length);
+        const updatedParent = (cf.parent_path && cf.parent_path.startsWith(variant))
+          ? newPath + cf.parent_path.substring(variant.length)
+          : cf.parent_path;
+        db.prepare("UPDATE album_folders SET path = ?, parent_path = ? WHERE id = ?").run(updatedPath, updatedParent, cf.id);
+      }
     }
 
-    // Update photos / files
+    // Photos / files: exact matches cover rows stored with the page's
+    // no-leading-slash format, then every descendant subtree is relocated.
     if (context === 'album') {
-      db.prepare("UPDATE album_photos SET folder_path = ? WHERE folder_path = ? OR folder_path = ?").run(newPath, currentOldPath, `/${oldNorm}`);
-      const childPhotos = db.prepare("SELECT id, folder_path FROM album_photos WHERE folder_path LIKE ? ESCAPE '\\'").all(escapedOld);
-      for (const cp of childPhotos) {
-        const ucp = newPath + cp.folder_path.substring(currentOldPath.length);
-        db.prepare("UPDATE album_photos SET folder_path = ? WHERE id = ?").run(ucp, cp.id);
+      const exact = exactMatch('folder_path', filePathVariants(currentOldPath));
+      db.prepare(`UPDATE album_photos SET folder_path = ? WHERE ${exact.sql}`).run(newPath, ...exact.params);
+
+      const moved = new Set();
+      for (const variant of variants) {
+        const rows = db.prepare("SELECT id, folder_path FROM album_photos WHERE folder_path LIKE ? ESCAPE '\\'").all(`${escapeLike(variant)}/%`);
+        for (const cp of rows) {
+          if (moved.has(cp.id)) continue;
+          moved.add(cp.id);
+          db.prepare('UPDATE album_photos SET folder_path = ? WHERE id = ?').run(newPath + cp.folder_path.substring(variant.length), cp.id);
+        }
       }
     } else {
-      db.prepare("UPDATE private_files SET folder_path = ? WHERE user_id = ? AND (folder_path = ? OR folder_path = ?)").run(newPath, userId, currentOldPath, `/${oldNorm}`);
-      const childFiles = db.prepare("SELECT id, folder_path FROM private_files WHERE user_id = ? AND folder_path LIKE ? ESCAPE '\\'").all(userId, escapedOld);
-      for (const cf of childFiles) {
-        const ucf = newPath + cf.folder_path.substring(currentOldPath.length);
-        db.prepare("UPDATE private_files SET folder_path = ? WHERE id = ?").run(ucf, cf.id);
+      const exact = exactMatch('folder_path', filePathVariants(currentOldPath));
+      db.prepare(`UPDATE private_files SET folder_path = ? WHERE user_id = ? AND (${exact.sql})`).run(newPath, userId, ...exact.params);
+
+      const moved = new Set();
+      for (const variant of variants) {
+        const rows = db.prepare("SELECT id, folder_path FROM private_files WHERE user_id = ? AND folder_path LIKE ? ESCAPE '\\'").all(userId, `${escapeLike(variant)}/%`);
+        for (const cf of rows) {
+          if (moved.has(cf.id)) continue;
+          moved.add(cf.id);
+          db.prepare('UPDATE private_files SET folder_path = ? WHERE id = ?').run(newPath + cf.folder_path.substring(variant.length), cf.id);
+        }
       }
     }
 
@@ -109,36 +146,38 @@ export function renameFolder(db, context, userId, rawOldPath, newName) {
 
 export function deleteFolder(db, context, userId, rawTargetPath) {
   if (!rawTargetPath) return { success: false, message: '目标路径不能为空' };
-  const targetNorm = normalizePath(rawTargetPath);
-  const targetWithSlash = `/${targetNorm}`;
-  const escapedPattern = `${escapeLike(targetWithSlash)}/%`;
+  const variants = folderPathVariants(rawTargetPath).filter(Boolean);
+  const folderExact = exactMatch('path', variants);
+  const folderSubtree = subtreeMatch('path', variants);
+  const fileExact = exactMatch('folder_path', filePathVariants(rawTargetPath));
+  const fileSubtree = subtreeMatch('folder_path', variants);
 
   return db.transaction(() => {
     if (context === 'private') {
       db.prepare(`
-        DELETE FROM album_folders 
-        WHERE context = 'private' AND user_id = ? 
-          AND (path = ? OR path = ? OR path LIKE ? ESCAPE '\\')
-      `).run(userId, rawTargetPath, targetWithSlash, escapedPattern);
+        DELETE FROM album_folders
+        WHERE context = 'private' AND user_id = ?
+          AND (${folderExact.sql} OR ${folderSubtree.sql})
+      `).run(userId, ...folderExact.params, ...folderSubtree.params);
 
       db.prepare(`
-        UPDATE private_files 
-        SET folder_path = '/' 
-        WHERE user_id = ? 
-          AND (folder_path = ? OR folder_path = ? OR folder_path LIKE ? ESCAPE '\\')
-      `).run(userId, rawTargetPath, targetWithSlash, escapedPattern);
+        UPDATE private_files
+        SET folder_path = '/'
+        WHERE user_id = ?
+          AND (${fileExact.sql} OR ${fileSubtree.sql})
+      `).run(userId, ...fileExact.params, ...fileSubtree.params);
     } else {
       db.prepare(`
-        DELETE FROM album_folders 
-        WHERE context = 'album' 
-          AND (path = ? OR path = ? OR path LIKE ? ESCAPE '\\')
-      `).run(rawTargetPath, targetWithSlash, escapedPattern);
+        DELETE FROM album_folders
+        WHERE context = 'album'
+          AND (${folderExact.sql} OR ${folderSubtree.sql})
+      `).run(...folderExact.params, ...folderSubtree.params);
 
       db.prepare(`
-        UPDATE album_photos 
-        SET folder_path = '/' 
-        WHERE folder_path = ? OR folder_path = ? OR folder_path LIKE ? ESCAPE '\\'
-      `).run(rawTargetPath, targetWithSlash, escapedPattern);
+        UPDATE album_photos
+        SET folder_path = '/'
+        WHERE ${fileExact.sql} OR ${fileSubtree.sql}
+      `).run(...fileExact.params, ...fileSubtree.params);
     }
     return { success: true, message: '删除成功' };
   })();
@@ -149,8 +188,9 @@ export function getAlbumPhotos(db, folderPath = null, tag = null) {
   const params = [];
 
   if (folderPath !== null && folderPath !== undefined) {
-    query += ' AND folder_path = ?';
-    params.push(folderPath);
+    const match = exactMatch('folder_path', filePathVariants(folderPath));
+    query += ` AND (${match.sql})`;
+    params.push(...match.params);
   }
 
   query += ' ORDER BY created_at DESC';
@@ -229,13 +269,16 @@ export async function processAndSavePhoto(db, rootDir, uploadsDir, fileBuffer, o
   const relativeOriginal = `uploads/photos/${storedFilename}`;
   const relativeThumb = hasThumb ? `uploads/thumbnails/${storedFilename}` : relativeOriginal;
 
+  // Store the canonical form so later reads, renames and deletes always agree.
+  const canonicalFolder = normalizeFolderPath(folderPath);
+
   const photoId = `photo_${fileId}`;
   db.prepare(`
     INSERT INTO album_photos (id, folder_path, filename, original_path, thumbnail_path, title, tags, uploaded_by, size, width, height, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     photoId,
-    folderPath || '/',
+    canonicalFolder,
     originalFilename,
     relativeOriginal,
     relativeThumb,
@@ -253,6 +296,7 @@ export async function processAndSavePhoto(db, rootDir, uploadsDir, fileBuffer, o
     filename: originalFilename,
     url: relativeOriginal,
     thumbnail: relativeThumb,
+    folder_path: canonicalFolder,
     width,
     height
   };

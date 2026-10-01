@@ -26,22 +26,24 @@ import {
 } from '../modules/whispers/whisper.service.js';
 import {
   getStoryTimeline,
-  createStoryEvent
+  createStoryEvent,
+  saveStoryPhoto
 } from '../modules/story/story.service.js';
 import {
   getDailyQuote,
   getAnniversaryReminders
 } from '../modules/ai/ai.service.js';
+import {
+  normalizePath,
+  normalizeFolderPath,
+  escapeLike,
+  folderPathVariants
+} from '../utils/folder-path.js';
 
 export default async function contentRoutes(fastify, options) {
   const db = fastify.db;
   const rootDir = options.rootDir;
   const uploadsDir = options.uploadsDir;
-
-  function normalizePath(p) {
-    if (!p || p === '/' || p === '.') return '';
-    return p.replace(/^\/+|\/+$/g, '');
-  }
 
   function generateBreadcrumbs(rawPath) {
     const clean = normalizePath(rawPath);
@@ -64,10 +66,6 @@ export default async function contentRoutes(fastify, options) {
       .split(',')
       .map(t => t.trim())
       .filter(Boolean);
-  }
-
-  function escapeLike(str) {
-    return (str || '').replace(/([%_\\])/g, '\\$1');
   }
 
   // 1. Folders API
@@ -122,11 +120,17 @@ export default async function contentRoutes(fastify, options) {
 
         const foldersWithCount = rawChildFolders.map(fld => {
           const fldNorm = normalizePath(fld.path);
-          const escapedPattern = `/${escapeLike(fldNorm)}/%`;
+          // Count both spellings: legacy rows use "legacy/child", the Node API
+          // stores "/legacy/child". Without the legacy pattern a legacy folder
+          // reports file_count=0 and cannot be navigated.
+          const variants = folderPathVariants(fld.path);
+          const exactSql = variants.map(() => 'folder_path = ?').join(' OR ');
+          const subtreePatterns = variants.filter(Boolean).map(v => `${escapeLike(v)}/%`);
+          const likeSql = subtreePatterns.map(() => "folder_path LIKE ? ESCAPE '\\'").join(' OR ');
           const countRow = db.prepare(`
             SELECT COUNT(*) as cnt FROM album_photos 
-            WHERE folder_path = ? OR folder_path = ? OR folder_path LIKE ? ESCAPE '\\'
-          `).get(`/${fldNorm}`, fldNorm, escapedPattern);
+            WHERE ${exactSql} OR ${likeSql}
+          `).get(...variants, ...subtreePatterns);
           return {
             id: fld.id,
             name: fld.name,
@@ -188,11 +192,14 @@ export default async function contentRoutes(fastify, options) {
 
         const foldersWithCount = rawChildFolders.map(fld => {
           const fldNorm = normalizePath(fld.path);
-          const escapedPattern = `/${escapeLike(fldNorm)}/%`;
+          const variants = folderPathVariants(fld.path);
+          const exactSql = variants.map(() => 'folder_path = ?').join(' OR ');
+          const subtreePatterns = variants.filter(Boolean).map(v => `${escapeLike(v)}/%`);
+          const likeSql = subtreePatterns.map(() => "folder_path LIKE ? ESCAPE '\\'").join(' OR ');
           const countRow = db.prepare(`
             SELECT COUNT(*) as cnt FROM private_files 
-            WHERE user_id = ? AND (folder_path = ? OR folder_path = ? OR folder_path LIKE ? ESCAPE '\\')
-          `).get(userId, `/${fldNorm}`, fldNorm, escapedPattern);
+            WHERE user_id = ? AND (${exactSql} OR ${likeSql})
+          `).get(userId, ...variants, ...subtreePatterns);
           return {
             id: fld.id,
             name: fld.name,
@@ -262,7 +269,7 @@ export default async function contentRoutes(fastify, options) {
 
       if (action === 'move') {
         const fileId = req.body?.file_id;
-        const targetPath = req.body?.target_path || '';
+        const targetPath = normalizeFolderPath(req.body?.target_path || '');
         if (!fileId) {
           reply.code(400);
           return { success: false, message: '缺少文件ID' };
@@ -692,13 +699,45 @@ export default async function contentRoutes(fastify, options) {
       reply.code(401);
       return { success: false, message: '请先登录' };
     }
-    const token = req.body?.csrf_token || req.headers['x-csrf-token'];
+
+    // story.html always submits FormData (multipart), even with no photo, and
+    // carries the CSRF token as a field. Accept JSON bodies as well.
+    let fields = req.body && typeof req.body === 'object' ? { ...req.body } : {};
+    let photoFile = null;
+
+    if (req.isMultipart()) {
+      fields = {};
+      for await (const part of req.parts()) {
+        if (part.type === 'file') {
+          const buffer = await part.toBuffer();
+          if (part.fieldname === 'photo' && buffer.length > 0) {
+            photoFile = { buffer, filename: part.filename, mimetype: part.mimetype };
+          }
+        } else {
+          fields[part.fieldname] = part.value;
+        }
+      }
+    }
+
+    const token = fields.csrf_token || req.headers['x-csrf-token'];
     if (!req.validateCSRFToken(token)) {
       reply.code(403);
       return { success: false, message: '请求无效，请重新尝试' };
     }
-    const userId = req.getCurrentUserId();
-    return createStoryEvent(db, userId, req.body || {});
+
+    const photos = [];
+    if (photoFile) {
+      const saved = saveStoryPhoto(uploadsDir, photoFile);
+      if (!saved.success) {
+        reply.code(400);
+        return saved;
+      }
+      photos.push(saved.photo);
+    }
+
+    const res = createStoryEvent(db, req.getCurrentUserId(), { ...fields, photos });
+    if (!res.success) reply.code(400);
+    return res;
   });
 
   // 9. Daily Quote API

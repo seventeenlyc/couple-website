@@ -1,5 +1,45 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import crypto from 'node:crypto';
 import { getTodayDateString, getNowDateTimeString, calculateLoveDuration } from '../../utils/date.js';
+
+const STORY_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif'];
+const STORY_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
+const STORY_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+
+export function isValidDateString(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const probe = new Date(Date.UTC(year, month - 1, day));
+  return probe.getUTCFullYear() === year
+    && probe.getUTCMonth() === month - 1
+    && probe.getUTCDate() === day;
+}
+
+/**
+ * story.html renders `photo.thumb_path || photo.path` and `photo.title`, so every
+ * photo must be an object. Legacy data may hold bare path strings.
+ */
+export function normalizePhotoEntry(photo) {
+  if (!photo) return null;
+
+  if (typeof photo === 'string') {
+    const value = photo.trim();
+    return value ? { id: '', path: value, thumb_path: value, title: '' } : null;
+  }
+
+  if (typeof photo !== 'object') return null;
+
+  const photoPath = String(photo.path || photo.original_path || '').trim();
+  if (!photoPath) return null;
+
+  return {
+    id: String(photo.id || ''),
+    path: photoPath,
+    thumb_path: String(photo.thumb_path || photo.thumbnail_path || photoPath),
+    title: String(photo.title || photo.filename || '')
+  };
+}
 
 export function getStoryTimeline(db) {
   const startRow = db.prepare("SELECT value FROM site_config WHERE key = 'startDate'").get();
@@ -57,16 +97,28 @@ export function getStoryTimeline(db) {
 
   for (const pd of photoDays) {
     if (!pd.day) continue;
-    const samplePhotos = db.prepare('SELECT original_path FROM album_photos WHERE SUBSTR(created_at, 1, 10) = ? LIMIT 4').all(pd.day);
+    const samplePhotos = db.prepare(`
+      SELECT id, original_path, thumbnail_path, title, filename, uploaded_by
+      FROM album_photos
+      WHERE SUBSTR(created_at, 1, 10) = ?
+      ORDER BY created_at DESC
+      LIMIT 6
+    `).all(pd.day);
+    const uploader = samplePhotos.find(p => p.uploaded_by);
     events.push({
       id: `system_upload_${pd.day}`,
-      source: 'upload',
-      type: 'photo_upload',
+      source: 'album',
+      type: 'upload',
       date: pd.day,
-      title: `定格美好瞬间`,
-      content: `这一天记录了 ${pd.cnt} 张珍贵的照片。`,
-      photos: samplePhotos.map(p => p.original_path),
-      created_by: '',
+      title: `上传了 ${pd.cnt} 张照片`,
+      content: '这一天被放进了相册，也贴到了时间轴上。',
+      photos: samplePhotos.map(p => normalizePhotoEntry({
+        id: p.id,
+        path: p.original_path,
+        thumb_path: p.thumbnail_path || p.original_path,
+        title: p.title || p.filename
+      })).filter(Boolean),
+      created_by: uploader ? uploader.uploaded_by : '',
       created_at: `${pd.day} 12:00:00`,
       count: pd.cnt
     });
@@ -77,17 +129,19 @@ export function getStoryTimeline(db) {
   for (const ce of customEvents) {
     let photos = [];
     try { photos = JSON.parse(ce.photos || '[]'); } catch (e) {}
+    if (!Array.isArray(photos)) photos = [];
+    const normalizedPhotos = photos.map(normalizePhotoEntry).filter(Boolean);
     events.push({
       id: ce.id,
       source: ce.source || 'manual',
-      type: ce.type || 'custom',
+      type: ce.type && ce.type !== 'custom' ? ce.type : 'manual',
       date: ce.event_date,
       title: ce.title,
       content: ce.content,
-      photos,
+      photos: normalizedPhotos,
       created_by: ce.created_by,
       created_at: ce.created_at,
-      count: 1
+      count: Math.max(1, normalizedPhotos.length)
     });
   }
 
@@ -96,43 +150,106 @@ export function getStoryTimeline(db) {
 
   return {
     success: true,
+    // Kept for existing API callers.
     startDate,
     love_days: duration.days,
+    // Fields story.html reads from story.summary.
+    summary: {
+      start_date: startDate,
+      today,
+      total_days: duration.days,
+      years: duration.years,
+      months: duration.months,
+      days: duration.remainingDays,
+      event_count: events.length
+    },
     events
   };
 }
 
-export function createStoryEvent(db, userId, data) {
-  const title = (data.title || '').trim();
-  const date = data.date || getTodayDateString();
-  const content = (data.content || '').trim();
-  const photos = Array.isArray(data.photos) ? data.photos : [];
+export function saveStoryPhoto(uploadsDir, file) {
+  const originalName = file?.filename || '';
+  const extension = path.extname(originalName).toLowerCase().replace('.', '');
 
-  if (!title) {
-    return { success: false, message: '标题不能为空' };
+  if (!STORY_IMAGE_EXTENSIONS.includes(extension)) {
+    return { success: false, message: '只支持 JPG、PNG、GIF 格式的图片' };
+  }
+  if (file.mimetype && !STORY_IMAGE_MIME_TYPES.includes(file.mimetype)) {
+    return { success: false, message: '文件不是有效图片' };
+  }
+  if (!file.buffer || file.buffer.length === 0) {
+    return { success: false, message: '照片上传失败' };
+  }
+  if (file.buffer.length > STORY_IMAGE_MAX_BYTES) {
+    return { success: false, message: '图片大小不能超过 10MB' };
+  }
+
+  const storyDir = path.join(uploadsDir, 'story');
+  fs.mkdirSync(storyDir, { recursive: true });
+
+  const fileName = `${Date.now()}_${crypto.randomBytes(4).toString('hex')}.${extension}`;
+  fs.writeFileSync(path.join(storyDir, fileName), file.buffer);
+  const relativePath = `uploads/story/${fileName}`;
+
+  return {
+    success: true,
+    photo: {
+      id: `story_photo_${crypto.randomBytes(6).toString('hex')}`,
+      path: relativePath,
+      thumb_path: relativePath,
+      title: path.parse(originalName).name,
+      mime_type: file.mimetype || '',
+      file_size: file.buffer.length
+    }
+  };
+}
+
+export function createStoryEvent(db, userId, data) {
+  const title = String(data.title || '').trim();
+  const content = String(data.content || '').trim();
+  const rawDate = String(data.date || '').trim();
+
+  const photos = (Array.isArray(data.photos) ? data.photos : [])
+    .map(normalizePhotoEntry)
+    .filter(Boolean);
+
+  const date = rawDate || getTodayDateString();
+  if (!isValidDateString(date)) {
+    return { success: false, message: '请选择有效日期' };
+  }
+  if (!title && !content && photos.length === 0) {
+    return { success: false, message: '请写一点内容，或选择一张照片' };
   }
 
   const id = `story_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
   const now = getNowDateTimeString();
 
+  // story.html prints created_by directly ("由 X 贴上"), and the legacy API
+  // stored the display name rather than the internal user id.
+  const author = db.prepare('SELECT username FROM users WHERE id = ?').get(userId);
+  const createdBy = author?.username || userId;
+
   db.prepare(`
     INSERT INTO story_events (id, source, type, event_date, title, content, photos, created_by, created_at)
-    VALUES (?, 'manual', 'custom', ?, ?, ?, ?, ?, ?)
-  `).run(id, date, title, content, JSON.stringify(photos), userId, now);
+    VALUES (?, 'manual', 'manual', ?, ?, ?, ?, ?, ?)
+  `).run(id, date, title, content, JSON.stringify(photos), createdBy, now);
+
+  const event = {
+    id,
+    source: 'manual',
+    type: 'manual',
+    date,
+    title,
+    content,
+    photos,
+    created_by: createdBy,
+    created_at: now,
+    count: Math.max(1, photos.length)
+  };
 
   return {
     success: true,
-    message: '故事已收录进时间线',
-    event: {
-      id,
-      source: 'manual',
-      type: 'custom',
-      date,
-      title,
-      content,
-      photos,
-      created_by: userId,
-      created_at: now
-    }
+    message: '已经贴到时光轴上',
+    event
   };
 }
