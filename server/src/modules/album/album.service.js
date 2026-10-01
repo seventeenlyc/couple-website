@@ -3,15 +3,15 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import sharp from 'sharp';
 import { getNowDateTimeString } from '../../utils/date.js';
+import { escapeHtml } from '../../utils/html.js';
 import {
   normalizePath,
   normalizeFolderPath,
-  escapeLike,
   folderPathVariants,
   filePathVariants
 } from '../../utils/folder-path.js';
 
-export { escapeLike };
+export { escapeLike } from '../../utils/folder-path.js';
 
 export function listFolders(db, context = 'album', userId = null) {
   if (context === 'private') {
@@ -28,12 +28,17 @@ function exactMatch(column, values) {
   };
 }
 
-/** `column LIKE ? ESCAPE '\'` clauses plus their escaped subtree patterns. */
+/**
+ * Case-sensitive subtree match. SQLite's `LIKE` is case-insensitive for ASCII, so
+ * a `/Trip` delete or rename would also swallow the sibling `/trip` subtree.
+ * `instr(path, prefix) = 1` is an exact, case-sensitive prefix test that also
+ * treats `%` and `_` literally, so no LIKE escaping is needed.
+ */
 function subtreeMatch(column, values) {
-  const patterns = values.filter(Boolean).map(v => `${escapeLike(v)}/%`);
+  const prefixes = values.filter(Boolean).map(v => `${v}/`);
   return {
-    sql: patterns.map(() => `${column} LIKE ? ESCAPE '\\'`).join(' OR '),
-    params: patterns
+    sql: prefixes.map(() => `instr(${column}, ?) = 1`).join(' OR '),
+    params: prefixes
   };
 }
 
@@ -96,8 +101,8 @@ export function renameFolder(db, context, userId, rawOldPath, newName) {
     const movedFolders = new Set();
     for (const variant of variants) {
       const childFolders = context === 'private'
-        ? db.prepare("SELECT * FROM album_folders WHERE context = 'private' AND user_id = ? AND path LIKE ? ESCAPE '\\'").all(userId, `${escapeLike(variant)}/%`)
-        : db.prepare("SELECT * FROM album_folders WHERE context = 'album' AND path LIKE ? ESCAPE '\\'").all(`${escapeLike(variant)}/%`);
+        ? db.prepare("SELECT * FROM album_folders WHERE context = 'private' AND user_id = ? AND instr(path, ?) = 1").all(userId, `${variant}/`)
+        : db.prepare("SELECT * FROM album_folders WHERE context = 'album' AND instr(path, ?) = 1").all(`${variant}/`);
 
       for (const cf of childFolders) {
         if (movedFolders.has(cf.id)) continue;
@@ -118,7 +123,7 @@ export function renameFolder(db, context, userId, rawOldPath, newName) {
 
       const moved = new Set();
       for (const variant of variants) {
-        const rows = db.prepare("SELECT id, folder_path FROM album_photos WHERE folder_path LIKE ? ESCAPE '\\'").all(`${escapeLike(variant)}/%`);
+        const rows = db.prepare("SELECT id, folder_path FROM album_photos WHERE instr(folder_path, ?) = 1").all(`${variant}/`);
         for (const cp of rows) {
           if (moved.has(cp.id)) continue;
           moved.add(cp.id);
@@ -131,7 +136,7 @@ export function renameFolder(db, context, userId, rawOldPath, newName) {
 
       const moved = new Set();
       for (const variant of variants) {
-        const rows = db.prepare("SELECT id, folder_path FROM private_files WHERE user_id = ? AND folder_path LIKE ? ESCAPE '\\'").all(userId, `${escapeLike(variant)}/%`);
+        const rows = db.prepare("SELECT id, folder_path FROM private_files WHERE user_id = ? AND instr(folder_path, ?) = 1").all(userId, `${variant}/`);
         for (const cf of rows) {
           if (moved.has(cf.id)) continue;
           moved.add(cf.id);
@@ -232,8 +237,52 @@ export function deleteAlbumPhoto(db, rootDir, photoId) {
   })();
 }
 
-export async function processAndSavePhoto(db, rootDir, uploadsDir, fileBuffer, originalFilename, folderPath, tags, uploadedBy) {
-  const ext = path.extname(originalFilename).toLowerCase() || '.jpg';
+const ALLOWED_PHOTO_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif'];
+const ALLOWED_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
+const ALLOWED_PHOTO_FORMATS = ['jpeg', 'png', 'gif'];
+const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Validate an uploaded photo before anything is written to disk, mirroring the
+ * legacy PHP upload API: whitelisted extension, whitelisted content type, size
+ * limit, and the bytes must decode as a real image of that kind.
+ */
+export async function validatePhotoUpload(fileBuffer, originalFilename, mimetype = '') {
+  const extension = path.extname(originalFilename || '').toLowerCase().replace('.', '');
+
+  if (!ALLOWED_PHOTO_EXTENSIONS.includes(extension)) {
+    return { success: false, message: '只支持 JPG、PNG、GIF 格式的图片' };
+  }
+  if (!fileBuffer || fileBuffer.length === 0) {
+    return { success: false, message: '没有文件被上传' };
+  }
+  if (fileBuffer.length > MAX_PHOTO_BYTES) {
+    return { success: false, message: '文件大小不能超过 10MB' };
+  }
+  if (mimetype && !ALLOWED_PHOTO_MIME_TYPES.includes(String(mimetype).toLowerCase())) {
+    return { success: false, message: '文件类型验证失败' };
+  }
+
+  let metadata;
+  try {
+    metadata = await sharp(fileBuffer).metadata();
+  } catch (e) {
+    return { success: false, message: '文件不是有效的图片' };
+  }
+  if (!metadata || !ALLOWED_PHOTO_FORMATS.includes(metadata.format)) {
+    return { success: false, message: '文件不是有效的图片' };
+  }
+
+  return { success: true, extension, metadata };
+}
+
+export async function processAndSavePhoto(db, rootDir, uploadsDir, fileBuffer, originalFilename, folderPath, tags, uploadedBy, mimetype = '') {
+  const validation = await validatePhotoUpload(fileBuffer, originalFilename, mimetype);
+  if (!validation.success) {
+    return { success: false, message: validation.message };
+  }
+
+  const ext = `.${validation.extension}`;
   const fileId = crypto.randomUUID();
   const storedFilename = `${fileId}${ext}`;
 
@@ -248,16 +297,12 @@ export async function processAndSavePhoto(db, rootDir, uploadsDir, fileBuffer, o
   // Write original
   fs.writeFileSync(originalFullPath, fileBuffer);
 
-  let width = 0;
-  let height = 0;
+  let width = validation.metadata.width || 0;
+  let height = validation.metadata.height || 0;
   let hasThumb = false;
 
   try {
-    const metadata = await sharp(fileBuffer).metadata();
-    width = metadata.width || 0;
-    height = metadata.height || 0;
-
-    // Generate thumbnail
+    // Thumbnail failure degrades to the original image, it must not fail the upload.
     await sharp(fileBuffer)
       .resize({ width: 300, height: 300, fit: 'cover' })
       .toFile(thumbFullPath);
@@ -272,6 +317,19 @@ export async function processAndSavePhoto(db, rootDir, uploadsDir, fileBuffer, o
   // Store the canonical form so later reads, renames and deletes always agree.
   const canonicalFolder = normalizeFolderPath(folderPath);
 
+  // album.html injects filename/title/tags into innerHTML and into inline
+  // onclick arguments, so metadata is stored HTML-escaped exactly like the
+  // legacy PHP upload API did with sanitizeInput(); the filename itself is
+  // always the server-generated name and never the client-supplied one.
+  const title = escapeHtml(path.parse(originalFilename || '').name);
+  const tagList = Array.isArray(tags)
+    ? tags
+    : String(tags || '').split(',');
+  const storedTags = tagList
+    .map(tag => escapeHtml(String(tag).trim()))
+    .filter(Boolean)
+    .join(',');
+
   const photoId = `photo_${fileId}`;
   db.prepare(`
     INSERT INTO album_photos (id, folder_path, filename, original_path, thumbnail_path, title, tags, uploaded_by, size, width, height, created_at)
@@ -279,11 +337,11 @@ export async function processAndSavePhoto(db, rootDir, uploadsDir, fileBuffer, o
   `).run(
     photoId,
     canonicalFolder,
-    originalFilename,
+    storedFilename,
     relativeOriginal,
     relativeThumb,
-    path.parse(originalFilename).name,
-    Array.isArray(tags) ? tags.join(',') : (tags || ''),
+    title,
+    storedTags,
     uploadedBy,
     fileBuffer.length,
     width,
@@ -292,8 +350,11 @@ export async function processAndSavePhoto(db, rootDir, uploadsDir, fileBuffer, o
   );
 
   return {
+    success: true,
     id: photoId,
-    filename: originalFilename,
+    filename: storedFilename,
+    title,
+    tags: storedTags,
     url: relativeOriginal,
     thumbnail: relativeThumb,
     folder_path: canonicalFolder,

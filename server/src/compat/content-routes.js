@@ -36,7 +36,6 @@ import {
 import {
   normalizePath,
   normalizeFolderPath,
-  escapeLike,
   folderPathVariants
 } from '../utils/folder-path.js';
 
@@ -122,11 +121,13 @@ export default async function contentRoutes(fastify, options) {
           const fldNorm = normalizePath(fld.path);
           // Count both spellings: legacy rows use "legacy/child", the Node API
           // stores "/legacy/child". Without the legacy pattern a legacy folder
-          // reports file_count=0 and cannot be navigated.
+          // reports file_count=0 and cannot be navigated. `instr` is a
+          // case-sensitive prefix test, unlike LIKE which is ASCII
+          // case-insensitive and would count a sibling "Trip"/"trip" subtree.
           const variants = folderPathVariants(fld.path);
           const exactSql = variants.map(() => 'folder_path = ?').join(' OR ');
-          const subtreePatterns = variants.filter(Boolean).map(v => `${escapeLike(v)}/%`);
-          const likeSql = subtreePatterns.map(() => "folder_path LIKE ? ESCAPE '\\'").join(' OR ');
+          const subtreePatterns = variants.filter(Boolean).map(v => `${v}/`);
+          const likeSql = subtreePatterns.map(() => 'instr(folder_path, ?) = 1').join(' OR ');
           const countRow = db.prepare(`
             SELECT COUNT(*) as cnt FROM album_photos 
             WHERE ${exactSql} OR ${likeSql}
@@ -194,8 +195,8 @@ export default async function contentRoutes(fastify, options) {
           const fldNorm = normalizePath(fld.path);
           const variants = folderPathVariants(fld.path);
           const exactSql = variants.map(() => 'folder_path = ?').join(' OR ');
-          const subtreePatterns = variants.filter(Boolean).map(v => `${escapeLike(v)}/%`);
-          const likeSql = subtreePatterns.map(() => "folder_path LIKE ? ESCAPE '\\'").join(' OR ');
+          const subtreePatterns = variants.filter(Boolean).map(v => `${v}/`);
+          const likeSql = subtreePatterns.map(() => 'instr(folder_path, ?) = 1').join(' OR ');
           const countRow = db.prepare(`
             SELECT COUNT(*) as cnt FROM private_files 
             WHERE user_id = ? AND (${exactSql} OR ${likeSql})
@@ -350,7 +351,6 @@ export default async function contentRoutes(fastify, options) {
 
     const parts = req.parts();
     const fields = {};
-    const uploadedFiles = [];
     const filesToProcess = [];
 
     for await (const part of parts) {
@@ -377,8 +377,18 @@ export default async function contentRoutes(fastify, options) {
     const tags = fields.tags || '';
     const uploadedBy = req.getCurrentUser() || 'user';
 
+    if (filesToProcess.length === 0) {
+      reply.code(400);
+      return { success: false, message: '请选择要上传的照片' };
+    }
+
+    // Legacy contract: every file gets its own result, and a batch succeeds when
+    // at least one photo was accepted.
+    const results = [];
+    const uploadedFiles = [];
+    let failedCount = 0;
+
     for (const fileItem of filesToProcess) {
-      if (!fileItem.buffer || fileItem.buffer.length === 0) continue;
       const res = await processAndSavePhoto(
         db,
         rootDir,
@@ -387,14 +397,34 @@ export default async function contentRoutes(fastify, options) {
         fileItem.filename,
         folderPath,
         tags,
-        uploadedBy
+        uploadedBy,
+        fileItem.mimetype
       );
-      uploadedFiles.push(res);
+      if (res.success) {
+        uploadedFiles.push(res);
+        results.push({ success: true, message: '照片上传成功', photo: res });
+      } else {
+        failedCount++;
+        results.push({ success: false, message: res.message });
+      }
+    }
+
+    if (uploadedFiles.length === 0) {
+      reply.code(400);
+      return { success: false, message: results[0]?.message || '照片上传失败' };
     }
 
     return {
       success: true,
-      message: '上传成功',
+      message: filesToProcess.length === 1
+        ? '照片上传成功'
+        : `上传完成：成功 ${uploadedFiles.length} 张，失败 ${failedCount} 张`,
+      results,
+      summary: {
+        total: filesToProcess.length,
+        success: uploadedFiles.length,
+        failed: failedCount
+      },
       uploaded: uploadedFiles
     };
   });
@@ -725,7 +755,11 @@ export default async function contentRoutes(fastify, options) {
       return { success: false, message: '请求无效，请重新尝试' };
     }
 
-    const photos = [];
+    // A JSON body may carry its own photos array; a multipart body carries the
+    // upload instead. Previously the local array overwrote body.photos, silently
+    // dropping photos for existing JSON callers.
+    const bodyPhotos = Array.isArray(fields.photos) ? fields.photos : [];
+    const photos = [...bodyPhotos];
     if (photoFile) {
       const saved = saveStoryPhoto(uploadsDir, photoFile);
       if (!saved.success) {

@@ -3,16 +3,9 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { getNowDateTimeString } from '../../utils/date.js';
 import { normalizeFolderPath, filePathVariants } from '../../utils/folder-path.js';
+import { escapeHtml } from '../../utils/html.js';
 
-export function escapeHtml(str) {
-  if (typeof str !== 'string') return '';
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
+export { escapeHtml };
 
 export function getPrivateNotes(db, userId) {
   return db.prepare('SELECT * FROM private_notes WHERE user_id = ? ORDER BY updated_at DESC').all(userId);
@@ -99,6 +92,10 @@ export function savePrivateFile(db, uploadsDir, userId, fileBuffer, originalName
   const now = getNowDateTimeString();
   const canonicalFolder = normalizeFolderPath(folderPath);
 
+  // private.html injects original_name into innerHTML, and the legacy PHP upload
+  // API stored sanitizeInput($originalName) for the same reason.
+  const safeOriginalName = escapeHtml(originalName);
+
   db.prepare(`
     INSERT INTO private_files (id, user_id, folder_path, original_name, stored_filename, stored_path, mime_type, size, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -106,7 +103,7 @@ export function savePrivateFile(db, uploadsDir, userId, fileBuffer, originalName
     fileId,
     userId,
     canonicalFolder,
-    originalName,
+    safeOriginalName,
     storedFilename,
     relativeStored,
     'application/octet-stream',
@@ -118,7 +115,7 @@ export function savePrivateFile(db, uploadsDir, userId, fileBuffer, originalName
     success: true,
     file: {
       id: fileId,
-      original_name: originalName,
+      original_name: safeOriginalName,
       folder_path: canonicalFolder,
       size: fileBuffer.length,
       download_url: `api/private-files.php?action=download&file_id=${encodeURIComponent(fileId)}`
