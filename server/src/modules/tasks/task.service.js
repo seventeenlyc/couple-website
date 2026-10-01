@@ -152,7 +152,7 @@ export function confirmPartnerTask(db, userId, instanceId) {
       const u = db.prepare('SELECT balance FROM users WHERE id = ?').get(uid);
       if (u) {
         const newBalance = Number(u.balance) + reward;
-        db.prepare('UPDATE users SET balance = ? WHERE id = ?').run(newBalance, uid);
+        db.prepare('UPDATE users SET balance = ?, total_earned = total_earned + ? WHERE id = ?').run(newBalance, reward, uid);
         db.prepare(`
           INSERT INTO wallet_transactions (id, user_id, type, amount, balance_after, description, reference_id, idempotency_key, created_at)
           VALUES (?, ?, 'task_reward', ?, ?, ?, ?, ?, ?)

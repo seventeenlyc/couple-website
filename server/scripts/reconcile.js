@@ -59,11 +59,28 @@ export function runReconcile(options = {}) {
           if (info.streak_days !== undefined && Number(userRow.streak_days) !== Number(info.streak_days)) {
             discrepancies.push(`User ${uid} streak_days mismatch: legacy=${info.streak_days}, db=${userRow.streak_days}`);
           }
-          const txCount = Array.isArray(info.transactions) ? info.transactions.length : (Array.isArray(info.history) ? info.history.length : 0);
-          if (txCount > 0) {
+          const txList = Array.isArray(info.transactions) ? info.transactions : (Array.isArray(info.history) ? info.history : []);
+          if (txList.length > 0) {
             const dbTxCount = db.prepare('SELECT COUNT(*) as cnt FROM wallet_transactions WHERE user_id = ?').get(uid).cnt;
-            if (dbTxCount < txCount) {
-              discrepancies.push(`User ${uid} transaction count mismatch: legacy=${txCount}, db=${dbTxCount}`);
+            if (dbTxCount < txList.length) {
+              discrepancies.push(`User ${uid} transaction count mismatch: legacy=${txList.length}, db=${dbTxCount}`);
+            }
+
+            for (const tx of txList) {
+              if (!tx || !tx.id) continue;
+              const dbTx = db.prepare('SELECT * FROM wallet_transactions WHERE id = ? AND user_id = ?').get(tx.id, uid);
+              if (!dbTx) {
+                discrepancies.push(`User ${uid} transaction ${tx.id} missing in SQLite!`);
+                continue;
+              }
+              const expectedAmount = Math.abs(Number(tx.amount || 0));
+              const actualAmount = Math.abs(Number(dbTx.amount || 0));
+              if (actualAmount !== expectedAmount) {
+                discrepancies.push(`User ${uid} transaction ${tx.id} amount mismatch: legacy=${tx.amount}, db=${dbTx.amount}`);
+              }
+              if (tx.balance_after !== undefined && Number(dbTx.balance_after) !== Number(tx.balance_after)) {
+                discrepancies.push(`User ${uid} transaction ${tx.id} balance_after mismatch: legacy=${tx.balance_after}, db=${dbTx.balance_after}`);
+              }
             }
           }
         }

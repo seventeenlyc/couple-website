@@ -158,8 +158,9 @@ export function runImport(options = {}) {
 
         for (const tx of txList) {
           const txId = tx.id || `tx_${Math.random().toString(36).substring(2)}`;
-          const type = tx.type || (Number(tx.amount || 0) >= 0 ? 'income' : 'expense');
-          const amount = Number(tx.amount || 0);
+          const isExpense = tx.type === 'expense' || tx.source === 'purchase' || Number(tx.amount || 0) < 0;
+          const type = isExpense ? 'expense' : (tx.type || 'income');
+          const amount = isExpense ? -Math.abs(Number(tx.amount || 0)) : Math.abs(Number(tx.amount || 0));
           const balanceAfter = Number(tx.balance_after ?? tx.balance ?? 0);
           const desc = tx.description || '';
           const timestamp = tx.timestamp || tx.created_at || new Date().toISOString();
@@ -185,7 +186,7 @@ export function runImport(options = {}) {
               uid,
               txDate,
               Number(info.streak_days || 1),
-              amount,
+              Math.abs(amount),
               timestamp
             );
           }

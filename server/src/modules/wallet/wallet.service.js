@@ -23,14 +23,21 @@ export function getUserCurrencyInfo(db, userId) {
     || (user.last_checkin === today ? { id: 'user_last_checkin' } : null);
   const lastCheckinRow = db.prepare('SELECT business_date, streak_days FROM checkins WHERE user_id = ? ORDER BY business_date DESC LIMIT 1').get(userId);
 
-  const earnedRow = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM wallet_transactions WHERE user_id = ? AND amount > 0').get(userId);
-  const spentRow = db.prepare('SELECT COALESCE(SUM(ABS(amount)), 0) as total FROM wallet_transactions WHERE user_id = ? AND amount < 0').get(userId);
+  let totalEarned = Number(user.total_earned || 0);
+  let totalSpent = Number(user.total_spent || 0);
+
+  if (totalEarned === 0 && totalSpent === 0) {
+    const earnedRow = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM wallet_transactions WHERE user_id = ? AND amount > 0').get(userId);
+    const spentRow = db.prepare('SELECT COALESCE(SUM(ABS(amount)), 0) as total FROM wallet_transactions WHERE user_id = ? AND amount < 0').get(userId);
+    totalEarned = Number(earnedRow.total);
+    totalSpent = Number(spentRow.total);
+  }
 
   return {
     balance: Number(user.balance),
-    streak_days: user.streak_days > 0 ? Number(user.streak_days) : (lastCheckinRow ? Number(lastCheckinRow.streak_days) : 0),
-    total_earned: user.total_earned > 0 ? Number(user.total_earned) : Number(earnedRow.total),
-    total_spent: user.total_spent > 0 ? Number(user.total_spent) : Number(spentRow.total),
+    streak_days: Number(user.streak_days || (lastCheckinRow ? lastCheckinRow.streak_days : 0)),
+    total_earned: totalEarned,
+    total_spent: totalSpent,
     checked_in_today: !!todayCheckin,
     last_checkin: user.last_checkin || (lastCheckinRow ? lastCheckinRow.business_date : null)
   };
@@ -40,7 +47,7 @@ export function performCheckin(db, userId) {
   const today = getTodayDateString();
 
   return db.transaction(() => {
-    const user = db.prepare('SELECT balance, last_checkin, streak_days FROM users WHERE id = ?').get(userId);
+    const user = db.prepare('SELECT balance, last_checkin, streak_days, total_earned FROM users WHERE id = ?').get(userId);
     if (!user) {
       return { success: false, message: '用户不存在', reward: 0, streak_days: 0 };
     }
@@ -69,7 +76,9 @@ export function performCheckin(db, userId) {
     }).format(yesterdayDate).replace(/\//g, '-');
 
     const yesterdayCheckin = db.prepare('SELECT streak_days FROM checkins WHERE user_id = ? AND business_date = ?').get(userId, yStr);
-    const streak = yesterdayCheckin ? Number(yesterdayCheckin.streak_days) + 1 : 1;
+    const streak = yesterdayCheckin
+      ? Number(yesterdayCheckin.streak_days) + 1
+      : (user.last_checkin === yStr ? Number(user.streak_days || 0) + 1 : 1);
 
     const baseReward = 10;
     const bonusPerDay = 2;
@@ -78,7 +87,14 @@ export function performCheckin(db, userId) {
     const reward = baseReward + bonus;
 
     const newBalance = Number(user.balance) + reward;
-    db.prepare('UPDATE users SET balance = ? WHERE id = ?').run(newBalance, userId);
+    db.prepare(`
+      UPDATE users 
+      SET balance = ?, 
+          streak_days = ?, 
+          last_checkin = ?, 
+          total_earned = total_earned + ? 
+      WHERE id = ?
+    `).run(newBalance, streak, today, reward, userId);
 
     const checkinId = `chk_${userId}_${today}`;
     db.prepare(`

@@ -132,7 +132,7 @@ export function buyProduct(db, userId, productId, idempotencyKey = null) {
 
     // 6. Deduct balance
     const newBalance = user.balance - finalPrice;
-    db.prepare('UPDATE users SET balance = ? WHERE id = ? AND balance >= ?').run(newBalance, userId, finalPrice);
+    db.prepare('UPDATE users SET balance = ?, total_spent = total_spent + ? WHERE id = ? AND balance >= ?').run(newBalance, finalPrice, userId, finalPrice);
 
     // 7. Deduct stock if limited
     if (product.stock > 0) {
@@ -209,7 +209,12 @@ export function getOrderDetails(db, orderId) {
 
 export function getMyVirtualItems(db, userId) {
   return db.prepare(`
-    SELECT v.*, p.image as product_image, p.description as product_description
+    SELECT 
+      v.*,
+      v.name as product_name,
+      v.created_at as purchased_at,
+      p.image as product_image, 
+      p.description as product_description
     FROM virtual_items v
     LEFT JOIN products p ON v.product_id = p.id
     WHERE v.user_id = ?
@@ -219,7 +224,13 @@ export function getMyVirtualItems(db, userId) {
 
 export function getPendingConfirmations(db, userId) {
   return db.prepare(`
-    SELECT v.*, p.image as product_image, p.description as product_description, u.username as owner_name
+    SELECT 
+      v.*,
+      v.name as product_name,
+      v.created_at as purchased_at,
+      p.image as product_image, 
+      p.description as product_description, 
+      u.username as owner_name
     FROM virtual_items v
     LEFT JOIN products p ON v.product_id = p.id
     LEFT JOIN users u ON v.user_id = u.id
