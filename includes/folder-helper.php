@@ -73,6 +73,31 @@ function folderExists($data, $path) {
 }
 
 /**
+ * 获取全部有效文件夹，并按完整路径排序
+ * @param string $dataFile 数据文件路径
+ * @return array
+ */
+function getAllFolders($dataFile) {
+    $data = safeReadJSON($dataFile, ['folders' => []]);
+    $folders = isset($data['folders']) && is_array($data['folders'])
+        ? $data['folders']
+        : [];
+
+    $folders = array_values(array_filter($folders, function($folder) {
+        return is_array($folder)
+            && isset($folder['path'])
+            && is_string($folder['path'])
+            && $folder['path'] !== '';
+    }));
+
+    usort($folders, function($left, $right) {
+        return strnatcasecmp($left['path'], $right['path']);
+    });
+
+    return $folders;
+}
+
+/**
  * 生成面包屑导航
  * @param string $path 当前路径
  * @return array 面包屑数组 [['name' => string, 'path' => string], ...]

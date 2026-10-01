@@ -4,7 +4,7 @@
  * A complete relationship timeline: start day, recurring special dates,
  * upload history, and manually added scrapbook notes/photos.
  */
-define('INCLUDED', true);
+if (!defined('INCLUDED')) define('INCLUDED', true);
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/auth.php';

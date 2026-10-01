@@ -4,7 +4,7 @@
  * 销毁用户会话并重定向到登录页面
  */
 
-define('INCLUDED', true);
+if (!defined('INCLUDED')) define('INCLUDED', true);
 
 require_once __DIR__ . '/../includes/session.php';
 

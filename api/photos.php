@@ -3,12 +3,22 @@
  * 照片管理 API
  * 处理照片的删除、移动等操作
  */
-session_start();
+if (!defined('INCLUDED')) define('INCLUDED', true);
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/session.php';
+require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/json-helper.php';
 
 // 设置JSON响应头
 header('Content-Type: application/json; charset=utf-8');
 
 try {
+    if (!isLoggedIn()) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => '请先登录'], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+
     // 基本检查
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         echo json_encode(['success' => false, 'message' => '只允许POST请求'], JSON_UNESCAPED_UNICODE);
@@ -16,10 +26,7 @@ try {
     }
 
     // Support JSON input
-    $input = $_POST;
-    if (empty($input)) {
-        $input = json_decode(file_get_contents('php://input'), true) ?: [];
-    }
+    $input = getRequestInput();
 
     // 获取操作类型
     $action = $input['action'] ?? '';
@@ -30,16 +37,7 @@ try {
     }
 
     // 验证CSRF令牌
-    $csrfToken = $input['csrf_token'] ?? '';
-    $expectedToken = $_SESSION['csrf_token'] ?? '';
-
-    if (empty($expectedToken) || $csrfToken !== $expectedToken) {
-        echo json_encode([
-            'success' => false,
-            'message' => 'CSRF验证失败'
-        ], JSON_UNESCAPED_UNICODE);
-        exit();
-    }
+    requireCSRFTokenFromInput($input);
 
     // 获取照片ID
     $photoId = $input['photo_id'] ?? '';
@@ -54,14 +52,7 @@ try {
 
     // 读取数据文件
     $dataFile = __DIR__ . "/../data/album.json";
-    $data = [];
-    
-    if (file_exists($dataFile)) {
-        $content = file_get_contents($dataFile);
-        if ($content) {
-            $data = json_decode($content, true) ?: [];
-        }
-    }
+    $data = safeReadJSON($dataFile, []);
     
     if (!isset($data['photos'])) {
         $data['photos'] = [];
@@ -84,17 +75,31 @@ try {
     }
 
     // 删除物理文件
-    $filePath = __DIR__ . '/../' . $photoToDelete['path'];
+    $photosDir = __DIR__ . '/../uploads/photos/';
+    $filePath = __DIR__ . '/../' . ($photoToDelete['path'] ?? '');
     if (file_exists($filePath)) {
-        unlink($filePath);
+        safeUnlinkInside($photosDir, $filePath);
+    }
+
+    if (!empty($photoToDelete['thumb_path'])) {
+        $thumbPath = __DIR__ . '/../' . $photoToDelete['thumb_path'];
+        if (file_exists($thumbPath)) {
+            safeUnlinkInside($photosDir, $thumbPath);
+        }
     }
 
     // 从数据中移除照片记录
     array_splice($data['photos'], $photoIndex, 1);
 
     // 保存数据
-    $jsonContent = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-    file_put_contents($dataFile, $jsonContent);
+    if (!safeWriteJSON($dataFile, $data)) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => '数据保存失败'
+        ], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
 
     echo json_encode([
         'success' => true,

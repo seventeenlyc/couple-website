@@ -1,17 +1,12 @@
-# 保护 uploads 目录
+Options -Indexes
 
-# 阻止执行 PHP 文件
-<FilesMatch "\.php$">
+<FilesMatch "\.(php|php3|php4|php5|phtml|phar|cgi|pl|asp|aspx|jsp|jspx|shtml)$">
     Require all denied
 </FilesMatch>
 
-# 只允许访问图片文件
-<FilesMatch "\.(jpg|jpeg|png|gif|webp)$">
-    Require all granted
-</FilesMatch>
+RemoveHandler .php .php3 .php4 .php5 .phtml .phar .cgi .pl .asp .aspx .jsp .jspx .shtml
+RemoveType .php .php3 .php4 .php5 .phtml .phar .cgi .pl .asp .aspx .jsp .jspx .shtml
 
-# 阻止目录列表
-Options -Indexes
-
-# 防止上传的 PHP 文件被执行
-php_flag engine off
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>

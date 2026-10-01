@@ -32,7 +32,6 @@ A private interactive website for couples — share photos, complete daily tasks
 ├── task.html               # Tasks & check-in
 ├── story.html              # Love story timeline
 ├── private.html            # Password-protected private space
-├── maintain.html           # Maintenance / under-construction page
 ├── api/                    # PHP API endpoints
 │   ├── login.php           # Authentication
 │   ├── checkin.php         # Daily check-in
@@ -106,14 +105,14 @@ cp data/ai_config.json.example data/ai_config.json
   "users": {
     "name1": {
       "id": "id1",
-      "password": "your-password",
+      "password": "your-login-password",
       "privatePassword": "private-password",
       "partner": "name2",
       "birthday": "01-01"
     },
     "name2": {
       "id": "id2",
-      "password": "partner-password",
+      "password": "partner-login-password",
       "privatePassword": "partner-private-password",
       "partner": "name1",
       "birthday": "02-14"
@@ -144,7 +143,8 @@ chmod 777 -R uploads/
 
 ## Security
 
-- Passwords are stored in `config.json` (consider hashing for production)
+- Login requires each user's `password` in `config.json`; plain text and `password_hash()` values are supported
+- Private-space passwords are checked independently through `privatePassword`
 - CSRF protection on all state-changing requests
 - Private spaces have independent password protection
 - `data/*.json` and `uploads/*` are gitignored to prevent accidental leaks

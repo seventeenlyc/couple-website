@@ -160,7 +160,7 @@
         </div>
     </div>
 
-    <script src="assets/js/api-client.js"></script>
+    <script src="assets/js/api-client.js?v=device-auth-20260905"></script>
     <script>
         function showAlert(msg) {
             const modal = document.getElementById('customAlert');
@@ -263,7 +263,7 @@
                                 <div><p class="font-serif-sc font-bold text-stone-700 text-sm">${f.original_name}</p><p class="font-serif-sc text-[10px] text-stone-400">${date} · ${(f.size/1024).toFixed(1)}KB</p></div>
                             </div>
                             <div class="flex gap-2">
-                                <a href="${f.path}" download class="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-400 hover:text-violet-500 hover:bg-violet-50 transition-colors"><i class="fas fa-download text-xs"></i></a>
+                                <a href="${f.download_url || f.path}" download class="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-400 hover:text-violet-500 hover:bg-violet-50 transition-colors"><i class="fas fa-download text-xs"></i></a>
                                 <button onclick="deletePrivateFile('${f.id}')" class="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-400 hover:text-red-500 hover:bg-red-50 transition-colors"><i class="fas fa-trash text-xs"></i></button>
                             </div>
                         </div>`;

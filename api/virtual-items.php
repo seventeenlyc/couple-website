@@ -66,7 +66,8 @@ try {
                 exit;
             }
             
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = getRequestInput();
+            requireCSRFTokenFromInput($input);
             $itemId = $input['item_id'] ?? '';
             
             if (empty($itemId)) {
@@ -106,7 +107,8 @@ try {
                 exit;
             }
             
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = getRequestInput();
+            requireCSRFTokenFromInput($input);
             $itemId = $input['item_id'] ?? '';
             
             if (empty($itemId)) {

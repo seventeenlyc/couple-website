@@ -238,7 +238,7 @@
             <h3 id="viewerTitle" class="font-handwriting text-3xl md:text-4xl text-stone-800 text-center mb-2"></h3>
             <p id="viewerDesc" class="font-serif-sc text-stone-500 text-center text-sm mb-4"></p>
             <div class="flex justify-center gap-4 border-t border-stone-100 pt-4 mt-4">
-                <button onclick="closeModal('photoViewerModal'); openMoveModal(currentPhoto.id, currentPhoto.title || currentPhoto.filename || '')" class="text-stone-400 hover:text-emerald-500 font-serif-sc text-xs tracking-widest uppercase transition-colors"><i class="fas fa-arrows-alt mr-1"></i> 移动</button>
+                <button onclick="closeModal('photoViewerModal'); openMoveModal(currentPhoto.id)" class="text-stone-400 hover:text-emerald-500 font-serif-sc text-xs tracking-widest uppercase transition-colors"><i class="fas fa-arrows-alt mr-1"></i> 移动</button>
                 <button onclick="closeModal('photoViewerModal'); confirmDeletePhoto()" class="text-stone-400 hover:text-red-500 font-serif-sc text-xs tracking-widest uppercase transition-colors"><i class="fas fa-trash mr-1"></i> 删除</button>
             </div>
         </div>
@@ -382,7 +382,8 @@
         </div>
     </div>
 
-    <script src="assets/js/api-client.js"></script>
+    <script src="assets/js/api-client.js?v=device-auth-20260905"></script>
+    <script src="assets/js/album-folder-select.js"></script>
     <script>
         // ── Globals ─────────────────────────────────────────
         let currentPath = '';
@@ -487,9 +488,9 @@
             breadcrumbs.forEach((crumb, i) => {
                 html += '<span class="mx-2 text-stone-300">/</span>';
                 if (i === breadcrumbs.length - 1) {
-                    html += '<span class="text-stone-800 font-bold">' + crumb.name + '</span>';
+                    html += '<span class="text-stone-800 font-bold">' + escapeHtml(crumb.name) + '</span>';
                 } else {
-                    html += '<a href="#" onclick="navigateTo(\'' + crumb.path + '\');return false" class="hover:text-rose-400 transition-colors">' + crumb.name + '</a>';
+                    html += '<a href="#" data-path="' + escapeHtml(crumb.path) + '" onclick="navigateTo(this.dataset.path);return false" class="hover:text-rose-400 transition-colors">' + escapeHtml(crumb.name) + '</a>';
                 }
             });
             bc.innerHTML = html;
@@ -503,15 +504,17 @@
             }
             container.innerHTML = allFolders.map((f, i) => {
                 const rot = ((i % 3) - 1) * 2;
-                return `<div class="snap-start flex-shrink-0 w-36 action-stamp group hover-lift relative" style="transform:rotate(${rot}deg)" onclick="navigateTo('${f.path}')">
+                // Folder name/path are user data: they are only emitted as escaped
+                // text and as data-* attributes, never inside an inline handler.
+                return `<div class="snap-start flex-shrink-0 w-36 action-stamp group hover-lift relative folder-card" data-folder-path="${escapeHtml(f.path)}" data-folder-name="${escapeHtml(f.name)}" style="transform:rotate(${rot}deg)" onclick="navigateTo(this.dataset.folderPath)">
                     <div class="text-center py-4">
                         <i class="fas fa-folder text-4xl text-amber-300 mb-3 group-hover:scale-110 transition-transform"></i>
-                        <h4 class="font-serif-sc font-bold text-stone-700 text-sm truncate px-2">${f.name}</h4>
+                        <h4 class="font-serif-sc font-bold text-stone-700 text-sm truncate px-2">${escapeHtml(f.name)}</h4>
                         <p class="font-serif-sc text-[10px] text-stone-400 mt-1">${f.file_count || 0} 张照片</p>
                     </div>
                     <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onclick="event.stopPropagation(); openRenameModal('${f.path}', '${f.name.replace(/'/g, "\\'")}')" class="w-6 h-6 bg-white border border-stone-100 rounded-full flex items-center justify-center text-stone-400 hover:text-blue-500 shadow-sm"><i class="fas fa-pen text-[10px]"></i></button>
-                        <button onclick="event.stopPropagation(); deleteFolder('${f.path}', '${f.name.replace(/'/g, "\\'")}')" class="w-6 h-6 bg-white border border-stone-100 rounded-full flex items-center justify-center text-stone-400 hover:text-red-500 shadow-sm"><i class="fas fa-trash text-[10px]"></i></button>
+                        <button onclick="event.stopPropagation(); openRenameModal(this.closest('.folder-card'))" class="w-6 h-6 bg-white border border-stone-100 rounded-full flex items-center justify-center text-stone-400 hover:text-blue-500 shadow-sm"><i class="fas fa-pen text-[10px]"></i></button>
+                        <button onclick="event.stopPropagation(); deleteFolder(this.closest('.folder-card'))" class="w-6 h-6 bg-white border border-stone-100 rounded-full flex items-center justify-center text-stone-400 hover:text-red-500 shadow-sm"><i class="fas fa-trash text-[10px]"></i></button>
                     </div>
                 </div>`;
             }).join('');
@@ -525,19 +528,22 @@
             }
             container.innerHTML = allPhotos.map((p, i) => {
                 const rot = ((i % 5) - 2);
+                // title/desc/tags/filename arrive pre-escaped from the server;
+                // author/date/paths are raw and are escaped here.
                 const title = p.title || p.filename || '';
                 const desc = p.description || '';
                 const tags = (p.tags || []).map(t => '<span class="text-[9px] font-serif-sc bg-stone-100 text-stone-500 px-2 py-0.5 rounded-full tracking-wider">#'+t+'</span>').join('');
-                const date = (p.uploaded_at || '').split(' ')[0] || '';
-                const author = p.uploaded_by || '';
-                const imgPath = p.thumb_path || p.path || '';
-                return `<div class="masonry-item"><div class="polaroid-card hover-lift group sticker-item" style="transform:rotate(${rot}deg)">
+                const date = escapeHtml((p.uploaded_at || '').split(' ')[0] || '');
+                const author = escapeHtml(p.uploaded_by || '');
+                const imgPath = escapeHtml(p.thumb_path || p.path || '');
+                const photoId = escapeHtml(p.id);
+                return `<div class="masonry-item photo-card" data-photo-id="${photoId}"><div class="polaroid-card hover-lift group sticker-item" style="transform:rotate(${rot}deg)">
                     <div class="tape top-[-8px] left-1/2 -translate-x-1/2 w-12 h-5 rotate-[${(i%3)*4-4}deg]"></div>
-                    <div class="relative overflow-hidden cursor-pointer" onclick="viewPhoto('${p.id}')">
+                    <div class="relative overflow-hidden cursor-pointer" onclick="viewPhoto(this.closest('.photo-card').dataset.photoId)">
                         <div class="absolute inset-0 bg-stone-900/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3 z-10">
-                            <button onclick="event.stopPropagation(); viewPhoto('${p.id}')" class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-stone-700 hover:text-blue-500 hover:scale-110 transition-all shadow-lg"><i class="fas fa-expand"></i></button>
-                            <button onclick="event.stopPropagation(); openMoveModal('${p.id}', '${title.replace(/'/g, "\\'")}')" class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-stone-700 hover:text-emerald-500 hover:scale-110 transition-all shadow-lg"><i class="fas fa-arrows-alt"></i></button>
-                            <button onclick="event.stopPropagation(); deletePhoto('${p.id}', '${title.replace(/'/g, "\\'")}')" class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-stone-700 hover:text-red-500 hover:scale-110 transition-all shadow-lg"><i class="fas fa-trash"></i></button>
+                            <button onclick="event.stopPropagation(); viewPhoto(this.closest('.photo-card').dataset.photoId)" class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-stone-700 hover:text-blue-500 hover:scale-110 transition-all shadow-lg"><i class="fas fa-expand"></i></button>
+                            <button onclick="event.stopPropagation(); openMoveModal(this.closest('.photo-card').dataset.photoId)" class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-stone-700 hover:text-emerald-500 hover:scale-110 transition-all shadow-lg"><i class="fas fa-arrows-alt"></i></button>
+                            <button onclick="event.stopPropagation(); deletePhoto(this.closest('.photo-card').dataset.photoId)" class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-stone-700 hover:text-red-500 hover:scale-110 transition-all shadow-lg"><i class="fas fa-trash"></i></button>
                         </div>
                         <img src="${imgPath}" class="w-full h-auto object-cover" loading="lazy">
                     </div>
@@ -555,7 +561,7 @@
         }
 
         function updateFolderSelects() {
-            const options = '<option value="">根目录</option>' + allFolders.map(f => '<option value="'+f.path+'">'+f.name+'</option>').join('');
+            const options = '<option value="">根目录</option>' + allFolders.map(f => '<option value="'+escapeHtml(f.path)+'">'+escapeHtml(f.name)+'</option>').join('');
             ['uploadFolderSelect', 'moveFolderSelect'].forEach(id => {
                 const sel = document.getElementById(id);
                 if (sel) sel.innerHTML = options;
@@ -571,13 +577,42 @@
             }
         }
 
+        // ── Output-context escaping ──────────────────────────
+        // Photo title/description/tags are already HTML-escaped server-side
+        // (album.service.js mirrors the legacy PHP sanitizeInput contract) and are
+        // therefore interpolated as-is into HTML text positions, where entities
+        // decode to plain text and can never become markup. Every other value
+        // (folder names/paths, uploader, dates, image paths) is stored raw and
+        // must be escaped here, in both text and attribute positions.
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[ch]));
+        }
+
+        // Text-only sinks (innerText, confirm dialogs) show the stored string
+        // verbatim, so album metadata is decoded once there to display the
+        // original characters. `&amp;` is decoded last so "&amp;lt;" stays "&lt;".
+        function decodeHtml(value) {
+            return String(value ?? '')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .replace(/&#039;/g, "'")
+                .replace(/&amp;/g, '&');
+        }
+
         // ── Photo viewer ────────────────────────────────────
         function viewPhoto(photoId) {
             currentPhoto = allPhotos.find(p => p.id === photoId);
             if (!currentPhoto) return;
             document.getElementById('viewerImage').src = currentPhoto.path;
-            document.getElementById('viewerTitle').innerText = currentPhoto.title || currentPhoto.filename || '';
-            document.getElementById('viewerDesc').innerText = currentPhoto.description || '';
+            document.getElementById('viewerTitle').innerText = decodeHtml(currentPhoto.title || currentPhoto.filename || '');
+            document.getElementById('viewerDesc').innerText = decodeHtml(currentPhoto.description || '');
             openModal('photoViewerModal', 'photoViewerContent');
         }
 
@@ -589,11 +624,11 @@
             window._folderOldPath = '';
             openModal('folderModal', 'folderModalContent');
         }
-        function openRenameModal(folderPath, currentName) {
+        function openRenameModal(folderCard) {
             document.getElementById('folderModalTitle').innerText = 'Rename';
-            document.getElementById('folderNameInput').value = currentName;
+            document.getElementById('folderNameInput').value = folderCard ? folderCard.dataset.folderName : '';
             window._folderAction = 'rename';
-            window._folderOldPath = folderPath;
+            window._folderOldPath = folderCard ? folderCard.dataset.folderPath : '';
             openModal('folderModal', 'folderModalContent');
         }
         async function submitFolder() {
@@ -612,7 +647,9 @@
                 else { showAlert(res.message || '操作失败'); }
             } catch (e) { showAlert('操作失败'); }
         }
-        async function deleteFolder(folderPath, folderName) {
+        async function deleteFolder(folderCard) {
+            const folderName = folderCard ? folderCard.dataset.folderName : '';
+            const folderPath = folderCard ? folderCard.dataset.folderPath : '';
             if (!await showConfirm('确定要删除文件夹「'+folderName+'」吗？\n删除后不可恢复。')) return;
             try {
                 const res = await API.post('api/folders.php?action=delete&context=album', { folder_path: folderPath });
@@ -622,9 +659,10 @@
         }
 
         // ── Photo operations ────────────────────────────────
-        function openMoveModal(photoId, photoTitle) {
+        function openMoveModal(photoId) {
             currentPhoto = allPhotos.find(p => p.id === photoId);
-            document.getElementById('movePhotoName').innerText = '当前: ' + (photoTitle || '照片');
+            const label = currentPhoto ? decodeHtml(currentPhoto.title || currentPhoto.filename || '照片') : '照片';
+            document.getElementById('movePhotoName').innerText = '当前: ' + label;
             document.getElementById('moveFolderSelect').value = '';
             openModal('moveModal', 'moveModalContent');
         }
@@ -638,7 +676,9 @@
                 else { showAlert(res.message || '移动失败'); }
             } catch (e) { showAlert('移动失败'); }
         }
-        async function deletePhoto(photoId, photoTitle) {
+        async function deletePhoto(photoId) {
+            const photo = allPhotos.find(p => p.id === photoId);
+            const photoTitle = photo ? decodeHtml(photo.title || photo.filename || '') : '';
             if (!await showConfirm('确定要删除照片「'+photoTitle+'」吗？\n删除后不可恢复。')) return;
             try {
                 const res = await API.post('api/photos.php', { action: 'delete', photo_id: photoId });
@@ -648,7 +688,7 @@
         }
         async function confirmDeletePhoto() {
             if (!currentPhoto) return;
-            await deletePhoto(currentPhoto.id, currentPhoto.title || currentPhoto.filename || '');
+            await deletePhoto(currentPhoto.id);
         }
 
         // ── Upload ──────────────────────────────────────────
@@ -665,14 +705,19 @@
 
         async function refreshUploadFolders() {
             try {
-                const data = await API.get('api/folders.php?action=list&context=album&path=');
+                const data = await API.get('api/folders.php?action=list&context=album&path=&include_all_folders=1');
                 if (data.success) {
-                    const options = '<option value="">根目录</option>' + (data.folders || []).map(f => '<option value="'+f.path+'">'+f.name+'</option>').join('');
                     const sel = document.getElementById('uploadFolderSelect');
                     if (sel) {
-                        sel.innerHTML = options;
-                        // Default to current subfolder if browsing one
-                        if (currentPath) sel.value = currentPath;
+                        const model = AlbumFolderSelect.buildOptions(data.all_folders || [], currentPath);
+                        sel.innerHTML = '';
+                        model.options.forEach(item => {
+                            const option = document.createElement('option');
+                            option.value = item.value;
+                            option.textContent = item.label;
+                            sel.appendChild(option);
+                        });
+                        sel.value = model.selectedValue;
                     }
                 }
             } catch (e) { /* keep existing options */ }
@@ -801,7 +846,7 @@
 
             showAlert(total > 1 ? '已上传 ' + total + ' 张照片' : '上传成功！');
             closeModal('uploadModal');
-            setTimeout(() => location.reload(), 600);
+            setTimeout(() => loadAlbum(currentPath), 600);
             fileInput.value = '';
             document.getElementById('photo-preview').classList.add('hidden');
             document.getElementById('photo-preview').innerHTML = '';

@@ -11,6 +11,12 @@ require_once __DIR__ . '/../includes/avatar-helper.php';
 initSession();
 header('Content-Type: application/json; charset=utf-8');
 
+if (!isLoggedIn()) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => '请先登录'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 $startDate = getStartDate();
 $duration = calculateLoveDuration($startDate);
 $currentUser = getCurrentUser();

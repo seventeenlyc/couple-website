@@ -10,7 +10,7 @@ const API = (() => {
   // ── CSRF ──────────────────────────────────────────────
   async function fetchCSRFToken() {
     try {
-      const res = await fetch('api/csrf-token.php', { credentials: 'same-origin' });
+      const res = await fetch('api/csrf-token.php', { credentials: 'same-origin', cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
         csrfToken = data.csrf_token;
@@ -66,14 +66,24 @@ const API = (() => {
       const token = await getCSRFToken();
       if (token) data.csrf_token = token;
 
-      const body = new URLSearchParams(data);
-      const res = await fetch(url, {
+      const send = () => fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         credentials: 'same-origin',
-        body: body.toString()
+        body: new URLSearchParams(data).toString()
       });
-      return await res.json();
+      let res = await send();
+      let result = await res.json();
+      if (/^(\/)?api\/login\.php$/.test(url) && res.status === 403 && result.code === 'csrf_invalid') {
+        csrfToken = null;
+        const fresh = await fetchCSRFToken();
+        if (!fresh) return { success: false, message: '无法更新登录验证，请稍后重试' };
+        data.csrf_token = fresh;
+        res = await send();
+        result = await res.json();
+      }
+      if (result.device_pending) window.location.href = '/device-access.php';
+      return result;
     } catch (e) {
       return { success: false, message: '网络错误，请检查连接' };
     }
@@ -108,6 +118,12 @@ const API = (() => {
   // ── Init ──────────────────────────────────────────────
   async function init() {
     await fetchCSRFToken();
+    if (currentUser === '拾柒' && !document.getElementById('device-management-link')) {
+      const link = document.createElement('a');
+      link.id = 'device-management-link'; link.href = '/device-access.php'; link.textContent = '安全与设备';
+      link.style.cssText = 'position:fixed;right:16px;bottom:80px;z-index:999;background:#fffdf9;color:#544139;padding:9px 14px;border:1px solid #d9cfc3;border-radius:20px;font-size:14px';
+      document.body.appendChild(link);
+    }
     // Redirect to login if not on login page and not logged in
     const onLoginPage = location.pathname.endsWith('index.html') || location.pathname === '/' || location.pathname.endsWith('/');
     if (!onLoginPage && !currentUser) {

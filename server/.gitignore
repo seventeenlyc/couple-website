@@ -1,0 +1,12 @@
+node_modules/
+data/*.db
+data/*.db-wal
+data/*.db-shm
+!data/.gitkeep
+tests/*.db*
+tests/test-uploads/
+tests/test-root/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env

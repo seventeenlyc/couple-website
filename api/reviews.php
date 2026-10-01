@@ -41,10 +41,11 @@ try {
                 exit;
             }
             
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = getRequestInput();
+            requireCSRFTokenFromInput($input);
             $productId = $input['product_id'] ?? '';
             $rating = $input['rating'] ?? 0;
-            $content = $input['content'] ?? '';
+            $content = sanitizeInput($input['content'] ?? '');
             
             // 验证输入
             if (empty($productId)) {

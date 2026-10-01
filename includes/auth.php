@@ -18,13 +18,14 @@ require_once __DIR__ . '/session.php';
  * @param string $baby 你的宝宝是谁
  * @return array|false 成功返回用户信息数组，失败返回false
  */
-function validateLogin($you, $baby) {
+function validateLogin($you, $baby, $password = null) {
     // 清理输入
     $you = trim($you);
     $baby = trim($baby);
+    $password = is_string($password) ? $password : '';
     
     // 检查空输入
-    if (empty($you) || empty($baby)) {
+    if (empty($you) || empty($baby) || $password === '') {
         return false;
     }
     
@@ -38,6 +39,10 @@ function validateLogin($you, $baby) {
     
     // 验证伴侣名字是否匹配
     if ($userConfig['partner'] !== $baby) {
+        return false;
+    }
+
+    if (!verifyConfiguredPassword($password, $userConfig['password'] ?? null)) {
         return false;
     }
     
@@ -55,10 +60,13 @@ function validateLogin($you, $baby) {
  * @param string $baby 你的宝宝是谁
  * @return bool 登录是否成功
  */
-function performLogin($you, $baby) {
-    $userInfo = validateLogin($you, $baby);
+function performLogin($you, $baby, $password = null) {
+    $userInfo = validateLogin($you, $baby, $password);
     
     if ($userInfo === false) {
+        return false;
+    }
+    if (!deviceAuthorizeLogin($userInfo)) {
         return false;
     }
     
@@ -103,7 +111,7 @@ function validatePrivatePassword($password) {
     }
     
     // 验证密码
-    if ($userConfig['privatePassword'] === $password) {
+    if (verifyConfiguredPassword($password, $userConfig['privatePassword'] ?? null)) {
         return $userConfig['id'];
     }
     
@@ -140,6 +148,73 @@ function sanitizeInput($input) {
 function validateCSRFToken($token) {
     initSession();
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+function getRequestInput() {
+    $input = $_POST;
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($input)) {
+        $rawInput = file_get_contents('php://input');
+        $decodedInput = json_decode($rawInput, true);
+        if (is_array($decodedInput)) {
+            $input = $decodedInput;
+        }
+    }
+
+    return is_array($input) ? $input : [];
+}
+
+function requireCSRFTokenFromInput($input = null) {
+    if ($input === null) {
+        $input = getRequestInput();
+    }
+
+    $token = $input['csrf_token'] ?? '';
+    if (!validateCSRFToken($token)) {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Invalid request, please try again.'
+        ], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
+}
+
+function verifyConfiguredPassword($plainPassword, $configuredPassword) {
+    if (!is_string($plainPassword) || !is_string($configuredPassword) || $configuredPassword === '') {
+        return false;
+    }
+
+    $info = password_get_info($configuredPassword);
+    if (!empty($info['algo'])) {
+        return password_verify($plainPassword, $configuredPassword);
+    }
+
+    return hash_equals($configuredPassword, $plainPassword);
+}
+
+function resolvePathInside($baseDir, $targetPath) {
+    $base = realpath($baseDir);
+    if ($base === false) {
+        return false;
+    }
+
+    $target = realpath($targetPath);
+    if ($target === false) {
+        return false;
+    }
+
+    $base = rtrim($base, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+    return strpos($target, $base) === 0 ? $target : false;
+}
+
+function safeUnlinkInside($baseDir, $targetPath) {
+    $resolved = resolvePathInside($baseDir, $targetPath);
+    if ($resolved === false || !is_file($resolved)) {
+        return false;
+    }
+
+    return unlink($resolved);
 }
 
 /**
