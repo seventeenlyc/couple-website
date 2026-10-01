@@ -16,6 +16,10 @@ function normalizePath(p) {
   return p.replace(/^\/+|\/+$/g, '');
 }
 
+export function escapeLike(str) {
+  return (str || '').replace(/([%_\\])/g, '\\$1');
+}
+
 export function createFolder(db, context, userId, name, parentPath = '') {
   const cleanName = (name || '').trim().replace(/[\/\\:*?"<>|]/g, '');
   if (!cleanName) {
@@ -68,28 +72,31 @@ export function renameFolder(db, context, userId, rawOldPath, newName) {
     db.prepare("UPDATE album_folders SET name = ?, path = ? WHERE id = ?").run(cleanName, newPath, existing.id);
 
     // Update child folders
+    const escapedOld = `${escapeLike(currentOldPath)}/%`;
     const childFolders = context === 'private'
-      ? db.prepare("SELECT * FROM album_folders WHERE context = 'private' AND user_id = ? AND (path LIKE ? OR path LIKE ?)").all(userId, `${currentOldPath}/%`, `/${oldNorm}/%`)
-      : db.prepare("SELECT * FROM album_folders WHERE context = 'album' AND (path LIKE ? OR path LIKE ?)").all(`${currentOldPath}/%`, `/${oldNorm}/%`);
+      ? db.prepare("SELECT * FROM album_folders WHERE context = 'private' AND user_id = ? AND path LIKE ? ESCAPE '\\'").all(userId, escapedOld)
+      : db.prepare("SELECT * FROM album_folders WHERE context = 'album' AND path LIKE ? ESCAPE '\\'").all(escapedOld);
 
     for (const cf of childFolders) {
       const tail = cf.path.substring(currentOldPath.length);
       const updatedPath = newPath + tail;
-      const updatedParent = newPath + (cf.parent_path ? cf.parent_path.substring(currentOldPath.length) : '');
+      const updatedParent = (cf.parent_path && cf.parent_path.startsWith(currentOldPath))
+        ? newPath + cf.parent_path.substring(currentOldPath.length)
+        : cf.parent_path;
       db.prepare("UPDATE album_folders SET path = ?, parent_path = ? WHERE id = ?").run(updatedPath, updatedParent, cf.id);
     }
 
     // Update photos / files
     if (context === 'album') {
-      db.prepare("UPDATE album_photos SET folder_path = ? WHERE folder_path = ? OR folder_path = ? OR folder_path = ?").run(newPath, currentOldPath, `/${oldNorm}`, oldNorm);
-      const childPhotos = db.prepare("SELECT id, folder_path FROM album_photos WHERE folder_path LIKE ? OR folder_path LIKE ?").all(`${currentOldPath}/%`, `/${oldNorm}/%`);
+      db.prepare("UPDATE album_photos SET folder_path = ? WHERE folder_path = ? OR folder_path = ?").run(newPath, currentOldPath, `/${oldNorm}`);
+      const childPhotos = db.prepare("SELECT id, folder_path FROM album_photos WHERE folder_path LIKE ? ESCAPE '\\'").all(escapedOld);
       for (const cp of childPhotos) {
         const ucp = newPath + cp.folder_path.substring(currentOldPath.length);
         db.prepare("UPDATE album_photos SET folder_path = ? WHERE id = ?").run(ucp, cp.id);
       }
     } else {
-      db.prepare("UPDATE private_files SET folder_path = ? WHERE user_id = ? AND (folder_path = ? OR folder_path = ? OR folder_path = ?)").run(newPath, userId, currentOldPath, `/${oldNorm}`, oldNorm);
-      const childFiles = db.prepare("SELECT id, folder_path FROM private_files WHERE user_id = ? AND (folder_path LIKE ? OR folder_path LIKE ?)").all(userId, `${currentOldPath}/%`, `/${oldNorm}/%`);
+      db.prepare("UPDATE private_files SET folder_path = ? WHERE user_id = ? AND (folder_path = ? OR folder_path = ?)").run(newPath, userId, currentOldPath, `/${oldNorm}`);
+      const childFiles = db.prepare("SELECT id, folder_path FROM private_files WHERE user_id = ? AND folder_path LIKE ? ESCAPE '\\'").all(userId, escapedOld);
       for (const cf of childFiles) {
         const ucf = newPath + cf.folder_path.substring(currentOldPath.length);
         db.prepare("UPDATE private_files SET folder_path = ? WHERE id = ?").run(ucf, cf.id);
@@ -104,22 +111,34 @@ export function deleteFolder(db, context, userId, rawTargetPath) {
   if (!rawTargetPath) return { success: false, message: '目标路径不能为空' };
   const targetNorm = normalizePath(rawTargetPath);
   const targetWithSlash = `/${targetNorm}`;
+  const escapedPattern = `${escapeLike(targetWithSlash)}/%`;
 
   return db.transaction(() => {
     if (context === 'private') {
-      db.prepare("DELETE FROM album_folders WHERE context = 'private' AND user_id = ? AND (path = ? OR path = ? OR path LIKE ? OR path LIKE ?)").run(
-        userId, rawTargetPath, targetWithSlash, `${targetWithSlash}/%`, `${targetNorm}/%`
-      );
-      db.prepare("UPDATE private_files SET folder_path = '/' WHERE user_id = ? AND (folder_path = ? OR folder_path = ? OR folder_path LIKE ? OR folder_path LIKE ?)").run(
-        userId, rawTargetPath, targetWithSlash, `${targetWithSlash}/%`, `${targetNorm}/%`
-      );
+      db.prepare(`
+        DELETE FROM album_folders 
+        WHERE context = 'private' AND user_id = ? 
+          AND (path = ? OR path = ? OR path LIKE ? ESCAPE '\\')
+      `).run(userId, rawTargetPath, targetWithSlash, escapedPattern);
+
+      db.prepare(`
+        UPDATE private_files 
+        SET folder_path = '/' 
+        WHERE user_id = ? 
+          AND (folder_path = ? OR folder_path = ? OR folder_path LIKE ? ESCAPE '\\')
+      `).run(userId, rawTargetPath, targetWithSlash, escapedPattern);
     } else {
-      db.prepare("DELETE FROM album_folders WHERE context = 'album' AND (path = ? OR path = ? OR path LIKE ? OR path LIKE ?)").run(
-        rawTargetPath, targetWithSlash, `${targetWithSlash}/%`, `${targetNorm}/%`
-      );
-      db.prepare("UPDATE album_photos SET folder_path = '/' WHERE folder_path = ? OR folder_path = ? OR folder_path LIKE ? OR folder_path LIKE ?").run(
-        rawTargetPath, targetWithSlash, `${targetWithSlash}/%`, `${targetNorm}/%`
-      );
+      db.prepare(`
+        DELETE FROM album_folders 
+        WHERE context = 'album' 
+          AND (path = ? OR path = ? OR path LIKE ? ESCAPE '\\')
+      `).run(rawTargetPath, targetWithSlash, escapedPattern);
+
+      db.prepare(`
+        UPDATE album_photos 
+        SET folder_path = '/' 
+        WHERE folder_path = ? OR folder_path = ? OR folder_path LIKE ? ESCAPE '\\'
+      `).run(rawTargetPath, targetWithSlash, escapedPattern);
     }
     return { success: true, message: '删除成功' };
   })();

@@ -3,17 +3,29 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { getNowDateTimeString } from '../../utils/date.js';
 
+export function escapeHtml(str) {
+  if (typeof str !== 'string') return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 export function getPrivateNotes(db, userId) {
   return db.prepare('SELECT * FROM private_notes WHERE user_id = ? ORDER BY updated_at DESC').all(userId);
 }
 
-export function addPrivateNote(db, userId, title, content) {
+export function addPrivateNote(db, userId, rawTitle, rawContent) {
   const id = `note_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
   const now = getNowDateTimeString();
+  const title = escapeHtml((rawTitle || '').trim()) || '无标题';
+  const content = escapeHtml((rawContent || '').trim());
   db.prepare(`
     INSERT INTO private_notes (id, user_id, title, content, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?)
-  `).run(id, userId, title || '无标题', content || '', now, now);
+  `).run(id, userId, title, content, now, now);
 
   return {
     success: true,
@@ -22,15 +34,17 @@ export function addPrivateNote(db, userId, title, content) {
   };
 }
 
-export function updatePrivateNote(db, userId, id, title, content) {
+export function updatePrivateNote(db, userId, id, rawTitle, rawContent) {
   const note = db.prepare('SELECT * FROM private_notes WHERE id = ? AND user_id = ?').get(id, userId);
   if (!note) {
     return { success: false, message: '笔记不存在' };
   }
   const now = getNowDateTimeString();
+  const title = escapeHtml((rawTitle || '').trim()) || '无标题';
+  const content = escapeHtml((rawContent || '').trim());
   db.prepare('UPDATE private_notes SET title = ?, content = ?, updated_at = ? WHERE id = ?').run(
-    title || '无标题',
-    content || '',
+    title,
+    content,
     now,
     id
   );

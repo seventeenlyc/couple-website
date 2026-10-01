@@ -481,16 +481,30 @@ export function runImport(options = {}) {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       for (const f of pfiles) {
+        const storedFilename = f.stored_filename || f.stored_name || f.filename || '';
+        let storedPath = f.stored_path || f.storage_path || '';
+        if (!storedPath) {
+          if (f.path && !f.path.includes('.php')) {
+            storedPath = f.path;
+          } else if (storedFilename) {
+            storedPath = `uploads/private/${uid}/${storedFilename}`;
+          }
+        }
+        if (storedPath) {
+          storedPath = storedPath.replace(/^[\\\/]+/, '').replace(/\\/g, '/');
+        }
+        const createdAt = f.created_at || f.uploaded_at || new Date().toISOString();
+
         insertPFile.run(
           f.id,
           uid,
           f.folder_path || '/',
           f.original_name || f.filename || '',
-          f.stored_filename || f.filename || '',
-          f.stored_path || f.path || '',
+          storedFilename,
+          storedPath,
           f.mime_type || '',
           Number(f.size || 0),
-          f.created_at || new Date().toISOString()
+          createdAt
         );
         report.privateFiles++;
       }

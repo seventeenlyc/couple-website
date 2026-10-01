@@ -57,6 +57,19 @@ export default async function contentRoutes(fastify, options) {
     return crumbs;
   }
 
+  function formatTags(rawTags) {
+    if (!rawTags) return [];
+    if (Array.isArray(rawTags)) return rawTags;
+    return String(rawTags)
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean);
+  }
+
+  function escapeLike(str) {
+    return (str || '').replace(/([%_\\])/g, '\\$1');
+  }
+
   // 1. Folders API
   const handleFolders = async (req, reply) => {
     if (!req.isLoggedIn()) {
@@ -95,7 +108,7 @@ export default async function contentRoutes(fastify, options) {
           thumb_path: p.thumbnail_path || p.original_path,
           folder_path: p.folder_path,
           title: p.title,
-          tags: p.tags,
+          tags: formatTags(p.tags),
           uploaded_by: p.uploaded_by,
           created_at: p.created_at
         }));
@@ -109,10 +122,11 @@ export default async function contentRoutes(fastify, options) {
 
         const foldersWithCount = rawChildFolders.map(fld => {
           const fldNorm = normalizePath(fld.path);
+          const escapedPattern = `/${escapeLike(fldNorm)}/%`;
           const countRow = db.prepare(`
             SELECT COUNT(*) as cnt FROM album_photos 
-            WHERE folder_path = ? OR folder_path = ? OR folder_path LIKE ? OR folder_path LIKE ?
-          `).get(`/${fldNorm}`, fldNorm, `/${fldNorm}/%`, `${fldNorm}/%`);
+            WHERE folder_path = ? OR folder_path = ? OR folder_path LIKE ? ESCAPE '\\'
+          `).get(`/${fldNorm}`, fldNorm, escapedPattern);
           return {
             id: fld.id,
             name: fld.name,
@@ -174,10 +188,11 @@ export default async function contentRoutes(fastify, options) {
 
         const foldersWithCount = rawChildFolders.map(fld => {
           const fldNorm = normalizePath(fld.path);
+          const escapedPattern = `/${escapeLike(fldNorm)}/%`;
           const countRow = db.prepare(`
             SELECT COUNT(*) as cnt FROM private_files 
-            WHERE user_id = ? AND (folder_path = ? OR folder_path = ? OR folder_path LIKE ? OR folder_path LIKE ?)
-          `).get(userId, `/${fldNorm}`, fldNorm, `/${fldNorm}/%`, `${fldNorm}/%`);
+            WHERE user_id = ? AND (folder_path = ? OR folder_path = ? OR folder_path LIKE ? ESCAPE '\\')
+          `).get(userId, `/${fldNorm}`, fldNorm, escapedPattern);
           return {
             id: fld.id,
             name: fld.name,
@@ -280,7 +295,13 @@ export default async function contentRoutes(fastify, options) {
       const folderPath = req.query.folder_path || null;
       const tag = req.query.tag || null;
       const photos = getAlbumPhotos(db, folderPath, tag);
-      return { success: true, photos };
+      return {
+        success: true,
+        photos: photos.map(p => ({
+          ...p,
+          tags: formatTags(p.tags)
+        }))
+      };
     }
 
     if (action === 'delete') {
@@ -478,21 +499,22 @@ export default async function contentRoutes(fastify, options) {
     }
 
     if (action === 'update') {
-      const { id, title, content } = body;
-      if (!id) {
+      const noteId = body.id || body.note_id || req.query?.id || req.query?.note_id;
+      const { title, content } = body;
+      if (!noteId) {
         reply.code(400);
         return { success: false, message: '缺少笔记ID' };
       }
-      return updatePrivateNote(db, userId, id, title, content);
+      return updatePrivateNote(db, userId, noteId, title, content);
     }
 
     if (action === 'delete') {
-      const { id } = body;
-      if (!id) {
+      const noteId = body.id || body.note_id || req.query?.id || req.query?.note_id;
+      if (!noteId) {
         reply.code(400);
         return { success: false, message: '缺少笔记ID' };
       }
-      return deletePrivateNote(db, userId, id);
+      return deletePrivateNote(db, userId, noteId);
     }
 
     reply.code(400);
