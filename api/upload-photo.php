@@ -3,7 +3,7 @@
  * 照片上传API
  * 处理照片上传请求，支持多照片上传
  */
-define('INCLUDED', true);
+if (!defined('INCLUDED')) define('INCLUDED', true);
 
 // 禁止显示错误（只记录到日志）
 ini_set('display_errors', 0);

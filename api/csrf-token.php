@@ -4,12 +4,13 @@
  * Returns the current CSRF token for frontend JavaScript use.
  * Also reports login state so the frontend can know who is logged in.
  */
-define('INCLUDED', true);
+if (!defined('INCLUDED')) define('INCLUDED', true);
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/auth.php';
 
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
 
 $response = [
     'success' => true,

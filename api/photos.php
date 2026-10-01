@@ -3,7 +3,7 @@
  * 照片管理 API
  * 处理照片的删除、移动等操作
  */
-define('INCLUDED', true);
+if (!defined('INCLUDED')) define('INCLUDED', true);
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/auth.php';

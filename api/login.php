@@ -4,7 +4,7 @@
  * 处理用户登录请求
  */
 
-define('INCLUDED', true);
+if (!defined('INCLUDED')) define('INCLUDED', true);
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/auth.php';
@@ -27,7 +27,8 @@ if (!isset($_POST['csrf_token']) || !validateCSRFToken($_POST['csrf_token'])) {
     http_response_code(403);
     echo json_encode([
         'success' => false,
-        'message' => '无效的请求'
+        'message' => '无效的请求',
+        'code' => 'csrf_invalid'
     ]);
     exit();
 }
@@ -48,6 +49,17 @@ if (empty($you) || empty($baby) || $password === '') {
 
 // 使用IP地址作为标识符
 $identifier = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+try {
+    if (!deviceRateLimit('login:' . $identifier)) {
+        http_response_code(429);
+        echo json_encode(['success'=>false,'message'=>'请求过于频繁，请15分钟后重试'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+} catch (Throwable $e) {
+    http_response_code(503);
+    echo json_encode(['success'=>false,'message'=>'设备验证暂不可用'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 // 检查是否被锁定
 if (isLockedOut($identifier)) {

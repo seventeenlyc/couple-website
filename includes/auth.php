@@ -66,6 +66,9 @@ function performLogin($you, $baby, $password = null) {
     if ($userInfo === false) {
         return false;
     }
+    if (!deviceAuthorizeLogin($userInfo)) {
+        return false;
+    }
     
     // 创建会话
     createSession($userInfo['name'], $userInfo['id']);

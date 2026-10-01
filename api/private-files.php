@@ -3,7 +3,7 @@
  * 隐私空间文件上传API
  * 处理私人文件的上传、下载和删除
  */
-define('INCLUDED', true);
+if (!defined('INCLUDED')) define('INCLUDED', true);
 
 // 确保输出缓冲开启，防止任何意外输出污染JSON
 if (ob_get_level()) {

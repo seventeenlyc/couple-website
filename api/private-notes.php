@@ -3,7 +3,7 @@
  * 隐私空间记事本API
  * 处理私人笔记的增删改查
  */
-define('INCLUDED', true);
+if (!defined('INCLUDED')) define('INCLUDED', true);
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/auth.php';

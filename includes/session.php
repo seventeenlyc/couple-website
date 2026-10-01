@@ -8,6 +8,7 @@
 if (!defined('INCLUDED')) {
     define('INCLUDED', true);
 }
+require_once __DIR__ . '/device-auth.php';
 
 /**
  * 初始化会话
@@ -84,7 +85,7 @@ function createSession($userName, $userId) {
  * @return bool 是否已登录
  */
 function isLoggedIn() {
-    return isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
+    return isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true && deviceSessionValid();
 }
 
 /**

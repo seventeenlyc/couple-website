@@ -15,7 +15,7 @@ if (ob_get_level()) {
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
-define('INCLUDED', true);
+if (!defined('INCLUDED')) define('INCLUDED', true);
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/auth.php';

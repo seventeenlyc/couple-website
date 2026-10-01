@@ -3,7 +3,7 @@
  * 文件夹管理 API
  * 处理文件夹的创建、列表、重命名、删除和文件移动操作
  */
-define('INCLUDED', true);
+if (!defined('INCLUDED')) define('INCLUDED', true);
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/auth.php';
