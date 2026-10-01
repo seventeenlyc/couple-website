@@ -28,6 +28,21 @@ export function initDb(dbPath) {
   const schemaSql = fs.readFileSync(schemaPath, 'utf8');
   db.exec(schemaSql);
 
+  // Auto-migrate users columns if created with older schema
+  const userColumns = db.prepare("PRAGMA table_info(users)").all().map(c => c.name);
+  if (!userColumns.includes('total_earned')) {
+    db.exec("ALTER TABLE users ADD COLUMN total_earned INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!userColumns.includes('total_spent')) {
+    db.exec("ALTER TABLE users ADD COLUMN total_spent INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!userColumns.includes('streak_days')) {
+    db.exec("ALTER TABLE users ADD COLUMN streak_days INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!userColumns.includes('last_checkin')) {
+    db.exec("ALTER TABLE users ADD COLUMN last_checkin TEXT");
+  }
+
   globalDb = db;
   return db;
 }

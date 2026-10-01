@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/start.js",
     "test": "node --test tests/**/*.test.js",
-    "check": "node --check src/**/*.js",
+    "check": "node scripts/check-syntax.js",
     "import": "node scripts/import-legacy.js",
     "reconcile": "node scripts/reconcile.js"
   },

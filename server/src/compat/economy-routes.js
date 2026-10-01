@@ -9,6 +9,7 @@ import {
   getMyOrders,
   getOrderDetails,
   getMyVirtualItems,
+  getPendingConfirmations,
   useVirtualItem,
   confirmVirtualItemUse,
   cancelVirtualItemUse,
@@ -114,7 +115,7 @@ export default async function economyRoutes(fastify) {
       return uncompleteTask(db, userId, taskId);
     }
 
-    if (action === 'confirm_partner') {
+    if (action === 'confirm_partner' || action === 'confirm') {
       if (req.method !== 'POST') {
         reply.code(405);
         return { success: false, message: '只支持POST请求' };
@@ -173,7 +174,7 @@ export default async function economyRoutes(fastify) {
       };
     }
 
-    if (action === 'buy') {
+    if (action === 'buy' || action === 'purchase') {
       if (req.method !== 'POST') {
         reply.code(405);
         return { success: false, message: '只支持POST请求' };
@@ -184,7 +185,7 @@ export default async function economyRoutes(fastify) {
         return { success: false, message: '请求无效，请重新尝试' };
       }
 
-      const productId = req.body?.product_id || req.body?.id;
+      const productId = req.body?.product_id || req.body?.id || req.query.product_id;
       const idempotencyKey = req.body?.idempotency_key || req.headers['idempotency-key'] || null;
       if (!productId) {
         reply.code(400);
@@ -254,6 +255,11 @@ export default async function economyRoutes(fastify) {
       return { success: true, items };
     }
 
+    if (action === 'get_pending_confirmations') {
+      const items = getPendingConfirmations(db, userId);
+      return { success: true, items };
+    }
+
     if (action === 'use') {
       if (req.method !== 'POST') {
         reply.code(405);
@@ -268,7 +274,7 @@ export default async function economyRoutes(fastify) {
       return useVirtualItem(db, userId, itemId);
     }
 
-    if (action === 'confirm_use') {
+    if (action === 'confirm_use' || action === 'confirm') {
       if (req.method !== 'POST') {
         reply.code(405);
         return { success: false, message: '只支持POST请求' };
@@ -282,7 +288,7 @@ export default async function economyRoutes(fastify) {
       return confirmVirtualItemUse(db, userId, itemId);
     }
 
-    if (action === 'cancel_use') {
+    if (action === 'cancel_use' || action === 'cancel') {
       if (req.method !== 'POST') {
         reply.code(405);
         return { success: false, message: '只支持POST请求' };

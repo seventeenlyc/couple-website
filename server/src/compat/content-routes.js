@@ -38,6 +38,25 @@ export default async function contentRoutes(fastify, options) {
   const rootDir = options.rootDir;
   const uploadsDir = options.uploadsDir;
 
+  function normalizePath(p) {
+    if (!p || p === '/' || p === '.') return '';
+    return p.replace(/^\/+|\/+$/g, '');
+  }
+
+  function generateBreadcrumbs(rawPath) {
+    const clean = normalizePath(rawPath);
+    if (!clean) return [];
+    const parts = clean.split('/');
+    const crumbs = [];
+    let cur = '';
+    for (const part of parts) {
+      if (!part) continue;
+      cur = cur ? `${cur}/${part}` : part;
+      crumbs.push({ name: part, path: cur });
+    }
+    return crumbs;
+  }
+
   // 1. Folders API
   const handleFolders = async (req, reply) => {
     if (!req.isLoggedIn()) {
@@ -55,8 +74,140 @@ export default async function contentRoutes(fastify, options) {
     }
 
     if (action === 'list') {
-      const folders = listFolders(db, context, userId);
-      return { success: true, folders };
+      const cleanPath = normalizePath(req.query.path || req.body?.path || '');
+      const isAll = (req.query.all || req.body?.all) === '1';
+      const includeAllFolders = (req.query.include_all_folders || req.body?.include_all_folders) === '1';
+
+      if (context === 'album') {
+        let rawPhotos;
+        if (isAll) {
+          rawPhotos = db.prepare('SELECT * FROM album_photos ORDER BY created_at DESC').all();
+        } else if (cleanPath === '') {
+          rawPhotos = db.prepare("SELECT * FROM album_photos WHERE folder_path = '' OR folder_path = '/' OR folder_path IS NULL ORDER BY created_at DESC").all();
+        } else {
+          rawPhotos = db.prepare("SELECT * FROM album_photos WHERE folder_path = ? OR folder_path = ? OR folder_path = ? ORDER BY created_at DESC").all(cleanPath, `/${cleanPath}`, `/${cleanPath}/`);
+        }
+
+        const files = rawPhotos.map(p => ({
+          id: p.id,
+          filename: p.filename,
+          path: p.original_path,
+          thumb_path: p.thumbnail_path || p.original_path,
+          folder_path: p.folder_path,
+          title: p.title,
+          tags: p.tags,
+          uploaded_by: p.uploaded_by,
+          created_at: p.created_at
+        }));
+
+        let rawChildFolders;
+        if (cleanPath === '') {
+          rawChildFolders = db.prepare("SELECT * FROM album_folders WHERE context = 'album' AND (parent_path = '' OR parent_path = '/' OR parent_path IS NULL) ORDER BY name ASC").all();
+        } else {
+          rawChildFolders = db.prepare("SELECT * FROM album_folders WHERE context = 'album' AND (parent_path = ? OR parent_path = ? OR parent_path = ?) ORDER BY name ASC").all(cleanPath, `/${cleanPath}`, `/${cleanPath}/`);
+        }
+
+        const foldersWithCount = rawChildFolders.map(fld => {
+          const fldNorm = normalizePath(fld.path);
+          const countRow = db.prepare(`
+            SELECT COUNT(*) as cnt FROM album_photos 
+            WHERE folder_path = ? OR folder_path = ? OR folder_path LIKE ? OR folder_path LIKE ?
+          `).get(`/${fldNorm}`, fldNorm, `/${fldNorm}/%`, `${fldNorm}/%`);
+          return {
+            id: fld.id,
+            name: fld.name,
+            path: fldNorm,
+            parent_path: normalizePath(fld.parent_path),
+            file_count: countRow ? countRow.cnt : 0
+          };
+        });
+
+        const totalCount = db.prepare('SELECT COUNT(*) as cnt FROM album_photos').get().cnt;
+        const breadcrumbs = generateBreadcrumbs(cleanPath);
+
+        const response = {
+          success: true,
+          folders: foldersWithCount,
+          files: files,
+          breadcrumbs: breadcrumbs,
+          total_count: totalCount
+        };
+
+        if (includeAllFolders) {
+          const allF = listFolders(db, 'album');
+          response.all_folders = allF.map(f => ({
+            ...f,
+            path: normalizePath(f.path)
+          }));
+        }
+
+        return response;
+      } else {
+        // private context
+        let rawFiles;
+        if (isAll) {
+          rawFiles = db.prepare('SELECT * FROM private_files WHERE user_id = ? ORDER BY created_at DESC').all(userId);
+        } else if (cleanPath === '') {
+          rawFiles = db.prepare("SELECT * FROM private_files WHERE user_id = ? AND (folder_path = '' OR folder_path = '/' OR folder_path IS NULL) ORDER BY created_at DESC").all(userId);
+        } else {
+          rawFiles = db.prepare("SELECT * FROM private_files WHERE user_id = ? AND (folder_path = ? OR folder_path = ? OR folder_path = ?) ORDER BY created_at DESC").all(userId, cleanPath, `/${cleanPath}`, `/${cleanPath}/`);
+        }
+
+        const files = rawFiles.map(f => ({
+          id: f.id,
+          name: f.original_name,
+          original_name: f.original_name,
+          filename: f.original_name,
+          path: `api/private-files.php?action=download&file_id=${encodeURIComponent(f.id)}`,
+          download_url: `api/private-files.php?action=download&file_id=${encodeURIComponent(f.id)}`,
+          folder_path: f.folder_path,
+          size: f.size,
+          created_at: f.created_at
+        }));
+
+        let rawChildFolders;
+        if (cleanPath === '') {
+          rawChildFolders = db.prepare("SELECT * FROM album_folders WHERE context = 'private' AND user_id = ? AND (parent_path = '' OR parent_path = '/' OR parent_path IS NULL) ORDER BY name ASC").all(userId);
+        } else {
+          rawChildFolders = db.prepare("SELECT * FROM album_folders WHERE context = 'private' AND user_id = ? AND (parent_path = ? OR parent_path = ? OR parent_path = ?) ORDER BY name ASC").all(userId, cleanPath, `/${cleanPath}`, `/${cleanPath}/`);
+        }
+
+        const foldersWithCount = rawChildFolders.map(fld => {
+          const fldNorm = normalizePath(fld.path);
+          const countRow = db.prepare(`
+            SELECT COUNT(*) as cnt FROM private_files 
+            WHERE user_id = ? AND (folder_path = ? OR folder_path = ? OR folder_path LIKE ? OR folder_path LIKE ?)
+          `).get(userId, `/${fldNorm}`, fldNorm, `/${fldNorm}/%`, `${fldNorm}/%`);
+          return {
+            id: fld.id,
+            name: fld.name,
+            path: fldNorm,
+            parent_path: normalizePath(fld.parent_path),
+            file_count: countRow ? countRow.cnt : 0
+          };
+        });
+
+        const totalCount = db.prepare('SELECT COUNT(*) as cnt FROM private_files WHERE user_id = ?').get(userId).cnt;
+        const breadcrumbs = generateBreadcrumbs(cleanPath);
+
+        const response = {
+          success: true,
+          folders: foldersWithCount,
+          files: files,
+          breadcrumbs: breadcrumbs,
+          total_count: totalCount
+        };
+
+        if (includeAllFolders) {
+          const allF = listFolders(db, 'private', userId);
+          response.all_folders = allF.map(f => ({
+            ...f,
+            path: normalizePath(f.path)
+          }));
+        }
+
+        return response;
+      }
     }
 
     // Mutating actions require CSRF
@@ -73,14 +224,14 @@ export default async function contentRoutes(fastify, options) {
 
       if (action === 'create') {
         const name = req.body?.name || req.body?.folder_name;
-        const parent = req.body?.parent_path || '/';
+        const parent = req.body?.parent_path !== undefined ? req.body.parent_path : '/';
         const res = createFolder(db, context, userId, name, parent);
         if (!res.success) reply.code(400);
         return res;
       }
 
       if (action === 'rename') {
-        const oldPath = req.body?.path || req.body?.old_path;
+        const oldPath = req.body?.folder_path || req.body?.path || req.body?.old_path;
         const newName = req.body?.new_name || req.body?.name;
         const res = renameFolder(db, context, userId, oldPath, newName);
         if (!res.success) reply.code(400);
@@ -88,10 +239,25 @@ export default async function contentRoutes(fastify, options) {
       }
 
       if (action === 'delete') {
-        const targetPath = req.body?.path || req.body?.folder_path;
+        const targetPath = req.body?.folder_path || req.body?.path;
         const res = deleteFolder(db, context, userId, targetPath);
         if (!res.success) reply.code(400);
         return res;
+      }
+
+      if (action === 'move') {
+        const fileId = req.body?.file_id;
+        const targetPath = req.body?.target_path || '';
+        if (!fileId) {
+          reply.code(400);
+          return { success: false, message: '缺少文件ID' };
+        }
+        if (context === 'private') {
+          db.prepare("UPDATE private_files SET folder_path = ? WHERE id = ? AND user_id = ?").run(targetPath, fileId, userId);
+        } else {
+          db.prepare("UPDATE album_photos SET folder_path = ? WHERE id = ?").run(targetPath, fileId);
+        }
+        return { success: true, message: '移动成功' };
       }
     }
 
@@ -298,10 +464,10 @@ export default async function contentRoutes(fastify, options) {
       return { success: false, message: '请求无效，请重新尝试' };
     }
 
-    const action = body.action || '';
+    const action = body.action || req.query.action || '';
     const userId = req.getCurrentUserId();
 
-    if (action === 'list') {
+    if (action === 'list' || action === 'get') {
       const notes = getPrivateNotes(db, userId);
       return { success: true, notes };
     }
@@ -347,8 +513,8 @@ export default async function contentRoutes(fastify, options) {
     const action = req.query.action || req.body?.action || 'list';
     const userId = req.getCurrentUserId();
 
-    if (action === 'list') {
-      const folderPath = req.query.folder_path || null;
+    if (action === 'list' || action === 'get') {
+      const folderPath = req.query.folder_path || req.body?.folder_path || null;
       const files = getPrivateFiles(db, userId, folderPath);
       return { success: true, files };
     }
@@ -448,7 +614,7 @@ export default async function contentRoutes(fastify, options) {
     const action = req.query.action || req.body?.action || '';
     const userId = req.getCurrentUserId();
 
-    if (action === 'check_unread') {
+    if (action === 'check_unread' || action === 'check') {
       return checkUnreadWhispers(db, userId);
     }
 
@@ -480,7 +646,8 @@ export default async function contentRoutes(fastify, options) {
         reply.code(403);
         return { success: false, message: '请求无效，请重新尝试' };
       }
-      return markWhispersRead(db, userId);
+      const whisperId = req.body?.whisper_id || req.body?.id;
+      return markWhispersRead(db, userId, whisperId);
     }
 
     reply.code(400);

@@ -217,6 +217,18 @@ export function getMyVirtualItems(db, userId) {
   `).all(userId);
 }
 
+export function getPendingConfirmations(db, userId) {
+  return db.prepare(`
+    SELECT v.*, p.image as product_image, p.description as product_description, u.username as owner_name
+    FROM virtual_items v
+    LEFT JOIN products p ON v.product_id = p.id
+    LEFT JOIN users u ON v.user_id = u.id
+    WHERE v.status IN ('pending', 'pending_confirmation')
+      AND v.user_id != ?
+    ORDER BY v.used_at DESC, v.created_at DESC
+  `).all(userId);
+}
+
 export function useVirtualItem(db, userId, itemId) {
   return db.transaction(() => {
     const item = db.prepare('SELECT * FROM virtual_items WHERE id = ? AND user_id = ?').get(itemId, userId);
@@ -226,13 +238,13 @@ export function useVirtualItem(db, userId, itemId) {
     if (item.status === 'used') {
       return { success: false, message: '该商品已经使用过了' };
     }
-    if (item.status === 'pending_confirmation') {
+    if (item.status === 'pending' || item.status === 'pending_confirmation') {
       return { success: false, message: '该商品正在等待对方确认' };
     }
 
     const nowTime = getNowDateTimeString();
-    db.prepare("UPDATE virtual_items SET status = 'pending_confirmation', used_at = ? WHERE id = ?").run(nowTime, itemId);
-    return { success: true, message: '已发起使用申请，等待对方确认 💕' };
+    db.prepare("UPDATE virtual_items SET status = 'pending', used_at = ? WHERE id = ?").run(nowTime, itemId);
+    return { success: true, message: '已标记使用，等待对方确认 💕' };
   })();
 }
 
@@ -242,7 +254,7 @@ export function confirmVirtualItemUse(db, userId, itemId) {
     if (!item) {
       return { success: false, message: '商品不存在' };
     }
-    if (item.status !== 'pending_confirmation') {
+    if (item.status !== 'pending' && item.status !== 'pending_confirmation') {
       return { success: false, message: '该商品不是待确认状态' };
     }
 

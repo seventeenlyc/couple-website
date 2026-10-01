@@ -6,7 +6,7 @@ export function getUserBalance(db, userId) {
 }
 
 export function getUserCurrencyInfo(db, userId) {
-  const user = db.prepare('SELECT balance FROM users WHERE id = ?').get(userId);
+  const user = db.prepare('SELECT balance, streak_days, last_checkin, total_earned, total_spent FROM users WHERE id = ?').get(userId);
   if (!user) {
     return {
       balance: 0,
@@ -19,7 +19,8 @@ export function getUserCurrencyInfo(db, userId) {
   }
 
   const today = getTodayDateString();
-  const todayCheckin = db.prepare('SELECT id FROM checkins WHERE user_id = ? AND business_date = ?').get(userId, today);
+  const todayCheckin = db.prepare('SELECT id FROM checkins WHERE user_id = ? AND business_date = ?').get(userId, today)
+    || (user.last_checkin === today ? { id: 'user_last_checkin' } : null);
   const lastCheckinRow = db.prepare('SELECT business_date, streak_days FROM checkins WHERE user_id = ? ORDER BY business_date DESC LIMIT 1').get(userId);
 
   const earnedRow = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM wallet_transactions WHERE user_id = ? AND amount > 0').get(userId);
@@ -27,11 +28,11 @@ export function getUserCurrencyInfo(db, userId) {
 
   return {
     balance: Number(user.balance),
-    streak_days: lastCheckinRow ? Number(lastCheckinRow.streak_days) : 0,
-    total_earned: Number(earnedRow.total),
-    total_spent: Number(spentRow.total),
+    streak_days: user.streak_days > 0 ? Number(user.streak_days) : (lastCheckinRow ? Number(lastCheckinRow.streak_days) : 0),
+    total_earned: user.total_earned > 0 ? Number(user.total_earned) : Number(earnedRow.total),
+    total_spent: user.total_spent > 0 ? Number(user.total_spent) : Number(spentRow.total),
     checked_in_today: !!todayCheckin,
-    last_checkin: lastCheckinRow ? lastCheckinRow.business_date : null
+    last_checkin: user.last_checkin || (lastCheckinRow ? lastCheckinRow.business_date : null)
   };
 }
 
@@ -39,19 +40,21 @@ export function performCheckin(db, userId) {
   const today = getTodayDateString();
 
   return db.transaction(() => {
-    const user = db.prepare('SELECT balance FROM users WHERE id = ?').get(userId);
+    const user = db.prepare('SELECT balance, last_checkin, streak_days FROM users WHERE id = ?').get(userId);
     if (!user) {
       return { success: false, message: '用户不存在', reward: 0, streak_days: 0 };
     }
 
-    const existing = db.prepare('SELECT id FROM checkins WHERE user_id = ? AND business_date = ?').get(userId, today);
+    const existing = db.prepare('SELECT id FROM checkins WHERE user_id = ? AND business_date = ?').get(userId, today)
+      || (user.last_checkin === today ? { id: 'user_last_checkin' } : null);
     if (existing) {
       return {
         success: false,
         already_checked_in: true,
         message: '今日已签到，明天再来吧 💕',
         reward: 0,
-        streak_days: 0
+        streak_days: user.streak_days || 1,
+        balance: Number(user.balance)
       };
     }
 

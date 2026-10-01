@@ -33,6 +33,46 @@ export function runReconcile(options = {}) {
     }
   }
 
+  // Check currency & user balances against legacy user_currency.json if present
+  const currencyPath = path.join(dataDir, 'user_currency.json');
+  if (fs.existsSync(currencyPath)) {
+    try {
+      const raw = fs.readFileSync(currencyPath, 'utf8');
+      const currencyData = JSON.parse(raw);
+      if (currencyData && typeof currencyData === 'object') {
+        for (const [uid, info] of Object.entries(currencyData)) {
+          if (!info || typeof info !== 'object') continue;
+          const userRow = db.prepare('SELECT balance, total_earned, total_spent, streak_days FROM users WHERE id = ?').get(uid);
+          if (!userRow) {
+            discrepancies.push(`User ${uid} in user_currency.json not found in SQLite!`);
+            continue;
+          }
+          if (info.balance !== undefined && Number(userRow.balance) !== Number(info.balance)) {
+            discrepancies.push(`User ${uid} balance mismatch: legacy=${info.balance}, db=${userRow.balance}`);
+          }
+          if (info.total_earned !== undefined && Number(userRow.total_earned) !== Number(info.total_earned)) {
+            discrepancies.push(`User ${uid} total_earned mismatch: legacy=${info.total_earned}, db=${userRow.total_earned}`);
+          }
+          if (info.total_spent !== undefined && Number(userRow.total_spent) !== Number(info.total_spent)) {
+            discrepancies.push(`User ${uid} total_spent mismatch: legacy=${info.total_spent}, db=${userRow.total_spent}`);
+          }
+          if (info.streak_days !== undefined && Number(userRow.streak_days) !== Number(info.streak_days)) {
+            discrepancies.push(`User ${uid} streak_days mismatch: legacy=${info.streak_days}, db=${userRow.streak_days}`);
+          }
+          const txCount = Array.isArray(info.transactions) ? info.transactions.length : (Array.isArray(info.history) ? info.history.length : 0);
+          if (txCount > 0) {
+            const dbTxCount = db.prepare('SELECT COUNT(*) as cnt FROM wallet_transactions WHERE user_id = ?').get(uid).cnt;
+            if (dbTxCount < txCount) {
+              discrepancies.push(`User ${uid} transaction count mismatch: legacy=${txCount}, db=${dbTxCount}`);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      discrepancies.push(`Failed to parse user_currency.json for reconcile: ${e.message}`);
+    }
+  }
+
   // Check products
   const dbProducts = db.prepare('SELECT COUNT(*) as cnt FROM products').get().cnt;
   console.log(`✔ Products in DB: ${dbProducts}`);

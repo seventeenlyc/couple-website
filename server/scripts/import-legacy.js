@@ -118,7 +118,15 @@ export function runImport(options = {}) {
     const currencyPath = path.join(dataDir, 'user_currency.json');
     const currencyData = safeReadJson(currencyPath);
     if (currencyData && typeof currencyData === 'object') {
-      const updateBalance = db.prepare('UPDATE users SET balance = ? WHERE id = ?');
+      const updateUserCurrency = db.prepare(`
+        UPDATE users 
+        SET balance = ?,
+            total_earned = COALESCE(?, total_earned),
+            total_spent = COALESCE(?, total_spent),
+            streak_days = COALESCE(?, streak_days),
+            last_checkin = COALESCE(?, last_checkin)
+        WHERE id = ?
+      `);
       const insertCheckin = db.prepare(`
         INSERT OR IGNORE INTO checkins (id, user_id, business_date, streak_days, reward, created_at)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -129,28 +137,79 @@ export function runImport(options = {}) {
       `);
 
       for (const [uid, info] of Object.entries(currencyData)) {
-        if (info.balance !== undefined) {
-          updateBalance.run(Number(info.balance), uid);
-        }
-        if (Array.isArray(info.checkin_history)) {
-          for (const date of info.checkin_history) {
-            insertCheckin.run(`chk_${uid}_${date}`, uid, date, 1, 10, `${date} 08:00:00`);
-          }
-        }
-        if (Array.isArray(info.history)) {
-          for (const tx of info.history) {
-            insertTx.run(
-              tx.id || `tx_${Math.random().toString(36).substring(2)}`,
+        if (!info || typeof info !== 'object') continue;
+
+        updateUserCurrency.run(
+          Number(info.balance ?? 0),
+          info.total_earned !== undefined ? Number(info.total_earned) : null,
+          info.total_spent !== undefined ? Number(info.total_spent) : null,
+          info.streak_days !== undefined ? Number(info.streak_days) : null,
+          info.last_checkin || null,
+          uid
+        );
+
+        const txList = Array.isArray(info.transactions)
+          ? info.transactions
+          : Array.isArray(info.history)
+            ? info.history
+            : [];
+
+        const recordedCheckinDates = new Set();
+
+        for (const tx of txList) {
+          const txId = tx.id || `tx_${Math.random().toString(36).substring(2)}`;
+          const type = tx.type || (Number(tx.amount || 0) >= 0 ? 'income' : 'expense');
+          const amount = Number(tx.amount || 0);
+          const balanceAfter = Number(tx.balance_after ?? tx.balance ?? 0);
+          const desc = tx.description || '';
+          const timestamp = tx.timestamp || tx.created_at || new Date().toISOString();
+          const isCheckin = tx.source === 'checkin' || desc.includes('签到');
+          const txDate = timestamp.slice(0, 10);
+
+          insertTx.run(
+            txId,
+            uid,
+            type,
+            amount,
+            balanceAfter,
+            desc,
+            tx.reference_id || null,
+            tx.id || null,
+            timestamp
+          );
+
+          if (isCheckin) {
+            recordedCheckinDates.add(txDate);
+            insertCheckin.run(
+              `chk_${uid}_${txDate}`,
               uid,
-              tx.type || tx.source || 'adjustment',
-              Number(tx.amount || 0),
-              Number(tx.balance || 0),
-              tx.description || '',
-              tx.reference_id || null,
-              tx.id || null,
-              tx.timestamp || tx.created_at || new Date().toISOString()
+              txDate,
+              Number(info.streak_days || 1),
+              amount,
+              timestamp
             );
           }
+        }
+
+        if (Array.isArray(info.checkin_history)) {
+          for (const date of info.checkin_history) {
+            if (!recordedCheckinDates.has(date)) {
+              recordedCheckinDates.add(date);
+              insertCheckin.run(`chk_${uid}_${date}`, uid, date, 1, 10, `${date} 08:00:00`);
+            }
+          }
+        }
+
+        if (info.last_checkin && !recordedCheckinDates.has(info.last_checkin)) {
+          recordedCheckinDates.add(info.last_checkin);
+          insertCheckin.run(
+            `chk_${uid}_${info.last_checkin}`,
+            uid,
+            info.last_checkin,
+            Number(info.streak_days || 1),
+            0,
+            `${info.last_checkin} 08:00:00`
+          );
         }
       }
     }

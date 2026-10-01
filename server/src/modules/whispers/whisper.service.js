@@ -42,17 +42,31 @@ export function sendWhisper(db, senderId, content) {
 
 export function checkUnreadWhispers(db, userId) {
   const unreadRows = db.prepare('SELECT * FROM whispers WHERE receiver_id = ? AND is_read = 0 ORDER BY created_at DESC').all(userId);
+  const formatted = unreadRows.map(r => ({
+    id: r.id,
+    from_user: r.sender_id,
+    to_user: r.receiver_id,
+    content: r.content,
+    created_at: r.created_at,
+    read: false
+  }));
   return {
     success: true,
-    has_unread: unreadRows.length > 0,
-    count: unreadRows.length,
-    latest: unreadRows[0] || null
+    whispers: formatted,
+    has_new: formatted.length > 0,
+    has_unread: formatted.length > 0,
+    count: formatted.length,
+    latest: formatted[0] || null
   };
 }
 
-export function markWhispersRead(db, userId) {
+export function markWhispersRead(db, userId, whisperId = null) {
   const now = getNowDateTimeString();
-  db.prepare('UPDATE whispers SET is_read = 1, read_at = ? WHERE receiver_id = ? AND is_read = 0').run(now, userId);
+  if (whisperId) {
+    db.prepare('UPDATE whispers SET is_read = 1, read_at = ? WHERE id = ? AND receiver_id = ?').run(now, whisperId, userId);
+  } else {
+    db.prepare('UPDATE whispers SET is_read = 1, read_at = ? WHERE receiver_id = ? AND is_read = 0').run(now, userId);
+  }
   return { success: true, message: '已标记为已读' };
 }
 

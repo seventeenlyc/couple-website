@@ -290,16 +290,37 @@ export default async function authRoutes(fastify) {
       if (ok) {
         req.session.private_authenticated = true;
         req.session.private_authenticated_user = userId;
-        return { success: true, message: '验证成功' };
+        return {
+          success: true,
+          message: '验证成功',
+          authenticated: true,
+          is_authenticated: true
+        };
       }
       reply.code(401);
-      return { success: false, message: '密码错误' };
+      return { success: false, message: '密码错误', authenticated: false, is_authenticated: false };
     }
 
-    if (action === 'status') {
+    if (action === 'check' || action === 'status') {
+      const isAuth = req.isPrivateAuthenticated();
       return {
         success: true,
-        is_authenticated: req.isPrivateAuthenticated()
+        authenticated: isAuth,
+        is_authenticated: isAuth
+      };
+    }
+
+    if (action === 'logout') {
+      if (req.session) {
+        req.session.private_authenticated = false;
+        delete req.session.private_authenticated;
+        delete req.session.private_authenticated_user;
+      }
+      return {
+        success: true,
+        message: '已退出私密空间',
+        authenticated: false,
+        is_authenticated: false
       };
     }
 
@@ -308,7 +329,11 @@ export default async function authRoutes(fastify) {
   });
 
   // 6. Ping API
-  fastify.get('/api/ping.php', async () => {
+  fastify.get('/api/ping.php', async (req, reply) => {
+    if (!req.isLoggedIn()) {
+      reply.code(401);
+      return { success: false, message: '请先登录' };
+    }
     return {
       success: true,
       message: 'API工作正常',
