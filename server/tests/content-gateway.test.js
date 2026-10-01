@@ -178,6 +178,110 @@ test('Content and Gateway Access Control', async (t) => {
     assert.ok(delRes.json().success);
     const listAfter = await user1.request({ method: 'GET', url: '/api/folders.php?action=list&context=album' });
     assert.equal(listAfter.json().folders.length, 0);
+
+    // REVIEW-001: LIKE wildcard isolation in rename and delete
+    for (const [id, name, p, parent] of [
+      ['f_u1', 'A_B', '/A_B', '/'],
+      ['f_u2', 'AXB', '/AXB', '/'],
+      ['f_u3', 'child', '/AXB/child', '/AXB']
+    ]) {
+      db.prepare("INSERT INTO album_folders(id, context, name, path, parent_path) VALUES(?, 'album', ?, ?, ?)").run(id, name, p, parent);
+    }
+    const renameWildcard = await user1.request({
+      method: 'POST',
+      url: '/api/folders.php',
+      payload: { action: 'rename', context: 'album', path: '/A_B', new_name: 'Renamed', csrf_token: user1.csrf }
+    });
+    assert.ok(renameWildcard.json().success);
+    const childRow = db.prepare('SELECT path, parent_path FROM album_folders WHERE id=?').get('f_u3');
+    assert.equal(childRow.path, '/AXB/child');
+    assert.equal(childRow.parent_path, '/AXB');
+
+    // Delete with percent
+    for (const [id, name, p, parent] of [
+      ['f_p1', 'C%', '/C%', '/'],
+      ['f_p2', 'COTHER', '/COTHER', '/'],
+      ['f_p3', 'child', '/COTHER/child', '/COTHER']
+    ]) {
+      db.prepare("INSERT INTO album_folders(id, context, name, path, parent_path) VALUES(?, 'album', ?, ?, ?)").run(id, name, p, parent);
+    }
+    const delWildcard = await user1.request({
+      method: 'POST',
+      url: '/api/folders.php',
+      payload: { action: 'delete', context: 'album', path: '/C%', csrf_token: user1.csrf }
+    });
+    assert.ok(delWildcard.json().success);
+    const cotherChild = db.prepare('SELECT path FROM album_folders WHERE id=?').get('f_p3');
+    assert.ok(cotherChild);
+
+    // Clean up test folders
+    db.prepare("DELETE FROM album_folders WHERE id IN ('f_u1', 'f_u2', 'f_u3', 'f_p1', 'f_p2', 'f_p3')").run();
+
+    // REVIEW-003: tags return as array in photo lists
+    db.prepare(`
+      INSERT INTO album_photos (id, filename, original_path, thumbnail_path, folder_path, tags, uploaded_by, created_at)
+      VALUES ('p_tag1', 'test.jpg', 'uploads/photos/test.jpg', 'uploads/photos/test.jpg', '/', '旅行,纪念', '拾柒', '2026-10-01 12:00:00')
+    `).run();
+    const photoListRes = await user1.request({ method: 'GET', url: '/api/folders.php?action=list&context=album&path=' });
+    const pTag = photoListRes.json().files.find(f => f.id === 'p_tag1');
+    assert.ok(pTag);
+    assert.deepEqual(pTag.tags, ['旅行', '纪念']);
+    db.prepare("DELETE FROM album_photos WHERE id = 'p_tag1'").run();
+  });
+
+  await t.test('Private space notes: XSS prevention and note_id deletion', async () => {
+    // 1. Verify private password
+    const unlockRes = await user1.request({
+      method: 'POST',
+      url: '/api/private-auth.php',
+      payload: { action: 'verify', password: 'priv123', csrf_token: user1.csrf }
+    });
+    assert.ok(unlockRes.json().success);
+
+    // 2. Add note with potential XSS payload
+    const addRes = await user1.request({
+      method: 'POST',
+      url: '/api/private-notes.php',
+      payload: {
+        action: 'add',
+        title: '<script>alert(1)</script>',
+        content: '<img src=x onerror="alert(2)">',
+        csrf_token: user1.csrf
+      }
+    });
+    assert.ok(addRes.json().success);
+    const noteId = addRes.json().note.id;
+
+    // Verify database and returned values are HTML escaped
+    const noteRow = db.prepare('SELECT * FROM private_notes WHERE id = ?').get(noteId);
+    assert.equal(noteRow.title, '&lt;script&gt;alert(1)&lt;/script&gt;');
+    assert.equal(noteRow.content, '&lt;img src=x onerror=&quot;alert(2)&quot;&gt;');
+
+    // 3. Update note with XSS payload
+    const updateRes = await user1.request({
+      method: 'POST',
+      url: '/api/private-notes.php',
+      payload: {
+        action: 'update',
+        id: noteId,
+        title: '<b>Bold</b>',
+        content: '<svg onload="alert(3)">',
+        csrf_token: user1.csrf
+      }
+    });
+    assert.ok(updateRes.json().success);
+    const updatedRow = db.prepare('SELECT * FROM private_notes WHERE id = ?').get(noteId);
+    assert.equal(updatedRow.title, '&lt;b&gt;Bold&lt;/b&gt;');
+    assert.equal(updatedRow.content, '&lt;svg onload=&quot;alert(3)&quot;&gt;');
+
+    // 4. Delete note using note_id (REVIEW-004)
+    const delRes = await user1.request({
+      method: 'POST',
+      url: '/api/private-notes.php',
+      payload: { action: 'delete', note_id: noteId, csrf_token: user1.csrf }
+    });
+    assert.ok(delRes.json().success);
+    assert.equal(db.prepare('SELECT COUNT(*) as cnt FROM private_notes WHERE id = ?').get(noteId).cnt, 0);
   });
 
   await t.test('Whispers API: send, check unread, history, mark read', async () => {
