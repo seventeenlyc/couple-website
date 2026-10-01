@@ -1,0 +1,25 @@
+[Unit]
+Description=Couple Website Node.js Fastify Service
+After=network.target
+
+[Service]
+Type=simple
+User=www
+WorkingDirectory=/www/wwwroot/lyczwc520.site/server
+ExecStart=/usr/bin/node src/start.js
+Restart=always
+RestartSec=5s
+Environment=NODE_ENV=production
+Environment=PORT=19085
+Environment=HOST=127.0.0.1
+Environment=COUPLE_DB_PATH=/www/wwwroot/lyczwc520.site/server/data/couple.db
+Environment=TRUST_PROXY=true
+Environment=USE_X_ACCEL_REDIRECT=true
+
+# Security sandbox
+ProtectSystem=full
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
