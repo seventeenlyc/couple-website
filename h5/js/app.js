@@ -24,6 +24,8 @@ let currentViewerSource = 'album';
 let dailyPhotosList = [];
 let albumPhotosList = [];
 let secretPin = '';
+let secretRequestVersion = 0;
+let secretUnlocked = false;
 let currentAlbumFolder = null;
 let currentAlbumTag = '全部';
 let currentLoadedPhotos = [];
@@ -2426,11 +2428,14 @@ function initSecretPad() {
 }
 
 async function openSecretSpace() {
+  const requestVersion = ++secretRequestVersion;
   secretPin = '';
   updatePinDisplay();
 
   // 预检私密空间登录态：若已在会话中认证，直接展示内容
   const authStatus = await window.galleryApi.checkPrivateAuth();
+  if (requestVersion !== secretRequestVersion) return;
+  secretUnlocked = Boolean(authStatus && authStatus.authenticated);
   if (authStatus && authStatus.authenticated) {
     document.getElementById('secretAuthView').style.display = 'none';
     document.getElementById('secretContentView').style.display = 'block';
@@ -2446,12 +2451,21 @@ async function openSecretSpace() {
 }
 
 function closeSecretSpace() {
+  void lockSecretSpace();
   document.getElementById('secretSpacePage').classList.remove('active');
   resetAppRootScroll();
 }
 
 async function lockSecretSpace() {
-  await window.galleryApi.logoutPrivate();
+  ++secretRequestVersion;
+  secretUnlocked = false;
+  currentPrivateNotesList = [];
+  for (const id of ['secretNotesList', 'secretFilesList', 'noteDetailTitle', 'noteDetailDate', 'noteDetailContent']) {
+    const element = document.getElementById(id);
+    if (element) element.textContent = '';
+  }
+  closeNoteDetailModal();
+  closeCreateNoteModal();
   secretPin = '';
   updatePinDisplay();
   const pwdInput = document.getElementById('secretPasswordInput');
@@ -2462,6 +2476,7 @@ async function lockSecretSpace() {
   document.getElementById('secretLockBtn').style.display = 'none';
   resetAppRootScroll();
   showToast('私密空间已锁定');
+  await window.galleryApi.logoutPrivate();
 }
 
 // 认证双模式切换 (数字键盘 vs 常规文本密码) (规范 10.6)
@@ -2510,8 +2525,11 @@ function updatePinDisplay() {
 }
 
 async function verifyPin() {
+  const requestVersion = ++secretRequestVersion;
   const res = await window.galleryApi.verifyPrivatePassword(secretPin);
+  if (requestVersion !== secretRequestVersion) return;
   if (res && res.authenticated) {
+    secretUnlocked = true;
     document.getElementById('secretAuthView').style.display = 'none';
     document.getElementById('secretContentView').style.display = 'block';
     document.getElementById('secretLockBtn').style.display = 'block';
@@ -2531,8 +2549,11 @@ async function submitSecretTextPassword() {
     showToast('请输入私密空间密码');
     return;
   }
+  const requestVersion = ++secretRequestVersion;
   const res = await window.galleryApi.verifyPrivatePassword(pwd);
+  if (requestVersion !== secretRequestVersion) return;
   if (res && res.authenticated) {
+    secretUnlocked = true;
     document.getElementById('secretAuthView').style.display = 'none';
     document.getElementById('secretContentView').style.display = 'block';
     document.getElementById('secretLockBtn').style.display = 'block';
@@ -2565,11 +2586,13 @@ async function loadSecretSpaceData() {
 }
 
 async function renderPrivateNotes() {
+  const requestVersion = secretRequestVersion;
   const container = document.getElementById('secretNotesList');
   const countEl = document.getElementById('secretNotesCount');
   if (!container) return;
 
   const notes = await window.galleryApi.getPrivateNotes();
+  if (requestVersion !== secretRequestVersion || !secretUnlocked) return;
   currentPrivateNotesList = notes || [];
   if (countEl) countEl.innerText = `已归档私密信件与备忘 (${notes.length} 条)`;
 
@@ -2711,12 +2734,14 @@ async function deletePrivateNoteAction(noteId) {
 // 私密文件管理闭环 (列表、上传、删除、下载)
 // --------------------------------------------------------------------------
 async function renderPrivateFiles() {
+  const requestVersion = secretRequestVersion;
   const container = document.getElementById('secretFilesList');
   const countEl = document.getElementById('secretFilesCount');
   const emptyEl = document.getElementById('secretFilesEmpty');
   if (!container) return;
 
   const files = await window.galleryApi.getPrivateFiles();
+  if (requestVersion !== secretRequestVersion || !secretUnlocked) return;
   if (countEl) countEl.innerText = `私密受控文件 (${files.length} 个)`;
 
   if (!files || files.length === 0) {
@@ -2732,7 +2757,7 @@ async function renderPrivateFiles() {
   container.innerHTML = files.map((file, idx) => {
     const sizeKb = (file.size / 1024).toFixed(1);
     const dateStr = (file.uploaded_at || file.created_at || '').slice(0, 16);
-    const downloadUrl = file.download_url || file.path || `api/private-files.php?action=download&file_id=${encodeURIComponent(file.id)}`;
+    const downloadUrl = window.galleryApi.resolveApiUrl(`/api/private-files.php?action=download&file_id=${encodeURIComponent(file.id)}`);
 
     return `
       <div class="secret-file-item" style="padding:14px 16px; display:flex; justify-content:space-between; align-items:center; ${idx < files.length - 1 ? 'border-bottom:1px solid var(--color-divider);' : ''} background:var(--color-surface); border-radius:var(--radius-sm); margin-bottom:8px; border:1px solid var(--color-divider);">
@@ -2741,7 +2766,7 @@ async function renderPrivateFiles() {
           <div class="secret-file-meta" style="font-size:12px; color:var(--color-muted); margin-top:4px;">${sizeKb} KB · ${escapeHtml(dateStr)} 上传</div>
         </div>
         <div class="secret-file-actions" style="display:flex; align-items:center; gap:8px;">
-          <a href="${downloadUrl}" download="${escapeForAttr(file.original_name || file.name || 'file')}" target="_blank" class="h5-btn-secondary" style="height:32px; padding:0 12px; font-size:12px; display:inline-flex; align-items:center; text-decoration:none;">下载</a>
+          <a href="${escapeForAttr(downloadUrl)}" download="${escapeForAttr(file.original_name || file.name || 'file')}" target="_blank" rel="noopener" class="h5-btn-secondary" style="height:32px; padding:0 12px; font-size:12px; display:inline-flex; align-items:center; text-decoration:none;">下载</a>
           <button class="h5-btn-secondary" style="height:32px; padding:0 12px; font-size:12px; color:var(--color-danger, #e53e3e);" onclick="deletePrivateFileAction('${safeInlineArg(file.id)}')">删除</button>
         </div>
       </div>

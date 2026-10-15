@@ -12,7 +12,7 @@
  *   - /api/devices.php (设备安全与受信任会话)
  *   - /api/agent/chat (拾光 · 画廊生活助手 AI 问答与回忆检索)
  * 
- * 具备生产级双模容错机制：线上无缝连接数据库，网络或未登录状态自动优雅降级，永不白屏报错。
+ * Production requests never fall back to simulated writes or private browser caches.
  */
 
 const STORAGE_KEYS = {
@@ -157,29 +157,7 @@ class GalleryApiClient {
   }
 
   initStorage() {
-    try {
-      if (!localStorage.getItem(STORAGE_KEYS.POINTS)) {
-        localStorage.setItem(STORAGE_KEYS.POINTS, String(SEED_DATA.points));
-      }
-      if (!localStorage.getItem(STORAGE_KEYS.CHECKIN_STREAK)) {
-        localStorage.setItem(STORAGE_KEYS.CHECKIN_STREAK, String(SEED_DATA.streak));
-      }
-      if (!localStorage.getItem(STORAGE_KEYS.CHECKIN_DATE)) {
-        localStorage.setItem(STORAGE_KEYS.CHECKIN_DATE, SEED_DATA.lastCheckin);
-      }
-      if (!localStorage.getItem(STORAGE_KEYS.TASKS)) {
-        localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(SEED_DATA.tasks));
-      }
-      if (!localStorage.getItem(STORAGE_KEYS.PHOTOS)) {
-        localStorage.setItem(STORAGE_KEYS.PHOTOS, JSON.stringify(SEED_DATA.photos));
-      }
-      if (!localStorage.getItem(STORAGE_KEYS.LETTERS)) {
-        localStorage.setItem(STORAGE_KEYS.LETTERS, JSON.stringify(SEED_DATA.letters));
-      }
-      if (!localStorage.getItem(STORAGE_KEYS.BAG)) {
-        localStorage.setItem(STORAGE_KEYS.BAG, JSON.stringify([]));
-      }
-    } catch (_) {}
+    // Production data is loaded from the authenticated API, never seeded in browser storage.
   }
 
   // --------------------------------------------------------------------------
@@ -259,20 +237,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    return {
-      success: true,
-      startDate: '2025-04-30',
-      love_days: 520,
-      love_duration: { years: 1, months: 5, days: 4, total_days: 520 },
-      logged_in: false,
-      current_user: '小林',
-      current_user_id: 'u1',
-      avatars: [
-        { user_id: 'u1', username: '小林', avatar: 'assets/images/avatar/boy.png' },
-        { user_id: 'u2', username: '小鹿', avatar: 'assets/images/avatar/girl.png' }
-      ]
-    };
+    return { success: false, logged_in: false, users: [], message: '无法加载站点配置' };
   }
 
   async getDailyQuote() {
@@ -298,11 +263,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    return [
-      { type: 'anniversary', name: '恋爱纪念日', date: '04-30', days_until: 211, message: '还有 211 天就是恋爱纪念日啦' },
-      { type: 'birthday', name: '小鹿的生日', date: '11-12', days_until: 42, message: '还有 42 天就是小鹿的生日啦' }
-    ];
+    return [];
   }
 
   // --------------------------------------------------------------------------
@@ -319,33 +280,18 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-    const stored = localStorage.getItem(STORAGE_KEYS.POINTS);
-    if (stored !== null && stored !== undefined && !isNaN(Number(stored))) {
-      return parseInt(stored, 10);
-    }
-    return 520;
+    return null;
   }
 
   async getCheckinStatus() {
     try {
-      const res = await this.request('/api/checkin.php');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          return data;
-        }
+      const res = await this.request('/api/balance.php');
+      const data = await res.json();
+      if (res.ok && data.success) {
+        return { ...data, checked_in: Boolean(data.checked_in_today), streak: data.streak_days, last_date: data.last_checkin };
       }
     } catch (_) {}
-
-    const today = new Date().toISOString().slice(0, 10);
-    const lastDate = localStorage.getItem(STORAGE_KEYS.CHECKIN_DATE);
-    const streak = parseInt(localStorage.getItem(STORAGE_KEYS.CHECKIN_STREAK) || '7', 10);
-    return {
-      success: true,
-      checked_in: lastDate === today,
-      streak,
-      last_date: lastDate
-    };
+    return { success: false, checked_in: false, streak: 0, last_date: null };
   }
 
   async doCheckin() {
@@ -361,30 +307,11 @@ class GalleryApiClient {
           if (typeof data.balance === 'number') {
             localStorage.setItem(STORAGE_KEYS.POINTS, String(data.balance));
           }
-          return data;
+          return { ...data, streak: data.streak_days };
         }
       }
     } catch (_) {}
-
-    // 本地持久化模拟
-    const today = new Date().toISOString().slice(0, 10);
-    const lastDate = localStorage.getItem(STORAGE_KEYS.CHECKIN_DATE);
-    if (lastDate === today) {
-      return { success: false, message: '今日已经签到过了' };
-    }
-    const currentStreak = parseInt(localStorage.getItem(STORAGE_KEYS.CHECKIN_STREAK) || '7', 10) + 1;
-    const currentPoints = parseInt(localStorage.getItem(STORAGE_KEYS.POINTS) || '520', 10) + 10;
-    localStorage.setItem(STORAGE_KEYS.CHECKIN_DATE, today);
-    localStorage.setItem(STORAGE_KEYS.CHECKIN_STREAK, String(currentStreak));
-    localStorage.setItem(STORAGE_KEYS.POINTS, String(currentPoints));
-
-    return {
-      success: true,
-      streak: currentStreak,
-      reward: 10,
-      balance: currentPoints,
-      message: `签到成功！获得 10 积分，已连续打卡 ${currentStreak} 天`
-    };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   // --------------------------------------------------------------------------
@@ -414,8 +341,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
+    return [];
   }
 
   async completeTask(taskId) {
@@ -431,8 +357,7 @@ class GalleryApiClient {
         return { success: false, message: data.message || '标记完成失败' };
       }
     } catch (_) {}
-
-    return this.updateLocalTaskStatus(taskId, 'my_completed');
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   async confirmTask(taskId) {
@@ -451,34 +376,9 @@ class GalleryApiClient {
         return { success: false, message: data.message || '确认完成失败' };
       }
     } catch (_) {}
-
-    return this.updateLocalTaskStatus(taskId, 'done');
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
-  updateLocalTaskStatus(taskId, nextStatus) {
-    const tasks = JSON.parse(localStorage.getItem(STORAGE_KEYS.TASKS) || '[]');
-    const task = tasks.find(t => String(t.id) === String(taskId));
-    if (!task) return { success: false, message: '任务不存在' };
-
-    task.status = nextStatus;
-    task.rawState = nextStatus;
-    if (nextStatus === 'my_completed') {
-      task.executor = '我';
-      task.verifier = '对方';
-    } else if (nextStatus === 'pending_partner') {
-      task.executor = '对方';
-      task.verifier = '我';
-    }
-
-    let pointsAdded = 0;
-    if (nextStatus === 'done') {
-      pointsAdded = task.reward || 15;
-      const curPoints = parseInt(localStorage.getItem(STORAGE_KEYS.POINTS) || '520', 10);
-      localStorage.setItem(STORAGE_KEYS.POINTS, String(curPoints + pointsAdded));
-    }
-    localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
-    return { success: true, task, pointsAdded, message: nextStatus === 'done' ? '任务已确认完成，奖励已发放！' : '已提交完成，等待对方确认' };
-  }
 
   // --------------------------------------------------------------------------
   // 5. 心愿小铺与虚拟道具 (兑换、背包查看、使用、确认闭环) - 规范 10.4
@@ -514,19 +414,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    let items = (SEED_DATA.shopItems || []).map(p => ({
-      ...p,
-      category: p.category || (p.name && p.name.includes('券') ? 'virtual' : 'physical')
-    }));
-    if (category && category !== 'all') {
-      if (category === 'coupon' || category === 'virtual') {
-        items = items.filter(p => p.category === 'virtual' || (p.name && p.name.includes('券')));
-      } else if (category === 'gift' || category === 'physical') {
-        items = items.filter(p => p.category === 'physical' || (!p.name || !p.name.includes('券')));
-      }
-    }
-    return items;
+    return [];
   }
 
   async getShopItems(category = null) {
@@ -561,10 +449,7 @@ class GalleryApiClient {
         return { success: false, message: data.message || '兑换失败，请检查积分或库存' };
       }
     } catch (_) {}
-
-    const item = (SEED_DATA.shopItems || []).find(i => String(i.id) === String(productId));
-    if (item) return this.exchangeItem(item);
-    return { success: false, message: '兑换未完成' };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   async getVirtualItems() {
@@ -577,7 +462,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.BAG) || '[]');
+    return [];
   }
 
   async useVirtualItem(itemId) {
@@ -592,16 +477,7 @@ class GalleryApiClient {
         return data;
       }
     } catch (_) {}
-
-    const bag = JSON.parse(localStorage.getItem(STORAGE_KEYS.BAG) || '[]');
-    const target = bag.find(it => String(it.id) === String(itemId));
-    if (target) {
-      target.status = 'pending';
-      target.used_at = new Date().toISOString().replace('T', ' ').slice(0, 19);
-      localStorage.setItem(STORAGE_KEYS.BAG, JSON.stringify(bag));
-      return { success: true, message: '已标记使用，等待对方确认' };
-    }
-    return { success: false, message: '操作失败，未找到物品' };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   async confirmVirtualItem(itemId) {
@@ -616,16 +492,7 @@ class GalleryApiClient {
         return data;
       }
     } catch (_) {}
-
-    const bag = JSON.parse(localStorage.getItem(STORAGE_KEYS.BAG) || '[]');
-    const target = bag.find(it => String(it.id) === String(itemId));
-    if (target) {
-      target.status = 'used';
-      target.confirmed_at = new Date().toISOString().replace('T', ' ').slice(0, 19);
-      localStorage.setItem(STORAGE_KEYS.BAG, JSON.stringify(bag));
-      return { success: true, message: '确认成功！已履行该特权' };
-    }
-    return { success: false, message: '确认失败' };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   async getPendingConfirmations() {
@@ -638,40 +505,11 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    const bag = JSON.parse(localStorage.getItem(STORAGE_KEYS.BAG) || '[]');
-    return bag.filter(it => it.status === 'pending' && it.used_by && it.used_by !== 'me');
+    return [];
   }
 
   async exchangeItem(item) {
-    const current = await this.getPoints();
-    if (current < item.cost) {
-      return { success: false, message: '积分不足，无法兑换' };
-    }
-
-    const newBalance = current - item.cost;
-    localStorage.setItem(STORAGE_KEYS.POINTS, String(newBalance));
-
-    const bag = JSON.parse(localStorage.getItem(STORAGE_KEYS.BAG) || '[]');
-    const newItem = {
-      id: `vitem_${Date.now()}`,
-      product_id: item.id,
-      product_name: item.name || item.title,
-      name: item.name || item.title,
-      category: item.category || 'virtual',
-      desc: item.desc || '',
-      purchased_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
-      status: 'unused'
-    };
-    bag.unshift(newItem);
-    localStorage.setItem(STORAGE_KEYS.BAG, JSON.stringify(bag));
-
-    return {
-      success: true,
-      newBalance,
-      message: `成功兑换「${item.name}」！已放入背包。`,
-      item: newItem
-    };
+    return this.buyProduct(item.id);
   }
 
   // --------------------------------------------------------------------------
@@ -717,61 +555,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    // 离线/兜底树状逻辑模拟
-    const localPhotos = JSON.parse(localStorage.getItem(STORAGE_KEYS.PHOTOS) || '[]');
-    let localFolders = JSON.parse(localStorage.getItem(STORAGE_KEYS.FOLDERS) || 'null');
-    if (!localFolders) {
-      localFolders = [
-        { name: '厦门旅行', path: '厦门旅行', parent_path: '' },
-        { name: '猫咪日记', path: '猫咪日记', parent_path: '' },
-        { name: '日常生活', path: '日常生活', parent_path: '' }
-      ];
-      localStorage.setItem(STORAGE_KEYS.FOLDERS, JSON.stringify(localFolders));
-    }
-
-    const childFolders = localFolders.filter(f => {
-      const fParent = (f.parent_path || '').replace(/^\/+|\/+$/g, '');
-      return fParent === cleanPath;
-    }).map(f => {
-      const fPath = f.path.replace(/^\/+|\/+$/g, '');
-      const count = localPhotos.filter(p => {
-        const pFolder = (p.folder || '').replace(/^\/+|\/+$/g, '');
-        return pFolder === fPath || pFolder.startsWith(fPath + '/');
-      }).length;
-      return {
-        name: f.name,
-        path: f.path,
-        parent_path: f.parent_path || '',
-        photo_count: count,
-        file_count: count
-      };
-    });
-
-    const currentFiles = localPhotos.filter(p => {
-      const pFolder = (p.folder || '').replace(/^\/+|\/+$/g, '');
-      if (!cleanPath) {
-        return !pFolder || pFolder === '/' || pFolder === '全部' || pFolder === '相册';
-      }
-      return pFolder === cleanPath;
-    });
-
-    const parts = cleanPath ? cleanPath.split('/') : [];
-    const breadcrumbs = [];
-    let acc = '';
-    for (const part of parts) {
-      acc = acc ? `${acc}/${part}` : part;
-      breadcrumbs.push({ name: part, path: acc });
-    }
-
-    return {
-      currentPath: cleanPath,
-      breadcrumbs,
-      folders: childFolders,
-      files: currentFiles.length > 0 ? currentFiles : (cleanPath ? [] : localPhotos),
-      allFolders: localFolders,
-      totalCount: localPhotos.length
-    };
+    return { success: false, folders: [], files: [], allFolders: [], totalCount: 0 };
   }
 
   async getFolders(context = 'album') {
@@ -788,23 +572,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    const localPhotos = JSON.parse(localStorage.getItem(STORAGE_KEYS.PHOTOS) || '[]');
-    const localFolders = JSON.parse(localStorage.getItem(STORAGE_KEYS.FOLDERS) || 'null') || [
-      { name: '厦门旅行', path: '/厦门旅行' },
-      { name: '猫咪日记', path: '/猫咪日记' },
-      { name: '日常生活', path: '/日常生活' }
-    ];
-
-    return localFolders.map(f => {
-      const cleanPath = f.path.replace(/^\/+|\/+$/g, '');
-      const count = localPhotos.filter(p => (p.folder || '').replace(/^\/+|\/+$/g, '') === cleanPath).length;
-      return {
-        ...f,
-        photo_count: count,
-        file_count: count
-      };
-    });
+    return [];
   }
 
   async createFolder(name, parentPath = '') {
@@ -831,24 +599,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    // Fallback:
-    const localFolders = JSON.parse(localStorage.getItem(STORAGE_KEYS.FOLDERS) || 'null') || [
-      { name: '厦门旅行', path: '厦门旅行', parent_path: '' },
-      { name: '猫咪日记', path: '猫咪日记', parent_path: '' },
-      { name: '日常生活', path: '日常生活', parent_path: '' }
-    ];
-    const cleanName = trimmedName.replace(/[\/\\:*?"<>|]/g, '');
-    const newPath = cleanParent ? `${cleanParent}/${cleanName}` : cleanName;
-    if (!localFolders.some(f => f.path === newPath)) {
-      localFolders.push({
-        name: cleanName,
-        path: newPath,
-        parent_path: cleanParent
-      });
-      localStorage.setItem(STORAGE_KEYS.FOLDERS, JSON.stringify(localFolders));
-    }
-    return { success: true, message: '文件夹已创建' };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   async renameFolder(folderPath, newName) {
@@ -873,41 +624,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    // Fallback in localStorage
-    const rawOld = cleanPath.replace(/^\/+/, '');
-    const parts = rawOld.split('/');
-    parts[parts.length - 1] = trimmedName;
-    const rawNew = parts.join('/');
-    const newPath = '/' + rawNew;
-
-    let localFolders = JSON.parse(localStorage.getItem(STORAGE_KEYS.FOLDERS) || 'null') || [];
-    localFolders = localFolders.map(f => {
-      const fPath = (f.path || '').replace(/^\/+/, '');
-      if (fPath === rawOld) {
-        return { ...f, name: trimmedName, path: newPath };
-      }
-      if (fPath.startsWith(rawOld + '/')) {
-        return { ...f, path: '/' + rawNew + fPath.slice(rawOld.length) };
-      }
-      return f;
-    });
-    localStorage.setItem(STORAGE_KEYS.FOLDERS, JSON.stringify(localFolders));
-
-    let localPhotos = JSON.parse(localStorage.getItem(STORAGE_KEYS.PHOTOS) || '[]');
-    localPhotos = localPhotos.map(p => {
-      const pFolder = (p.folder || '').replace(/^\/+/, '');
-      if (pFolder === rawOld) {
-        return { ...p, folder: rawNew };
-      }
-      if (pFolder.startsWith(rawOld + '/')) {
-        return { ...p, folder: rawNew + pFolder.slice(rawOld.length) };
-      }
-      return p;
-    });
-    localStorage.setItem(STORAGE_KEYS.PHOTOS, JSON.stringify(localPhotos));
-
-    return { success: true, message: '文件夹重命名成功', newPath };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   async deleteFolder(folderPath) {
@@ -956,9 +673,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    syncLocal();
-    return { success: true, message: '文件夹已删除' };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   async movePhoto(photoId, targetPath) {
@@ -982,19 +697,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    // Fallback in localStorage
-    let localPhotos = JSON.parse(localStorage.getItem(STORAGE_KEYS.PHOTOS) || '[]');
-    const cleanFolder = normTarget === '/' ? '全部' : normTarget.replace(/^\/+/, '');
-    localPhotos = localPhotos.map(p => {
-      if (p.id === photoId) {
-        return { ...p, folder: cleanFolder };
-      }
-      return p;
-    });
-    localStorage.setItem(STORAGE_KEYS.PHOTOS, JSON.stringify(localPhotos));
-
-    return { success: true, message: '照片已移动至 ' + (cleanFolder || '全部照片') };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   async deletePhoto(photoId) {
@@ -1013,12 +716,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    // Fallback:
-    let localPhotos = JSON.parse(localStorage.getItem(STORAGE_KEYS.PHOTOS) || '[]');
-    localPhotos = localPhotos.filter(p => p.id !== photoId);
-    localStorage.setItem(STORAGE_KEYS.PHOTOS, JSON.stringify(localPhotos));
-    return { success: true, message: '照片已从相册删除' };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   async getPhotos(folderPath = null, tag = null) {
@@ -1047,24 +745,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    // 本地与离线兜底逻辑：
-    let localPhotos = JSON.parse(localStorage.getItem(STORAGE_KEYS.PHOTOS) || '[]');
-    
-    // 关键修复：根据 folderPath 严格规范化过滤
-    if (folderPath && folderPath !== '/' && folderPath !== '全部') {
-      const cleanTarget = folderPath.replace(/^\/+|\/+$/g, '');
-      localPhotos = localPhotos.filter(p => {
-        const cleanPhotoFolder = (p.folder || '').replace(/^\/+|\/+$/g, '');
-        return cleanPhotoFolder === cleanTarget;
-      });
-    }
-
-    // 关键修复：根据 tag 过滤
-    if (tag && tag !== '全部') {
-      localPhotos = localPhotos.filter(p => p.tag === tag || (Array.isArray(p.tags) && p.tags.includes(tag)));
-    }
-    return localPhotos;
+    return [];
   }
 
   async uploadPhoto(firstArg, argFolderPath = '/', argTitle = '', argTags = '') {
@@ -1120,29 +801,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    // 离线/兜底分支：保存至 localStorage
-    const localPhotos = JSON.parse(localStorage.getItem(STORAGE_KEYS.PHOTOS) || '[]');
-    const tagList = (tags || '日常').split(/[,，\s]+/).filter(Boolean);
-    const newPhoto = {
-      id: `p_local_${Date.now()}`,
-      title: title || file.name,
-      caption: title || '',
-      url: URL.createObjectURL(file),
-      thumbUrl: URL.createObjectURL(file),
-      date: new Date().toISOString().slice(5, 10).replace('-', '.'),
-      folder: (folderPath || '/').replace(/^\/+|\/+$/g, '') || '全部',
-      tag: tagList[0] || '日常',
-      tags: tagList.length > 0 ? tagList : ['日常']
-    };
-    localPhotos.unshift(newPhoto);
-    localStorage.setItem(STORAGE_KEYS.PHOTOS, JSON.stringify(localPhotos));
-
-    return {
-      success: true,
-      message: '照片上传成功',
-      photo: newPhoto
-    };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   // --------------------------------------------------------------------------
@@ -1178,17 +837,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    // 本地降级模式：只找出接收者是我、且未读的信件（对方寄来的）
-    const list = JSON.parse(localStorage.getItem(STORAGE_KEYS.LETTERS) || '[]');
-    const unread = list.filter(w => !w.is_from_me && (w.unread || w.unread_for_me));
-    return {
-      success: true,
-      has_unread: unread.length > 0,
-      has_new: unread.length > 0,
-      count: unread.length,
-      whispers: unread
-    };
+    return { success: false, has_unread: false, has_new: false, count: 0, whispers: [] };
   }
 
   async getWhispersHistory() {
@@ -1225,23 +874,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    const list = JSON.parse(localStorage.getItem(STORAGE_KEYS.LETTERS) || '[]');
-    return list.map(w => {
-      // 容错与自愈清洗：如果 from 是 '我'，或者 sender_id 是 'me'，或者包含 '我留给TA'，绝对是我寄出的！
-      const isFromMe = Boolean(w.is_from_me) || w.from === '我' || w.sender_id === 'me' || (this.currentUserId && w.sender_id === this.currentUserId) || (this.currentUser && w.from === this.currentUser) || (w.title && w.title.includes('我留给'));
-      const isRead = Boolean(w.is_read || w.read || !w.unread);
-      const unreadForMe = !isFromMe && !isRead;
-      return {
-        ...w,
-        unread: unreadForMe,
-        unread_for_me: unreadForMe,
-        is_from_me: isFromMe,
-        is_to_me: !isFromMe,
-        is_read: isRead,
-        read: isRead
-      };
-    });
+    return [];
   }
 
   async getLetters() {
@@ -1263,7 +896,6 @@ class GalleryApiClient {
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
-          this._appendLocalLetter(data.whisper || { content });
           return data;
         }
         return data;
@@ -1272,34 +904,9 @@ class GalleryApiClient {
         return { success: false, message: data.message || '发送失败' };
       }
     } catch (_) {}
-
-    this._appendLocalLetter({ content });
-    return { success: true, message: '悄悄话已成功发送给对方 💌' };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
-  _appendLocalLetter(letterData) {
-    try {
-      const list = JSON.parse(localStorage.getItem(STORAGE_KEYS.LETTERS) || '[]');
-      const newLetter = {
-        id: letterData.id || `whisper_local_${Date.now()}`,
-        from: this.currentUser || '我',
-        to: '对方',
-        sender_id: this.currentUserId || 'me',
-        receiver_id: 'partner',
-        is_from_me: true,
-        is_to_me: false,
-        unread: false,
-        unread_for_me: false,
-        is_read: true,
-        read: true,
-        date: new Date().toISOString().slice(0, 16).replace('T', ' '),
-        title: '我留给TA的悄悄话',
-        content: letterData.content || ''
-      };
-      list.unshift(newLetter);
-      localStorage.setItem(STORAGE_KEYS.LETTERS, JSON.stringify(list));
-    } catch (_) {}
-  }
 
   async markWhisperRead(whisperId) {
     try {
@@ -1311,30 +918,12 @@ class GalleryApiClient {
       });
       if (res.ok) {
         const data = await res.json();
-        this._updateLocalWhisperRead(whisperId);
         return data;
       }
     } catch (_) {}
-    this._updateLocalWhisperRead(whisperId);
-    return { success: true };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
-  _updateLocalWhisperRead(whisperId) {
-    try {
-      let list = JSON.parse(localStorage.getItem(STORAGE_KEYS.LETTERS) || '[]');
-      let changed = false;
-      list = list.map(item => {
-        if (!whisperId || String(item.id) === String(whisperId)) {
-          changed = true;
-          return { ...item, unread: false, unread_for_me: false, is_read: true, read: true };
-        }
-        return item;
-      });
-      if (changed) {
-        localStorage.setItem(STORAGE_KEYS.LETTERS, JSON.stringify(list));
-      }
-    } catch (_) {}
-  }
 
   // --------------------------------------------------------------------------
   // 8. 故事时间线 (编年节点、自选日期与图片附件新增)
@@ -1349,25 +938,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    return [
-      {
-        id: 'st_1',
-        date: '2026-09-28',
-        title: '吹着海风看日落',
-        content: '那天没有特定计划，只是在海边漫无目的地走了很久很久。',
-        location: '厦门环岛路',
-        photos: []
-      },
-      {
-        id: 'st_2',
-        date: '2025-04-30',
-        title: '一周年纪念日的晚餐',
-        content: '预订了喜欢的小馆子，互送了亲手制作的礼物。',
-        location: '老街小馆',
-        photos: []
-      }
-    ];
+    return [];
   }
 
   async getStoryEvents() {
@@ -1421,53 +992,25 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-    return { success: true, message: '故事已成功保存至时间线' };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   // --------------------------------------------------------------------------
   // 9. 私密空间 (常规密码认证、查看私密随笔、保存、删除、私密文件闭环与锁定)
   // --------------------------------------------------------------------------
   async verifyPrivatePassword(password) {
-    if (!this.isLoggedIn) {
-      if (password === '5200' || password === '1314' || password === '1234' || (password && password.length === 4)) {
-        return { success: true, authenticated: true, message: '演示模式已解锁' };
-      }
-      return { success: false, authenticated: false, message: '密码错误，演示模式请输入 5200' };
-    }
-
+    if (!this.isLoggedIn) return { success: false, authenticated: false, message: '请先登录' };
     try {
-      if (!this.csrfToken) await this.fetchCsrfToken();
       const res = await this.request('/api/private-auth.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'verify',
-          password,
-          csrf_token: this.csrfToken
-        })
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify', password, csrf_token: this.csrfToken })
       });
-
-      if (res.status === 401) {
-        if (password === '5200' || password === '1314' || password === '1234' || (password && password.length === 4)) {
-          return { success: true, authenticated: true, message: '演示模式已解锁' };
-        }
-      }
-
-      const data = await res.json().catch(() => ({}));
-      if (data && data.success) {
-        return { success: true, authenticated: true, user_id: data.user_id };
-      } else {
-        if (password === '5200' || password === '1314' || password === '1234') {
-          return { success: true, authenticated: true, message: '演示模式已解锁' };
-        }
-        return { success: false, authenticated: false, message: data?.message || '密码错误，请重试' };
-      }
-    } catch (_) {}
-
-    if (password === '5200' || password === '1314' || password === '1234' || (password && password.length === 4)) {
-      return { success: true, authenticated: true };
+      const data = await res.json();
+      if (res.ok && data.success && data.authenticated) return data;
+      return { success: false, authenticated: false, message: data.message || '私密验证失败，请重试' };
+    } catch (_) {
+      return { success: false, authenticated: false, message: '无法连接服务器完成私密验证' };
     }
-    return { success: false, authenticated: false, message: '密码错误，请重试' };
   }
 
   async checkPrivateAuth() {
@@ -1501,8 +1044,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    return JSON.parse(localStorage.getItem('couple_h5_private_notes') || '[]');
+    return [];
   }
 
   async addPrivateNote(title, content) {
@@ -1518,23 +1060,13 @@ class GalleryApiClient {
         })
       });
       const data = await res.json();
-      if (data && data.success) {
+      if (res.ok && data && data.success) {
         return data;
       } else {
         return { success: false, message: data?.message || '保存失败' };
       }
     } catch (_) {}
-
-    const localNotes = JSON.parse(localStorage.getItem('couple_h5_private_notes') || '[]');
-    const newNote = {
-      id: `pn_local_${Date.now()}`,
-      title: title || '私密随笔',
-      content: content || '',
-      created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
-    };
-    localNotes.unshift(newNote);
-    localStorage.setItem('couple_h5_private_notes', JSON.stringify(localNotes));
-    return { success: true, message: '随笔已加密保存', note: newNote };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   async deletePrivateNote(noteId) {
@@ -1550,17 +1082,13 @@ class GalleryApiClient {
         })
       });
       const data = await res.json();
-      if (data && data.success) {
+      if (res.ok && data && data.success) {
         return data;
       } else {
         return { success: false, message: data?.message || '删除失败' };
       }
     } catch (_) {}
-
-    let localNotes = JSON.parse(localStorage.getItem('couple_h5_private_notes') || '[]');
-    localNotes = localNotes.filter(n => n.id !== noteId);
-    localStorage.setItem('couple_h5_private_notes', JSON.stringify(localNotes));
-    return { success: true, message: '笔记已删除' };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   async getPrivateFiles(folderPath = null) {
@@ -1575,8 +1103,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    return JSON.parse(localStorage.getItem('couple_h5_private_files') || '[]');
+    return [];
   }
 
   async uploadPrivateFile(file, folderPath = '/') {
@@ -1596,18 +1123,7 @@ class GalleryApiClient {
       const data = await res.json();
       return data;
     } catch (_) {}
-
-    const localFiles = JSON.parse(localStorage.getItem('couple_h5_private_files') || '[]');
-    const newFile = {
-      id: `pf_${Date.now()}`,
-      original_name: file.name,
-      size: file.size,
-      uploaded_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-      download_url: URL.createObjectURL(file)
-    };
-    localFiles.unshift(newFile);
-    localStorage.setItem('couple_h5_private_files', JSON.stringify(localFiles));
-    return { success: true, message: '文件上传成功', file: newFile };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   async deletePrivateFile(fileId) {
@@ -1624,22 +1140,20 @@ class GalleryApiClient {
       const data = await res.json();
       return data;
     } catch (_) {}
-
-    let localFiles = JSON.parse(localStorage.getItem('couple_h5_private_files') || '[]');
-    localFiles = localFiles.filter(f => f.id !== fileId);
-    localStorage.setItem('couple_h5_private_files', JSON.stringify(localFiles));
-    return { success: true, message: '文件删除成功' };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   async logoutPrivate() {
     try {
-      await this.request('/api/private-auth.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await this.request('/api/private-auth.php', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'logout', csrf_token: this.csrfToken })
       });
-    } catch (_) {}
-    return { success: true };
+      const data = await res.json();
+      return { ...data, success: res.ok && data.success === true };
+    } catch (_) {
+      return { success: false };
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -1657,7 +1171,7 @@ class GalleryApiClient {
         if (data.success) return data;
       }
     } catch (_) {}
-    return { success: true, status: 'active', admin: true };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 
   // --------------------------------------------------------------------------
@@ -1679,7 +1193,7 @@ class GalleryApiClient {
       }
       if (res.ok) {
         const data = await res.json();
-        if (data && data.success) {
+        if (res.ok && data && data.success) {
           return { success: true, devices: Array.isArray(data.devices) ? data.devices : [] };
         }
         return { success: false, message: (data && data.message) || '设备列表获取失败' };
@@ -1715,7 +1229,7 @@ class GalleryApiClient {
       }
       if (res.ok) {
         const data = await res.json();
-        if (data && data.success) return data;
+        if (res.ok && data && data.success) return data;
         return { success: false, message: (data && data.message) || '操作失败' };
       }
       return { success: false, message: `操作失败 (${res.status})` };
@@ -1762,7 +1276,7 @@ class GalleryApiClient {
       if (res.status === 403) return { success: false, message: '请求校验失败，请刷新后重试' };
       if (res.ok) {
         const data = await res.json();
-        if (data && data.success) return data;
+        if (res.ok && data && data.success) return data;
         return { success: false, message: (data && data.message) || '头像上传失败' };
       }
       return { success: false, message: `头像上传失败 (${res.status})` };
@@ -1856,37 +1370,30 @@ class GalleryApiClient {
   }
 
   async logout() {
+    let result = { success: false };
     try {
-      await this.request('/api/logout.php', { method: 'POST' });
+      const res = await this.request('/api/logout.php', { method: 'POST' });
+      // The legacy endpoint redirects to the login HTML after destroying the session.
+      result = { success: res.ok };
     } catch (_) {}
     this.csrfToken = '';
     this.isLoggedIn = false;
     this.currentUser = null;
     this.currentUserId = null;
-    return { success: true };
+    this.appConfig = null;
+    return result;
   }
 
   // --------------------------------------------------------------------------
   // 11. AI 生活助手「拾光」对话与记忆库
   // --------------------------------------------------------------------------
   getAgentMemory() {
+    const config = this.appConfig || {};
     return {
-      names: '小林 与 小鹿',
-      days: 520,
-      startDate: '2025.04.30',
-      anniversary: '04.30 (恋爱开始日期)',
-      birthday: '11.12 (小鹿生日)',
-      hobbies: ['手冲咖啡', '海边散步看落日', '猫咪日记'],
-      memories: [
-        {
-          id: 'mem_1',
-          title: '海边落日余晖',
-          date: '2026.09.28',
-          caption: '那天没有计划，只是一起走了很远。',
-          location: '环岛路',
-          thumb: 'sunset'
-        }
-      ]
+      names: (config.users || []).map(user => user.username).filter(Boolean).join(' / '),
+      days: config.love_days ?? null,
+      startDate: config.startDate || null,
+      anniversary: null, birthday: null, hobbies: [], memories: []
     };
   }
 
@@ -1904,33 +1411,7 @@ class GalleryApiClient {
         }
       }
     } catch (_) {}
-
-    const memory = this.getAgentMemory();
-    const text = message.toLowerCase();
-    let reply = '';
-    let memoryRef = null;
-
-    if (/吵架|摩擦|冷战|闹别扭|生气|委屈|矛盾/.test(text)) {
-      reply = `相伴的这 ${memory.days} 天里，遇到分歧往往是因为彼此都在意对方。\n\n此时不妨先各自平静片刻。试着把容易激化情绪的话，换成真诚的感受表达，例如：\n“刚才我有些着急，但我很在意你的感受，等下我们一起聊聊好吗？”\n\n给对方一个缓冲的台阶，往往比争执更能解决问题。`;
-    } else if (/约会|周末|安排|计划|去哪|吃什么/.test(text)) {
-      reply = `结合你们的生活偏好，整理了两个轻松的安排供参考：\n\n1. 户外散步：傍晚去环岛路走走，看看海边日落，拍一张简单的合影；\n2. 寻味小歇：找一家安静的手冲咖啡馆坐坐，聊聊这一周的生活琐事。`;
-    } else if (/累|工作|好难|压力|疲惫|焦虑/.test(text)) {
-      reply = `辛苦了。累的时候不用勉强安排复杂的活动，好好休息最重要。\n\n今晚可以早点休息，也可以去心愿小铺为对方兑换一张「肩颈按摩券」，卸下白天的疲惫。`;
-    } else if (/过往|回忆|照片|第一|从前|故事|环岛路/.test(text)) {
-      reply = `查找到一段相关回忆：\n2026年9月28日傍晚，你们在环岛路漫步看日落，当时记下的文字是：“那天没有计划，只是一起走了很远。”`;
-      memoryRef = memory.memories[0];
-    } else {
-      reply = `我是画廊里的生活助手「拾光」。可以帮你整理想说的话，想想约会安排，或寻找一段回忆。随时写下你想聊的。`;
-    }
-
-    return {
-      success: true,
-      reply,
-      isExample: true,
-      source: 'local_example',
-      companion: '拾光',
-      memoryRef
-    };
+    return { success: false, message: '请求未成功，请重试。本次操作未确认保存。' };
   }
 }
 

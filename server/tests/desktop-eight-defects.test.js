@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const rootDir = fileURLToPath(new URL('../../', import.meta.url));
 import { buildApp } from '../src/app.js';
 import { initDb } from '../src/storage/db.js';
 
@@ -18,10 +21,10 @@ test('Desktop Eight Defects Verification Suite', async (t) => {
     secureCookie: false
   });
 
-  const desktopHtml = fs.readFileSync('desktop/index.html', 'utf8');
-  const desktopCss = fs.readFileSync('desktop/css/desktop-gallery.css', 'utf8');
-  const desktopAppJs = fs.readFileSync('desktop/js/app.js', 'utf8');
-  const desktopApiJs = fs.readFileSync('desktop/js/api-client.js', 'utf8');
+  const desktopHtml = fs.readFileSync(path.join(rootDir, 'desktop/index.html'), 'utf8');
+  const desktopCss = fs.readFileSync(path.join(rootDir, 'desktop/css/desktop-gallery.css'), 'utf8');
+  const desktopAppJs = fs.readFileSync(path.join(rootDir, 'desktop/js/app.js'), 'utf8');
+  const desktopApiJs = fs.readFileSync(path.join(rootDir, 'desktop/js/api-client.js'), 'utf8');
 
   await t.test('Defect 1: 登录系统有效性 - login.html & desktop 模态框 & login API', async () => {
     // 1. 独立登录页 desktop/login.html
@@ -86,10 +89,9 @@ test('Desktop Eight Defects Verification Suite', async (t) => {
     assert.ok(desktopAppJs.includes('Boolean(w.unread)'), 'app.js 必须严格按布尔值过滤未读');
   });
 
-  await t.test('Defect 8: 私密空间顺畅打开 - 演示模式降级与独立认证流程', async () => {
-    // api-client verifyPrivatePassword 支持演示兜底
-    assert.ok(desktopApiJs.includes('5200'), '未登录或离线模式支持 5200 演示密码');
-    assert.ok(desktopApiJs.includes('1314'), '未登录或离线模式支持 1314 演示密码');
+  await t.test('Defect 8: 私密空间仅接受真实服务端认证', async () => {
+    assert.equal(desktopApiJs.includes("password === '5200'"), false, '不得接受固定演示密码作为认证');
+    assert.equal(desktopApiJs.includes("password === '1314'"), false, '不得接受备用演示密码作为认证');
     // 切换到私密空间支持状态显示
     assert.ok(desktopAppJs.includes('privateUnlockedView'), '支持展示私密解锁内容');
   });

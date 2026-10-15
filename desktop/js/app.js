@@ -2184,7 +2184,7 @@
       const div = document.createElement('div');
       div.className = 'task-item-card';
       const sizeKb = (file.size / 1024).toFixed(1);
-      const downloadUrl = file.download_url || file.path || `api/private-files.php?action=download&file_id=${encodeURIComponent(file.id)}`;
+      const downloadUrl = api.resolveApiUrl(`/api/private-files.php?action=download&file_id=${encodeURIComponent(file.id)}`);
 
       div.innerHTML = `
         <div>
@@ -2192,7 +2192,7 @@
           <p style="font-size:13px; color:var(--color-muted);">${sizeKb} KB · ${(file.uploaded_at || file.created_at || '').slice(0, 16)}</p>
         </div>
         <div style="display:flex; gap:10px;">
-          <a href="${downloadUrl}" download="${escapeForAttr(file.original_name || file.name || 'file')}" target="_blank" class="btn-secondary" style="height:32px; padding:0 12px; font-size:12px; text-decoration:none; display:inline-flex; align-items:center;">下载</a>
+          <a href="${escapeForAttr(downloadUrl)}" download="${escapeForAttr(file.original_name || file.name || 'file')}" target="_blank" rel="noopener" class="btn-secondary" style="height:32px; padding:0 12px; font-size:12px; text-decoration:none; display:inline-flex; align-items:center;">下载</a>
           <button class="btn-secondary" style="height:32px; padding:0 12px; font-size:12px; color:var(--color-danger);" onclick="deletePrivateFileAction('${safeInlineArg(file.id)}')">删除</button>
         </div>
       `;

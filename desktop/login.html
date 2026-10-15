@@ -106,6 +106,7 @@
   </main>
 
   <script src="js/api-client.js"></script>
+  <script src="../assets/js/device-router.js"></script>
   <script>
     const api = new GalleryApiClient();
 
@@ -142,8 +143,8 @@
       if (res && res.success) {
         showToast('✨ 登录成功，欢迎回家！');
         setTimeout(() => {
-          const redirect = new URLSearchParams(window.location.search).get('redirect') || 'index.html';
-          window.location.href = redirect;
+          const redirect = new URLSearchParams(window.location.search).get('redirect');
+          window.location.href = window.DeviceRouter.isSafeLocalRedirect(redirect) ? redirect : '/desktop/index.html';
         }, 600);
       } else {
         btn.disabled = false;

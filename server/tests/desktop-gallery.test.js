@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const rootDir = fileURLToPath(new URL('../../', import.meta.url));
 import { buildApp } from '../src/app.js';
 import { initDb, closeDb } from '../src/storage/db.js';
 
@@ -38,7 +41,7 @@ test('Desktop Gallery App Production Frontend & Full Mobile Parity Suite', async
   });
 
   await t.test('2. Desktop frontend is a real production app without demo toolbar or viewport simulator', async () => {
-    const html = fs.readFileSync('desktop/index.html', 'utf8');
+    const html = fs.readFileSync(path.join(rootDir, 'desktop/index.html'), 'utf8');
 
     // 严禁包含 demo 展示工具栏或画板模拟器
     assert.equal(html.includes('review-toolbar'), false, 'Must not include review-toolbar');
@@ -57,8 +60,8 @@ test('Desktop Gallery App Production Frontend & Full Mobile Parity Suite', async
   });
 
   await t.test('3. Album & Hero Carousel: full parity with mobile picker, folder CRUD, and batch operations', async () => {
-    const html = fs.readFileSync('desktop/index.html', 'utf8');
-    const appJs = fs.readFileSync('desktop/js/app.js', 'utf8');
+    const html = fs.readFileSync(path.join(rootDir, 'desktop/index.html'), 'utf8');
+    const appJs = fs.readFileSync(path.join(rootDir, 'desktop/js/app.js'), 'utf8');
 
     // 封面挑选器模态框与设置弹层
     assert.ok(html.includes('heroPickerModal'), 'Has hero picker modal');
@@ -86,8 +89,8 @@ test('Desktop Gallery App Production Frontend & Full Mobile Parity Suite', async
   });
 
   await t.test('4. Wishes, Tasks, Shop, and Backpack: checkin, non-self-confirming, exchange modal & partner fulfillment', async () => {
-    const html = fs.readFileSync('desktop/index.html', 'utf8');
-    const appJs = fs.readFileSync('desktop/js/app.js', 'utf8');
+    const html = fs.readFileSync(path.join(rootDir, 'desktop/index.html'), 'utf8');
+    const appJs = fs.readFileSync(path.join(rootDir, 'desktop/js/app.js'), 'utf8');
 
     // 签到与连续天数
     assert.ok(html.includes('checkinStreakTitle'), 'Has checkin streak title element');
@@ -116,8 +119,8 @@ test('Desktop Gallery App Production Frontend & Full Mobile Parity Suite', async
   });
 
   await t.test('5. Secret space dual-mode authentication, notes CRUD, and encrypted files management', async () => {
-    const html = fs.readFileSync('desktop/index.html', 'utf8');
-    const appJs = fs.readFileSync('desktop/js/app.js', 'utf8');
+    const html = fs.readFileSync(path.join(rootDir, 'desktop/index.html'), 'utf8');
+    const appJs = fs.readFileSync(path.join(rootDir, 'desktop/js/app.js'), 'utf8');
 
     // 双模式认证：PIN 码软键盘 + 常规文本密码
     assert.ok(html.includes('privatePinMode'), 'Has PIN keypad container');
@@ -139,8 +142,8 @@ test('Desktop Gallery App Production Frontend & Full Mobile Parity Suite', async
   });
 
   await t.test('6. Device Security & 8-Digit Code Workflow: approve, deny, and revoke', async () => {
-    const html = fs.readFileSync('desktop/index.html', 'utf8');
-    const appJs = fs.readFileSync('desktop/js/app.js', 'utf8');
+    const html = fs.readFileSync(path.join(rootDir, 'desktop/index.html'), 'utf8');
+    const appJs = fs.readFileSync(path.join(rootDir, 'desktop/js/app.js'), 'utf8');
 
     assert.ok(html.includes('pendingDevicesWrap'), 'Has pending devices wrap');
     assert.ok(html.includes('activeDevicesWrap'), 'Has active devices wrap');
@@ -152,8 +155,8 @@ test('Desktop Gallery App Production Frontend & Full Mobile Parity Suite', async
   });
 
   await t.test('7. Letters, Story Timeline, and Shiguang AI Companion: full workflow parity', async () => {
-    const html = fs.readFileSync('desktop/index.html', 'utf8');
-    const appJs = fs.readFileSync('desktop/js/app.js', 'utf8');
+    const html = fs.readFileSync(path.join(rootDir, 'desktop/index.html'), 'utf8');
+    const appJs = fs.readFileSync(path.join(rootDir, 'desktop/js/app.js'), 'utf8');
 
     // 来信与写信
     assert.ok(html.includes('homeLetterBanner'), 'Has home letter banner');
@@ -188,8 +191,8 @@ test('Desktop Gallery App Production Frontend & Full Mobile Parity Suite', async
   });
 
   await t.test('8. Full API Client Parity across all 31 core methods', async () => {
-    const apiJs = fs.readFileSync('desktop/js/api-client.js', 'utf8');
-    const h5ApiJs = fs.readFileSync('h5/js/api-client.js', 'utf8');
+    const apiJs = fs.readFileSync(path.join(rootDir, 'desktop/js/api-client.js'), 'utf8');
+    const h5ApiJs = fs.readFileSync(path.join(rootDir, 'h5/js/api-client.js'), 'utf8');
 
     const methods = [
       'fetchCsrfToken',

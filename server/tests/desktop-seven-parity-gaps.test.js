@@ -43,8 +43,8 @@ test('Desktop & H5 7项关键功能对齐审计修复验证套件', async (t) =>
     // 1. loadTasksAndPoints 针对 points 的类型与合法 0 进行精准判断
     assert.ok(desktopAppJs.includes("typeof points === 'number' && !isNaN(points)"), 'app.js 必须对 points 进行 number 类型精确判定');
 
-    // 2. api-client.js 中从 localStorage 读取时支持 '0'
-    assert.ok(desktopApiJs.includes('stored !== null') || desktopApiJs.includes("!isNaN(Number(stored))"), 'api-client 必须识别存储的 0 余额');
+    // 2. API 直接接受服务端的数值 0，不回退到共享缓存余额。
+    assert.ok(desktopApiJs.includes("typeof data.balance === 'number'"), 'api-client 必须保留服务端返回的数值 0');
   });
 
   await t.test('Gap 4 (Medium): 上传队列对齐防重提锁、真实进度、单项重试隔离、单项移除、标题标签与拖拽', () => {
