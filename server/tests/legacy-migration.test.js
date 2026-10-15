@@ -2,32 +2,41 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { runImport } from '../scripts/import-legacy.js';
 import { runReconcile } from '../scripts/reconcile.js';
 import { closeDb, initDb } from '../src/storage/db.js';
-import { ROOT_DIR } from '../src/config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 test('Legacy Data Import and Reconcile Integrity', async (t) => {
-  const testDbPath = path.join(__dirname, 'test-migration.db');
+  const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'couple-legacy-migration-'));
+  const testDbPath = path.join(fixtureDir, 'migration.db');
+  fs.writeFileSync(path.join(fixtureDir, 'config.json'), JSON.stringify({ users: {
+    fixtureA: { id: 'fixture-a', password: '', partner: 'fixtureB' },
+    fixtureB: { id: 'fixture-b', password: '', partner: 'fixtureA' }
+  } }));
+  fs.writeFileSync(path.join(fixtureDir, 'products.json'), JSON.stringify({
+    products: Array.from({ length: 11 }, (_, i) => ({ id: `fixture-product-${i}`, name: `Fixture product ${i}`, price: i + 1 }))
+  }));
+  fs.writeFileSync(path.join(fixtureDir, 'tasks.json'), JSON.stringify({
+    task_pool: Array.from({ length: 8 }, (_, i) => ({ id: `fixture-task-${i}`, title: `Fixture task ${i}`, reward: 10 }))
+  }));
   closeDb();
   if (fs.existsSync(testDbPath)) fs.unlinkSync(testDbPath);
 
   t.after(() => {
     closeDb();
-    if (fs.existsSync(testDbPath)) {
-      try { fs.unlinkSync(testDbPath); } catch (e) {}
-    }
+    fs.rmSync(fixtureDir, { recursive: true, force: true });
   });
 
   await t.test('Initial import from data directory populates SQLite', () => {
     closeDb();
     const rep = runImport({
       dbPath: testDbPath,
-      dataDir: path.join(ROOT_DIR, 'data')
+      dataDir: fixtureDir
     });
 
     assert.equal(rep.users, 2);
@@ -40,7 +49,7 @@ test('Legacy Data Import and Reconcile Integrity', async (t) => {
     closeDb();
     const rep2 = runImport({
       dbPath: testDbPath,
-      dataDir: path.join(ROOT_DIR, 'data')
+      dataDir: fixtureDir
     });
     closeDb();
 
@@ -59,7 +68,7 @@ test('Legacy Data Import and Reconcile Integrity', async (t) => {
     closeDb();
     const rec = runReconcile({
       dbPath: testDbPath,
-      dataDir: path.join(ROOT_DIR, 'data')
+      dataDir: fixtureDir
     });
     closeDb();
 
