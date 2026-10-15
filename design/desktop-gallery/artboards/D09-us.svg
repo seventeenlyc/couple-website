@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960" role="img" aria-labelledby="title desc"><title id="title">D09 我们 · 关系信息与日期列表</title><desc id="desc">桌面生活画廊静态样稿。文字、日期、人物和矢量场景均为设计模拟，不是实际业务记录。</desc><defs>
+  <style>text{font-family:"Microsoft YaHei","PingFang SC",sans-serif} .serif{font-family:SimSun,"Songti SC",serif}</style>
+  <g id="coast">
+    <rect width="1000" height="640" fill="#D8E3E1"/>
+    <circle cx="776" cy="148" r="56" fill="#EEE3CF"/>
+    <path d="M0 365Q135 240 272 308T540 282L668 397H0Z" fill="#A5B8AF"/>
+    <path d="M0 370Q300 351 600 374T1000 369V640H0Z" fill="#71908B"/>
+    <path d="M-30 538Q213 447 432 484T1020 480V640H0Z" fill="#D9CAB6"/>
+    <path d="M0 522Q203 434 431 468T1000 460" fill="none" stroke="#EBEAE0" stroke-width="12"/>
+    <path d="M633 389l131-4m-331 23l66-2m278 26l142-3" stroke="#BFCFC9" stroke-width="3"/>
+    <path d="M91 640l32-85 24 29 10-89 40 84 39-37 28 98" fill="#627B64"/>
+  </g>
+  <g id="street">
+    <rect width="1000" height="640" fill="#D5DCCF"/>
+    <rect y="495" width="1000" height="145" fill="#B2ADA1"/>
+    <path d="M35 125h310v370H35Z" fill="#C7AB8D"/>
+    <path d="M348 40h310v455H348Z" fill="#E1CFB3"/>
+    <path d="M660 157h318v338H660Z" fill="#B69079"/>
+    <path d="M0 496h1000" stroke="#8D8374" stroke-width="6"/>
+    <path d="M86 195h72v109H86zm128 0h72v109h-72zm185-84h69v108h-69zm125 0h69v108h-69zm-125 159h69v108h-69zm125 0h69v108h-69zm194-44h76v116h-76zm130 0h76v116h-76z" fill="#5F716A"/>
+    <path d="M117 397h101v98H117zm329 19h112v79H446zm283-5h154v84H729z" fill="#786F60"/>
+    <path d="M15 544h970M60 596h880" stroke="#DAD2C3" stroke-width="3"/>
+    <path d="M859 536V287" stroke="#5A6551" stroke-width="18"/>
+    <ellipse cx="858" cy="259" rx="95" ry="100" fill="#798A68"/>
+  </g>
+  <g id="coffee">
+    <rect width="1000" height="640" fill="#E5DBCD"/>
+    <path d="M0 440L1000 96v544H0Z" fill="#B99979"/>
+    <path d="M0 504L1000 161M0 573L1000 230" stroke="#A1866D" stroke-width="4"/>
+    <ellipse cx="483" cy="412" rx="213" ry="103" fill="#D5C6B1"/>
+    <path d="M632 294q147-44 143 51t-143 43" fill="none" stroke="#EEE8DE" stroke-width="28"/>
+    <path d="M315 262v128q159 127 319 0V262" fill="#F1EBDF"/>
+    <ellipse cx="474" cy="261" rx="159" ry="65" fill="#D2BE9F"/>
+    <ellipse cx="474" cy="266" rx="134" ry="47" fill="#725947"/>
+    <path d="M450 273q-60-38-24-50 24-8 48 26 27-34 54-24 32 14-53 55Z" fill="#DCC7A6"/>
+    <path d="M156 474l65 72 87-91-62-75Z" fill="#EFE8DC"/>
+    <path d="M759 24l-7 161" stroke="#6E7B58" stroke-width="7"/>
+    <path d="M752 143q-107-75-60-102 76 13 60 102m5-52q33-117 93-89 6 76-93 89" fill="#8A9470"/>
+  </g>
+  <g id="flowers">
+    <rect width="1000" height="640" fill="#D9DACE"/>
+    <rect y="486" width="1000" height="154" fill="#B6B59E"/>
+    <path d="M365 393h280l-42 215H410Z" fill="#BCA17F"/>
+    <path d="M503 403L393 207m117 196L574 160m-61 237L709 267m-199 115L281 291" stroke="#6C7957" stroke-width="12"/>
+    <path d="M461 328q-124-28-92 29 55 30 92-29m97-41q74-83 97-18-34 62-97 18m-162 40q-106-4-120-82 89-8 120 82" fill="#899476"/>
+    <g fill="#AD6970"><circle cx="370" cy="190" r="43"/><circle cx="420" cy="190" r="43"/><circle cx="395" cy="151" r="43"/><circle cx="395" cy="227" r="43"/></g>
+    <g fill="#E5D6B7"><circle cx="550" cy="140" r="42"/><circle cx="601" cy="140" r="42"/><circle cx="575" cy="105" r="42"/><circle cx="575" cy="179" r="42"/></g>
+    <g fill="#C29682"><circle cx="686" cy="251" r="38"/><circle cx="733" cy="251" r="38"/><circle cx="710" cy="218" r="38"/><circle cx="710" cy="284" r="38"/></g>
+    <circle cx="395" cy="190" r="18" fill="#D4B085"/><circle cx="575" cy="143" r="17" fill="#B29A70"/><circle cx="710" cy="251" r="16" fill="#B28C64"/>
+  </g>
+</defs><rect x="0" y="0" width="1440" height="960" rx="0" fill="#F7F5F1" /><rect x="0" y="0" width="1440" height="80" rx="0" fill="#F7F5F1" /><path d="M0 79.5L1440 79.5" fill="none" stroke="#DED9D2"/><text x="160" y="48" font-size="22" fill="#252422" class="serif">我们之间</text><text x="568" y="48" font-size="16" fill="#68635E" font-weight="400">日常</text><text x="656" y="48" font-size="16" fill="#68635E" font-weight="400">相册</text><text x="744" y="48" font-size="16" fill="#68635E" font-weight="400">心愿</text><text x="832" y="48" font-size="16" fill="#883E4A" font-weight="600">我们</text><rect x="832" y="64" width="32" height="2" rx="1" fill="#883E4A" /><rect x="1160" y="18" width="120" height="44" rx="8" fill="#883E4A" /><text x="1220" y="46" font-size="16" fill="#FFFFFF" text-anchor="middle" font-weight="500">＋ 记录</text><text x="280" y="158" font-size="32" fill="#252422" class="serif">我们</text><text x="280" y="192" font-size="14" fill="#68635E" >关于我们，也关于一起走过的时间。</text><circle cx="326" cy="287" r="46" fill="#DDC5B7"/><text x="326" y="296" font-size="24" fill="#624F43" text-anchor="middle">林</text><circle cx="426" cy="287" r="46" fill="#CCD3BF"/><text x="426" y="296" font-size="24" fill="#4F624B" text-anchor="middle">鹿</text><text x="504" y="272" font-size="24" fill="#252422" class="serif">小林  &amp;  小鹿</text><text x="504" y="309" font-size="16" fill="#68635E" >恋爱开始日期 · 2025.04.30</text><path d="M280 375L1160 375" fill="none" stroke="#DED9D2"/><text x="280" y="427" font-size="24" fill="#252422" class="serif">重要的日子</text><text x="280" y="480" font-size="22" fill="#252422" class="serif">04.30</text><text x="392" y="480" font-size="18" fill="#252422" >在一起的纪念日</text><text x="392" y="510" font-size="14" fill="#68635E" >每年这一天</text><path d="M280 533L800 533" fill="none" stroke="#DED9D2"/><text x="280" y="578" font-size="22" fill="#252422" class="serif">06.18</text><text x="392" y="578" font-size="18" fill="#252422" >小林的生日</text><text x="392" y="608" font-size="14" fill="#68635E" >记得说一句生日快乐</text><path d="M280 631L800 631" fill="none" stroke="#DED9D2"/><text x="280" y="676" font-size="22" fill="#252422" class="serif">11.09</text><text x="392" y="676" font-size="18" fill="#252422" >小鹿的生日</text><text x="392" y="706" font-size="14" fill="#68635E" >把这一天留给彼此</text><path d="M280 729L800 729" fill="none" stroke="#DED9D2"/><text x="848" y="434" font-size="18" fill="#252422" >我们的故事</text><text x="848" y="463" font-size="14" fill="#68635E" >按时间翻看照片与文字</text><path d="M0 0l6 6-6 6" transform="translate(1144 422)" fill="none" stroke="#68635E" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M848 485L1160 485" fill="none" stroke="#DED9D2"/><text x="848" y="532" font-size="18" fill="#252422" >私密空间</text><text x="848" y="561" font-size="14" fill="#68635E" >验证后进入自己的笔记与文件</text><path d="M0 0l6 6-6 6" transform="translate(1144 520)" fill="none" stroke="#68635E" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M848 583L1160 583" fill="none" stroke="#DED9D2"/><text x="848" y="630" font-size="18" fill="#252422" >安全与设备</text><text x="848" y="659" font-size="14" fill="#68635E" >查看授权与设备状态</text><path d="M0 0l6 6-6 6" transform="translate(1144 618)" fill="none" stroke="#68635E" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M848 681L1160 681" fill="none" stroke="#DED9D2"/><text x="848" y="728" font-size="18" fill="#252422" >账户设置</text><text x="848" y="757" font-size="14" fill="#68635E" >已有设置与退出入口</text><path d="M0 0l6 6-6 6" transform="translate(1144 716)" fill="none" stroke="#68635E" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M848 779L1160 779" fill="none" stroke="#DED9D2"/><text x="280" y="878" font-size="14" fill="#68635E" >人物、日期与文案均为模拟示例；真实页面使用现有配置与记录。</text><text x="32" y="946" font-size="12" fill="#68635E" >D09 · 1440 × 960 · 静态设计稿 / 全部内容为模拟</text></svg>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录生活画廊 · 我们之间</title>
+  <link rel="stylesheet" href="css/desktop-gallery.css">
+  <style>
+    .login-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-bg);
+      padding: 24px;
+    }
+    .login-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      box-shadow: 0 12px 36px rgba(37, 36, 34, 0.08);
+      width: 100%;
+      max-width: 440px;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      position: relative;
+    }
+    .login-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 40px;
+      right: 40px;
+      height: 3px;
+      background: var(--color-accent);
+      border-radius: 0 0 3px 3px;
+    }
+    .login-brand {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--color-ink);
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .login-subtitle {
+      font-size: 14px;
+      color: var(--color-muted);
+      text-align: center;
+      line-height: 1.5;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+  </style>
+</head>
+<body>
+  <div id="globalToast" class="desktop-toast"></div>
+
+  <main class="login-container">
+    <div class="login-card">
+      <div>
+        <h1 class="login-brand">我们之间 · 生活画廊</h1>
+        <p class="login-subtitle">登录后同步两人专属云端相册、约定心愿与私密回忆</p>
+      </div>
+
+      <form id="desktopLoginForm" onsubmit="event.preventDefault(); submitLogin();" style="display:flex; flex-direction:column; gap:16px;">
+        <div class="form-group">
+          <label for="loginYou" class="form-label">你的名字</label>
+          <input type="text" id="loginYou" class="form-input" placeholder="例如：拾柒 / 小林" required autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label for="loginBaby" class="form-label">TA的名字</label>
+          <input type="text" id="loginBaby" class="form-input" placeholder="例如：小鹿" required>
+        </div>
+
+        <div class="form-group">
+          <label for="loginPassword" class="form-label">空间密码 (如已设置)</label>
+          <input type="password" id="loginPassword" class="form-input" placeholder="初次或未设密码可留空" autocomplete="current-password">
+        </div>
+
+        <div style="font-size:12px; color:var(--color-muted); background:var(--color-surface-subtle); padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--color-border); display:flex; justify-content:space-between; align-items:center;">
+          <span>预设账号：name1 / TA: name2</span>
+          <button type="button" onclick="fillDefaultAccount()" style="border:none; background:none; color:var(--color-accent); font-weight:600; cursor:pointer; font-size:12px; padding:0;">一键填入</button>
+        </div>
+
+        <button type="submit" class="btn-record" id="btnLoginSubmit" style="width:100%; height:46px; justify-content:center; margin-top:4px; font-size:15px;">
+          进入生活画廊
+        </button>
+      </form>
+
+      <div style="text-align:center; padding-top:16px; border-top:1px solid var(--color-divider); font-size:13px; color:var(--color-muted);">
+        <a href="index.html" style="color:var(--color-accent); text-decoration:none;">以访客身份进入画廊 ↗</a>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/api-client.js"></script>
+  <script src="../assets/js/device-router.js"></script>
+  <script>
+    const api = new GalleryApiClient();
+
+    function fillDefaultAccount() {
+      document.getElementById('loginYou').value = 'name1';
+      document.getElementById('loginBaby').value = 'name2';
+      document.getElementById('loginPassword').value = 'change-this-login-password';
+      showToast('已填入预设账号与密码');
+    }
+
+    function showToast(msg) {
+      let toast = document.getElementById('globalToast');
+      toast.innerText = msg;
+      toast.classList.add('show');
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    async function submitLogin() {
+      const you = document.getElementById('loginYou').value.trim();
+      const baby = document.getElementById('loginBaby').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const btn = document.getElementById('btnLoginSubmit');
+
+      if (!you || !baby) {
+        showToast('请输入你和对方的名字');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = '正在验证身份...';
+
+      const res = await api.login(you, baby, password);
+      if (res && res.success) {
+        showToast('✨ 登录成功，欢迎回家！');
+        setTimeout(() => {
+          const redirect = new URLSearchParams(window.location.search).get('redirect');
+          window.location.href = window.DeviceRouter.isSafeLocalRedirect(redirect) ? redirect : '/desktop/index.html';
+        }, 600);
+      } else {
+        btn.disabled = false;
+        btn.innerText = '进入生活画廊';
+        if (res && res.device_pending) {
+          window.location.href = '/device-access.php';
+        } else {
+          showToast(res?.message || '登录失败，请检查名字或密码');
+        }
+      }
+    }
+  </script>
+</body>
+</html>

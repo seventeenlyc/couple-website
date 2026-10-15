@@ -1,0 +1,10 @@
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {buildMedicalDebug} from '../src/modules/medical/debug-app.js';
+const flags=Object.fromEntries(process.argv.slice(2).map((v,i,a)=>v.startsWith('--')?[v.slice(2),a[i+1]]:null).filter(Boolean));
+const corpusPath=flags.corpus||process.env.MEDICAL_DB_PATH||fileURLToPath(new URL('../data/medical-knowledge.db',import.meta.url));
+const port=Number(flags.port||process.env.MEDICAL_DEBUG_PORT||19086);
+const app=await buildMedicalDebug({corpusPath:path.resolve(corpusPath),configDbPath:flags['config-db']?path.resolve(flags['config-db']):undefined});
+await app.listen({host:'127.0.0.1',port});
+console.log(`拾光资料检索台 http://127.0.0.1:${port}`);
+for(const signal of ['SIGINT','SIGTERM']) process.on(signal,async()=>{await app.close();process.exit(0);});

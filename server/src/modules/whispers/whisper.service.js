@@ -44,10 +44,16 @@ export function checkUnreadWhispers(db, userId) {
   const unreadRows = db.prepare('SELECT * FROM whispers WHERE receiver_id = ? AND is_read = 0 ORDER BY created_at DESC').all(userId);
   const formatted = unreadRows.map(r => ({
     id: r.id,
+    sender_id: r.sender_id,
+    receiver_id: r.receiver_id,
     from_user: r.sender_id,
     to_user: r.receiver_id,
+    is_from_me: false,
+    is_to_me: true,
+    unread_for_me: true,
     content: r.content,
     created_at: r.created_at,
+    is_read: 0,
     read: false
   }));
   return {
@@ -88,11 +94,17 @@ export function getWhisperHistory(db, userId) {
     success: true,
     whispers: rows.map(r => ({
       id: r.id,
+      sender_id: r.sender_id,
+      receiver_id: r.receiver_id,
       from_user: r.sender_id,
       to_user: r.receiver_id,
+      is_from_me: r.sender_id === userId,
+      is_to_me: r.receiver_id === userId,
+      unread_for_me: r.receiver_id === userId && r.is_read === 0,
       content: r.content,
       created_at: r.created_at,
-      read: r.is_read === 1
+      read: r.is_read === 1,
+      is_read: r.is_read === 1
     }))
   };
 }

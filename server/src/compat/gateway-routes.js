@@ -1,9 +1,56 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+const publicTypes = {
+  '.js': 'application/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif',
+  '.ico': 'image/x-icon', '.woff': 'font/woff', '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf', '.mp3': 'audio/mpeg', '.mp4': 'video/mp4', '.webm': 'video/webm'
+};
+
+function serveFrontendFile(directory, requested, reply, allowHtml = false) {
+  const name = requested || 'index.html';
+  const extension = path.extname(name).toLowerCase();
+  const type = publicTypes[extension] || (allowHtml && extension === '.html' ? 'text/html; charset=utf-8' : null);
+  if (!type || name.includes('\\') || name.includes('\0') || path.isAbsolute(name)
+    || name.split('/').some(part => part.startsWith('.'))) {
+    return reply.code(404).send('Not Found');
+  }
+  try {
+    const realDirectory = fs.realpathSync(directory);
+    const realFile = fs.realpathSync(path.resolve(directory, name));
+    const relative = path.relative(realDirectory, realFile);
+    if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`)
+      || path.isAbsolute(relative) || !fs.statSync(realFile).isFile()) {
+      return reply.code(404).send('Not Found');
+    }
+    reply.header('X-Content-Type-Options', 'nosniff');
+    if (extension === '.html') reply.header('Cache-Control', 'no-store');
+    return reply.type(type).send(fs.createReadStream(realFile));
+  } catch {
+    return reply.code(404).send('Not Found');
+  }
+}
+
 export default async function gatewayRoutes(fastify, options) {
   const rootDir = options.rootDir;
   const uploadsDir = options.uploadsDir;
+
+  // Public login entry: H5 redirects here before a session exists.
+  for (const url of ['/', '/index.html']) {
+    fastify.get(url, async (req, reply) => {
+      const loginPath = path.join(rootDir, 'index.html');
+      if (!fs.existsSync(loginPath)) return reply.code(404).send('Not Found');
+      reply.header('Cache-Control', 'no-store');
+      reply.type('text/html; charset=utf-8');
+      return fs.createReadStream(loginPath);
+    });
+  }
+
+  fastify.get('/assets/*', async (req, reply) => {
+    return serveFrontendFile(path.join(rootDir, 'assets'), req.params['*'], reply);
+  });
 
   // 1. Device pages
   fastify.get('/device-access.php', async (req, reply) => {
@@ -126,4 +173,12 @@ export default async function gatewayRoutes(fastify, options) {
 
     return fs.createReadStream(fullPath);
   });
+
+  // Only the two public frontend directories are served; backend and test files stay private.
+  for (const frontend of ['h5', 'desktop']) {
+    fastify.get(`/${frontend}`, async (req, reply) => reply.redirect(`/${frontend}/index.html`));
+    fastify.get(`/${frontend}/*`, async (req, reply) => {
+      return serveFrontendFile(path.join(rootDir, frontend), req.params['*'], reply, true);
+    });
+  }
 }

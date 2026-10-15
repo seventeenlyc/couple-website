@@ -1,0 +1,108 @@
+/**
+ * Motion Tokens (动效设计令牌)
+ * 遵循现代 UI 动效规范与无障碍设计标准 (WCAG 2.1 & prefers-reduced-motion)
+ */
+
+:root {
+  /* ── 持续时间令牌 (Duration Tokens) ── */
+  --motion-duration-instant: 100ms;  /* 微交互：按钮按压、开关切换 */
+  --motion-duration-fast: 180ms;     /* 快速反馈：提示框、Tooltip、小图标状态 */
+  --motion-duration-normal: 260ms;   /* 标准组件：下拉面板、弹窗淡入、Tab切换 */
+  --motion-duration-slow: 400ms;     /* 结构转场：全屏折叠、大卡片位移、画廊切换 */
+  --motion-duration-deliberate: 650ms; /* 强调动效：印章盖章、页面撕页效果 */
+
+  /* ── 缓动曲线令牌 (Easing Tokens) ── */
+  /* 标准平滑：用于大多数常规过渡 */
+  --motion-ease-standard: cubic-bezier(0.25, 1, 0.5, 1);
+  /* 减速曲线 (Decelerate)：元素入场，迅速进入并优雅停住 */
+  --motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* 加速曲线 (Accelerate)：元素退场，干脆离开视野 */
+  --motion-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  /* 弹性曲线 (Spring)：用于有物理质感的反馈，如盖章、点赞、徽章弹出 */
+  --motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* 缓进缓出 (Smooth)：用于连续变化或浮动 */
+  --motion-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── 空间距离令牌 (Spatial Tokens) ── */
+  --motion-distance-sm: 4px;
+  --motion-distance-md: 12px;
+  --motion-distance-lg: 24px;
+  --motion-distance-xl: 48px;
+}
+
+/* ── 预设原子动效类 (Utility Classes) ── */
+.motion-fade-in {
+  animation: motionFadeIn var(--motion-duration-normal) var(--motion-ease-out) forwards;
+}
+
+.motion-fade-up {
+  animation: motionFadeUp var(--motion-duration-normal) var(--motion-ease-out) forwards;
+}
+
+.motion-scale-in {
+  animation: motionScaleIn var(--motion-duration-fast) var(--motion-ease-spring) forwards;
+}
+
+.motion-pressable {
+  transition: transform var(--motion-duration-instant) var(--motion-ease-standard),
+              opacity var(--motion-duration-instant) var(--motion-ease-standard);
+  will-change: transform;
+}
+
+.motion-pressable:active {
+  transform: scale(0.96);
+  opacity: 0.88;
+}
+
+/* ── 关键帧定义 ── */
+@keyframes motionFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes motionFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-md));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes motionScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 粒子容器通用样式 */
+.motion-particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  user-select: none;
+  will-change: transform, opacity;
+}
+
+/* ── 无障碍支持：自动降级 ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .motion-particle {
+    display: none !important;
+  }
+}

@@ -1,0 +1,55 @@
+.shiguang-markdown {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.shiguang-markdown > :first-child { margin-top: 0; }
+.shiguang-markdown > :last-child { margin-bottom: 0; }
+.shiguang-markdown p { margin: 0 0 .8em; }
+.shiguang-markdown h1, .shiguang-markdown h2, .shiguang-markdown h3,
+.shiguang-markdown h4, .shiguang-markdown h5, .shiguang-markdown h6 {
+  margin: 1.1em 0 .5em;
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.shiguang-markdown h1 { font-size: 1.3em; }
+.shiguang-markdown h2 { font-size: 1.2em; }
+.shiguang-markdown h3 { font-size: 1.1em; }
+.shiguang-markdown h4, .shiguang-markdown h5, .shiguang-markdown h6 { font-size: 1em; }
+.shiguang-markdown strong { font-weight: 600; }
+.shiguang-markdown blockquote {
+  margin: .8em 0;
+  padding: .35em 0 .35em 1em;
+  border-left: 3px solid var(--color-accent, #8d3b49);
+  color: var(--color-muted, #766d68);
+}
+.shiguang-markdown blockquote > :last-child { margin-bottom: 0; }
+.shiguang-markdown ul, .shiguang-markdown ol { margin: .6em 0 .9em; padding-left: 1.6em; }
+.shiguang-markdown li { margin: .3em 0; }
+.shiguang-markdown li > p { margin-bottom: .3em; }
+.shiguang-markdown hr { margin: 1.2em 0; border: 0; border-top: 1px solid var(--color-divider, #ded7cf); }
+.shiguang-markdown code {
+  font-family: Consolas, 'SFMono-Regular', monospace;
+  font-size: .88em;
+  background: rgba(65, 48, 42, .06);
+  padding: .12em .35em;
+  border-radius: 4px;
+}
+.shiguang-markdown pre {
+  margin: .9em 0;
+  max-width: 100%;
+  padding: 12px;
+  overflow-x: auto;
+  border: 1px solid var(--color-divider, #ded7cf);
+  border-radius: 8px;
+  background: var(--color-surface, #fffdf9);
+  white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.shiguang-markdown pre code { padding: 0; background: none; border-radius: 0; }
+.shiguang-markdown table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: .9em 0; }
+.shiguang-markdown th, .shiguang-markdown td { padding: .45em .7em; border: 1px solid var(--color-divider, #ded7cf); text-align: left; }
+.shiguang-markdown th { font-weight: 600; }
+.shiguang-markdown a { color: var(--color-accent, #8d3b49); text-decoration: underline; text-underline-offset: 3px; }

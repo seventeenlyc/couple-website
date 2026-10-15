@@ -273,6 +273,33 @@ test('FIFTH-1/2/3/4: album metadata, case-sensitive subtrees, story JSON photos,
     fs.rmSync(path.join(uploadsDir, 'thumbnails'), { recursive: true, force: true });
   });
 
+  await t.test('album upload with duplicate parts or both photo and photos fields creates only one photo', async () => {
+    const boundary = '----FifthReviewDuplicate';
+    const chunks = [
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="csrf_token"\r\n\r\n${user1.csrf}\r\n`),
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="photo"; filename="single.png"\r\nContent-Type: image/png\r\n\r\n`),
+      PIXEL_PNG,
+      Buffer.from(`\r\n--${boundary}\r\nContent-Disposition: form-data; name="photos"; filename="single.png"\r\nContent-Type: image/png\r\n\r\n`),
+      PIXEL_PNG,
+      Buffer.from(`\r\n--${boundary}--\r\n`)
+    ];
+    const res = await user1.request('POST', '/api/upload-photo.php', Buffer.concat(chunks), {
+      'content-type': `multipart/form-data; boundary=${boundary}`
+    });
+
+    assert.equal(res.statusCode, 200, res.body);
+    const json = res.json();
+    assert.equal(json.success, true);
+    assert.equal(json.uploaded.length, 1, 'must deduplicate and upload only one photo');
+    assert.ok(json.photo, 'must include photo object');
+
+    for (const row of db.prepare('SELECT id FROM album_photos').all()) {
+      db.prepare('DELETE FROM album_photos WHERE id = ?').run(row.id);
+    }
+    fs.rmSync(path.join(uploadsDir, 'photos'), { recursive: true, force: true });
+    fs.rmSync(path.join(uploadsDir, 'thumbnails'), { recursive: true, force: true });
+  });
+
   await t.test('album upload without a file is rejected', async () => {
     const boundary = '----FifthReviewEmpty';
     const payload = Buffer.from(

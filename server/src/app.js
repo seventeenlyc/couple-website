@@ -19,6 +19,39 @@ export async function buildApp(configOverrides = {}) {
     trustProxy: config.trustProxy
   });
 
+  // 0. CORS 跨域安全控制 (仅允许白名单来源，拒绝任意 Origin 与 null)
+  const isAllowedOrigin = (origin) => {
+    if (!origin || origin === 'null') return false;
+    const customAllowed = Array.isArray(config.allowedOrigins) ? config.allowedOrigins : [];
+    if (customAllowed.includes(origin)) return true;
+    const port = String(config.port || 19085);
+    const localOrigins = [
+      `http://localhost:${port}`,
+      `http://127.0.0.1:${port}`,
+      'http://localhost:5173',
+      'http://127.0.0.1:5173'
+    ];
+    return localOrigins.includes(origin);
+  };
+
+  fastify.addHook('onRequest', async (req, reply) => {
+    const origin = req.headers.origin;
+    if (origin) {
+      if (isAllowedOrigin(origin)) {
+        reply.header('Access-Control-Allow-Origin', origin);
+        reply.header('Access-Control-Allow-Credentials', 'true');
+        reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        reply.header('Access-Control-Allow-Headers', 'Content-Type, X-CSRF-Token, Cookie');
+        reply.header('Vary', 'Origin');
+      } else if (req.method === 'OPTIONS') {
+        return reply.code(403).send({ error: 'CORS origin not allowed' });
+      }
+    }
+    if (req.method === 'OPTIONS') {
+      return reply.code(204).send();
+    }
+  });
+
   // 1. Formbody & Multipart parsers
   await fastify.register(fastifyFormbody);
   await fastify.register(fastifyMultipart, {
