@@ -202,6 +202,7 @@
     </div>
 
     <script src="assets/js/api-client.js?v=device-auth-20260905"></script>
+    <script src="assets/js/device-router.js?v=20261003"></script>
     <script src="assets/js/login-maintenance-check.js?v=20260905-2"></script>
     <script>
         // --- 轻提示逻辑 ---
@@ -262,7 +263,15 @@
                     loginButton.classList.add('bg-rose-100', 'text-rose-600');
                     showAlert('✨ 登录成功！即将跳转...');
                     setTimeout(() => {
-                        window.location.href = data.redirect || 'home.html';
+                        // 支持 ?redirect=/h5/index.html 从 H5 入口登录后回到该页面；
+                        // 仅接受站内相对路径，避免开放重定向。
+                        const rawRedirect = new URLSearchParams(window.location.search).get('redirect');
+                        const safeRedirect = (rawRedirect && /^\/(?!\/)/.test(rawRedirect) && !rawRedirect.includes('://') && !rawRedirect.includes('\\'))
+                            ? rawRedirect
+                            : null;
+                        
+                        // 使用统一设备路由：优先使用明确的跳转地址（如设备授权），否则根据设备类型自动分流
+                        DeviceRouter.routeAfterLogin(safeRedirect || data.redirect);
                     }, 800);
                 } else {
                     showAlert(data.message || '登录失败，请检查名字是否正确');

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>拾光 · 资料检索台</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body>
+<header class="masthead"><a href="/" class="brand">拾光<span>资料检索台</span></a><span class="local"><i></i> 本地调试 · 只读资料库</span></header>
+<main>
+  <section class="intro"><div><p class="eyebrow">SHIGUANG / KNOWLEDGE WORKBENCH</p><h1>让每一次回答，<br>有迹可循。</h1><p>先找到资料，再判断它能支持什么。</p></div><div class="stats" id="stats" aria-live="polite">正在读取资料库…</div></section>
+  <div class="workspace">
+    <aside class="query-panel"><div class="section-label"><span>01 / 提问</span><span>中文 → 英文正文</span></div>
+      <form id="search-form">
+        <label for="query">想核对什么？</label><textarea id="query" maxlength="500" rows="4" required placeholder="例如：成年人反酸，想了解饮食注意事项"></textarea>
+        <div class="field-row"><div><label for="population">适用人群</label><select id="population"><option value="auto">自动识别</option value="adult">成人</option><option value="child">儿童</option><option value="infant">婴儿</option><option value="pregnancy">孕期</option><option value="general">一般资料</option></select></div><div><label for="mode">检索方式</label><select id="mode"><option value="local">本地词表 · 基线</option><option value="model" disabled>模型改写 · 实验</option></select></div></div>
+        <p class="method-note" id="mode-note">本地词表按已覆盖的医学概念检索，不调用模型。</p>
+        <button class="primary" id="submit" type="submit">检索正文 <span>↗</span></button>
+      </form>
+      <div class="examples"><p class="small-heading">从一个问题开始</p><button type="button" data-query="成年人反酸，想了解饮食注意事项">反酸与饮食 <span>↗</span></button><button type="button" data-query="糖尿病患者脚麻">糖尿病与脚部问题 <span>↗</span></button><button type="button" data-query="孕妇血压高，应该了解哪些检查">孕期血压与检查 <span>↗</span></button></div>
+      <div class="scope-note"><span>关于这份资料库</span><p>资料以英文为主，尚未医学审核。人群仅依据标题与来源地址识别；“未标明”不代表确认适用。检索排名不代表医学正确率。</p></div>
+      <button type="button" id="evaluation">查看 30 题检索验收 ↗</button>
+    </aside>
+    <section class="results-panel" aria-label="检索结果"><div class="results-header"><div><p class="section-label">02 / 证据</p><h2 id="results-title">从问题出发，找到原文。</h2></div><span id="elapsed"></span></div>
+      <div id="notice" role="status" aria-live="polite"></div>
+      <details id="trace" hidden><summary>查看检索过程</summary><dl><dt>英文概念组</dt><dd id="groups"></dd><dt>实际检索表达式</dt><dd id="fts"></dd><dt>人群与筛选</dt><dd id="scope"></dd></dl></details>
+      <div id="results"><div class="empty"><span class="empty-symbol">⌕</span><h3>原文比一个结论更重要。</h3><p>输入中文问题，查看命中的段落、来源与适用范围。<br>这里验证资料检索，不生成医疗建议。</p></div></div>
+    </section>
+  </div>
+</main>
+<footer>拾光 · 医学资料检索实验 <span>来源机构不为拾光背书 · 尚未接入助手聊天</span></footer>
+<dialog id="source-dialog"><div class="dialog-header"><div><p class="eyebrow">SOURCE DOCUMENT / 英文原文</p><h2 id="source-title"></h2></div><button id="close-source" type="button" aria-label="关闭正文">✕</button></div><a id="source-url" target="_blank" rel="noopener noreferrer">访问来源网站 ↗</a><p class="method-note">以下为存储的完整 Markdown 正文；保留英文原文供核对。</p><pre id="source-body"></pre></dialog>
+</body></html>

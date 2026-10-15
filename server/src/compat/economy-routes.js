@@ -82,7 +82,7 @@ export default async function economyRoutes(fastify) {
     const action = req.query.action || req.body?.action || '';
     const userId = req.getCurrentUserId();
 
-    if (action === 'get_today') {
+    if (action === 'get_today' || action === 'list') {
       const tasks = getTodayTasks(db, userId);
       return { success: true, tasks };
     }

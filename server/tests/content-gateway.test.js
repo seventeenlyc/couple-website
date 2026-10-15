@@ -365,4 +365,45 @@ test('Content and Gateway Access Control', async (t) => {
     assert.equal(ready.statusCode, 200);
     assert.equal(ready.json().status, 'ready');
   });
+
+  await t.test('H5 Mobile Gallery App static serving and redirect', async () => {
+    // 1. /h5 redirects to /h5/index.html
+    const redirectRes = await anon.request({ method: 'GET', url: '/h5' });
+    assert.equal(redirectRes.statusCode, 302);
+    assert.equal(redirectRes.headers.location, '/h5/index.html');
+
+    // 2. Prepare mock h5 directory in testRootDir
+    const h5TestDir = path.join(testRootDir, 'h5');
+    fs.mkdirSync(h5TestDir, { recursive: true });
+    fs.writeFileSync(path.join(h5TestDir, 'index.html'), '<!DOCTYPE html><html><body>H5 Gallery</body></html>');
+
+    // 3. /h5/index.html serves the html content
+    const h5Res = await anon.request({ method: 'GET', url: '/h5/index.html' });
+    assert.equal(h5Res.statusCode, 200);
+    assert.match(h5Res.body, /H5 Gallery/);
+  });
+
+  await t.test('Couple Agent Chat API responds with empathetic companion answer', async () => {
+    // 1. Unauthenticated fails with 401
+    const anonRes = await anon.request({
+      method: 'POST',
+      url: '/api/agent/chat',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: '你好' })
+    });
+    assert.equal(anonRes.statusCode, 401);
+
+    // 2. Authenticated user can ask questions
+    const chatRes = await user1.request({
+      method: 'POST',
+      url: '/api/agent/chat',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: '我们俩有点小摩擦，怎么温和沟通？' })
+    });
+    assert.equal(chatRes.statusCode, 200);
+    const data = chatRes.json();
+    assert.equal(data.success, true);
+    assert.equal(data.companion, '拾光');
+    assert.ok(data.reply.length > 10);
+  });
 });

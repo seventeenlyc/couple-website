@@ -1,5 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import {
   listFolders,
   createFolder,
@@ -31,7 +32,8 @@ import {
 } from '../modules/story/story.service.js';
 import {
   getDailyQuote,
-  getAnniversaryReminders
+  getAnniversaryReminders,
+  chatWithCoupleAgent
 } from '../modules/ai/ai.service.js';
 import {
   normalizePath,
@@ -137,7 +139,8 @@ export default async function contentRoutes(fastify, options) {
             name: fld.name,
             path: fldNorm,
             parent_path: normalizePath(fld.parent_path),
-            file_count: countRow ? countRow.cnt : 0
+            file_count: countRow ? countRow.cnt : 0,
+            photo_count: countRow ? countRow.cnt : 0
           };
         });
 
@@ -154,10 +157,22 @@ export default async function contentRoutes(fastify, options) {
 
         if (includeAllFolders) {
           const allF = listFolders(db, 'album');
-          response.all_folders = allF.map(f => ({
-            ...f,
-            path: normalizePath(f.path)
-          }));
+          response.all_folders = allF.map(f => {
+            const variants = folderPathVariants(f.path);
+            const exactSql = variants.map(() => 'folder_path = ?').join(' OR ');
+            const subtreePatterns = variants.filter(Boolean).map(v => `${v}/`);
+            const likeSql = subtreePatterns.map(() => 'instr(folder_path, ?) = 1').join(' OR ');
+            const countRow = db.prepare(`
+              SELECT COUNT(*) as cnt FROM album_photos 
+              WHERE ${exactSql} OR ${likeSql}
+            `).get(...variants, ...subtreePatterns);
+            return {
+              ...f,
+              path: normalizePath(f.path),
+              file_count: countRow ? countRow.cnt : 0,
+              photo_count: countRow ? countRow.cnt : 0
+            };
+          });
         }
 
         return response;
@@ -254,7 +269,11 @@ export default async function contentRoutes(fastify, options) {
       }
 
       if (action === 'rename') {
-        const oldPath = req.body?.folder_path || req.body?.path || req.body?.old_path;
+        let oldPath = req.body?.folder_path || req.body?.path || req.body?.old_path;
+        if (!oldPath && req.body?.id) {
+          const row = db.prepare("SELECT path FROM album_folders WHERE id = ?").get(req.body.id);
+          if (row) oldPath = row.path;
+        }
         const newName = req.body?.new_name || req.body?.name;
         const res = renameFolder(db, context, userId, oldPath, newName);
         if (!res.success) reply.code(400);
@@ -262,7 +281,11 @@ export default async function contentRoutes(fastify, options) {
       }
 
       if (action === 'delete') {
-        const targetPath = req.body?.folder_path || req.body?.path;
+        let targetPath = req.body?.folder_path || req.body?.path;
+        if (!targetPath && req.body?.id) {
+          const row = db.prepare("SELECT path FROM album_folders WHERE id = ?").get(req.body.id);
+          if (row) targetPath = row.path;
+        }
         const res = deleteFolder(db, context, userId, targetPath);
         if (!res.success) reply.code(400);
         return res;
@@ -300,7 +323,10 @@ export default async function contentRoutes(fastify, options) {
     const action = req.query.action || req.body?.action || 'list';
 
     if (action === 'list') {
-      const folderPath = req.query.folder_path || null;
+      let folderPath = req.query.folder_path || req.query.folder || null;
+      if (folderPath === '/' || folderPath === '全部' || folderPath === '') {
+        folderPath = null;
+      }
       const tag = req.query.tag || null;
       const photos = getAlbumPhotos(db, folderPath, tag);
       return {
@@ -359,7 +385,8 @@ export default async function contentRoutes(fastify, options) {
         filesToProcess.push({
           buffer,
           filename: part.filename,
-          mimetype: part.mimetype
+          mimetype: part.mimetype,
+          fieldname: part.fieldname
         });
       } else {
         fields[part.fieldname] = part.value;
@@ -382,13 +409,33 @@ export default async function contentRoutes(fastify, options) {
       return { success: false, message: '请选择要上传的照片' };
     }
 
+    // PHP parity & deduplication:
+    // If request contains both 'photo' and 'photos' parts, PHP prioritizes 'photo'.
+    let effectiveFiles = filesToProcess;
+    const hasPhotoField = filesToProcess.some(f => f.fieldname === 'photo');
+    const hasPhotosField = filesToProcess.some(f => f.fieldname === 'photos');
+    if (hasPhotoField && hasPhotosField) {
+      effectiveFiles = filesToProcess.filter(f => f.fieldname === 'photo');
+    }
+
+    // Deduplicate any exact duplicate files in the same batch
+    const seenHashes = new Set();
+    const uniqueFiles = [];
+    for (const f of effectiveFiles) {
+      const hash = crypto.createHash('sha256').update(f.buffer).digest('hex') + ':' + f.filename;
+      if (!seenHashes.has(hash)) {
+        seenHashes.add(hash);
+        uniqueFiles.push(f);
+      }
+    }
+
     // Legacy contract: every file gets its own result, and a batch succeeds when
     // at least one photo was accepted.
     const results = [];
     const uploadedFiles = [];
     let failedCount = 0;
 
-    for (const fileItem of filesToProcess) {
+    for (const fileItem of uniqueFiles) {
       const res = await processAndSavePhoto(
         db,
         rootDir,
@@ -416,16 +463,17 @@ export default async function contentRoutes(fastify, options) {
 
     return {
       success: true,
-      message: filesToProcess.length === 1
+      message: uniqueFiles.length === 1
         ? '照片上传成功'
         : `上传完成：成功 ${uploadedFiles.length} 张，失败 ${failedCount} 张`,
       results,
       summary: {
-        total: filesToProcess.length,
+        total: uniqueFiles.length,
         success: uploadedFiles.length,
         failed: failedCount
       },
-      uploaded: uploadedFiles
+      uploaded: uploadedFiles,
+      photo: uploadedFiles[0]
     };
   });
 
@@ -505,7 +553,7 @@ export default async function contentRoutes(fastify, options) {
   });
 
   // 5. Private Notes API
-  fastify.post('/api/private-notes.php', async (req, reply) => {
+  const handlePrivateNotes = async (req, reply) => {
     if (!req.isLoggedIn()) {
       reply.code(401);
       return { success: false, message: '请先登录' };
@@ -516,18 +564,18 @@ export default async function contentRoutes(fastify, options) {
     }
 
     const body = req.body || {};
-    const token = body.csrf_token || req.headers['x-csrf-token'];
-    if (!req.validateCSRFToken(token)) {
-      reply.code(403);
-      return { success: false, message: '请求无效，请重新尝试' };
-    }
-
     const action = body.action || req.query.action || '';
     const userId = req.getCurrentUserId();
 
     if (action === 'list' || action === 'get') {
       const notes = getPrivateNotes(db, userId);
       return { success: true, notes };
+    }
+
+    const token = body.csrf_token || req.headers['x-csrf-token'];
+    if (!req.validateCSRFToken(token)) {
+      reply.code(403);
+      return { success: false, message: '请求无效，请重新尝试' };
     }
 
     if (action === 'add') {
@@ -556,7 +604,9 @@ export default async function contentRoutes(fastify, options) {
 
     reply.code(400);
     return { success: false, message: '无效的操作' };
-  });
+  };
+  fastify.get('/api/private-notes.php', handlePrivateNotes);
+  fastify.post('/api/private-notes.php', handlePrivateNotes);
 
   // 6. Private Files API
   const handlePrivateFiles = async (req, reply) => {
@@ -790,5 +840,32 @@ export default async function contentRoutes(fastify, options) {
       return { success: false, message: '请先登录' };
     }
     return getAnniversaryReminders(db);
+  });
+
+  // 11. Couple Agent Chat API
+  fastify.post('/api/agent/chat', async (req, reply) => {
+    if (!req.isLoggedIn()) {
+      reply.code(401);
+      return { success: false, message: '请先登录' };
+    }
+    const { message, history } = req.body || {};
+    if (!message || typeof message !== 'string') {
+      reply.code(400);
+      return { success: false, message: 'Message is required' };
+    }
+    return chatWithCoupleAgent(db, message, history, req.getCurrentUser());
+  });
+
+  fastify.post('/api/agent-chat.php', async (req, reply) => {
+    if (!req.isLoggedIn()) {
+      reply.code(401);
+      return { success: false, message: '请先登录' };
+    }
+    const { message, history } = req.body || {};
+    if (!message || typeof message !== 'string') {
+      reply.code(400);
+      return { success: false, message: 'Message is required' };
+    }
+    return chatWithCoupleAgent(db, message, history, req.getCurrentUser());
   });
 }

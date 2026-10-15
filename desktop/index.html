@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我们之间 · 生活画廊 (桌面端)</title>
+  <link rel="stylesheet" href="css/desktop-gallery.css">
+  <link rel="stylesheet" href="../assets/css/shiguang-markdown.css?v=20261014">
+</head>
+<body>
+
+  <!-- ==========================================================================
+       1. 会话状态横幅 (未登录时常驻提示)
+       ========================================================================== -->
+  <div class="session-banner" id="sessionBanner" style="display:none;">
+    <span>您当前处于离线 / 访客预览状态，登录后可同步两人云端全部照片、心愿与私密回忆。</span>
+    <a href="login.html" class="session-banner-link" id="sessionLoginLink" onclick="event.preventDefault(); openLoginModal();">去登录 ↗</a>
+  </div>
+
+  <!-- 全局轻量 Toast 提示 -->
+  <div id="globalToast" class="desktop-toast"></div>
+
+  <!-- 隐藏的文件选择器：更换封面 -->
+  <input type="file" id="heroUploadInput" accept="image/*" style="display:none;" onchange="handleHeroUpload(this)">
+
+  <!-- ==========================================================================
+       2. 全局顶栏 (标准导航顶栏 & 简化编辑顶栏)
+       ========================================================================== -->
+  <header class="site-header" id="siteHeader">
+    <div class="header-inner" id="standardHeaderBar">
+      <a class="brand-title" onclick="switchPage('daily')">我们之间</a>
+      <nav class="main-nav" aria-label="全站主导航">
+        <button class="nav-item active" data-page="daily">日常</button>
+        <button class="nav-item" data-page="album">相册</button>
+        <button class="nav-item" data-page="wishes">心愿</button>
+        <button class="nav-item" data-page="us">我们</button>
+      </nav>
+      <div class="header-actions">
+        <button class="btn-record" id="btnRecord" aria-expanded="false" aria-haspopup="true">
+          <span>＋ 记录</span>
+        </button>
+        <button class="btn-secondary" id="btnLogout" style="height:42px; padding:0 12px; font-size:13px;" title="退出当前账号">
+          <span>退出</span>
+        </button>
+        <!-- 锚定快捷记录菜单 -->
+        <div class="record-menu" id="recordMenu">
+          <button class="record-menu-item" onclick="switchPage('upload')">📷 上传生活照片</button>
+          <button class="record-menu-item" onclick="openStoryDraftModal()">📖 记录一段故事</button>
+          <button class="record-menu-item" onclick="openWriteLetterModal()">✉️ 给对方写封信</button>
+          <button class="record-menu-item" onclick="openCreateFolderDialog()">📁 新建相册文件夹</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 上传专享简化顶栏 -->
+    <div class="editor-header" id="editorHeaderBar">
+      <button class="editor-header-back" onclick="switchPage('album')">
+        <span>‹ 返回相册</span>
+      </button>
+      <span class="editor-header-title">上传生活照片</span>
+      <div style="width: 80px;"></div>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       3. 主视口各页面模块
+       ========================================================================== -->
+  <main class="main-viewport">
+
+    <!-- ------------------------------------------------------------------------
+         页面 1: 日常生活流 (680px 居中版心 & 封面多图轮播)
+         ------------------------------------------------------------------------ -->
+    <section class="page-view active" id="view-daily">
+      <div class="reading-container">
+        <div class="daily-header">
+          <h1 class="daily-title">我们的日常</h1>
+          <p class="daily-subtitle" id="dailySubtitle">把一起度过的日子，慢慢留在这里 · <span id="heroDaysTag">相伴第 520 天</span></p>
+        </div>
+
+        <div class="daily-feed">
+          <!-- 展签焦点卡片 (动态封面 & 多图轮播 Carousel) -->
+          <article class="hero-carousel-card">
+            <div class="hero-media-box" id="heroCoverMediaBox" title="点击查看高清照片">
+              <img id="heroCoverImg" src="../assets/images/products/hug.png" alt="焦点封面">
+              <div class="carousel-dots" id="heroCarouselDots" style="display:none;"></div>
+            </div>
+            <div class="hero-caption-pane">
+              <h2 class="hero-caption-title" id="heroCoverTitle">那天没有计划，只是一起走了很远。</h2>
+              <div class="hero-caption-meta">
+                <span id="heroCoverMeta">2026.09.28 · 傍晚环岛路</span>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn-secondary" style="height:32px; padding:0 12px; font-size:13px;" onclick="openHeroChangeMenu()">封面设置 ⚙</button>
+                  <button class="btn-secondary" style="height:32px; padding:0 12px; font-size:13px;" onclick="document.getElementById('heroCoverMediaBox').click()">查看大图 ↗</button>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- 新来信提示条 (仅在有对方寄给我的未读来信时显示；无未读信件时自动隐藏) -->
+          <div class="letter-banner" id="homeLetterBanner" style="display:none;" onclick="openLetterModal()">
+            <div class="letter-banner-left">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+              </svg>
+              <span id="homeLetterBannerText">有一封给你的信 · 「写在秋天初遇的时候」</span>
+            </div>
+            <div class="letter-banner-right">
+              <span id="homeLetterCountBadge" style="display:none; background:var(--color-accent); color:#fff; border-radius:10px; padding:2px 8px; font-size:12px; margin-right:6px;">新信</span>
+              <span>打开信笺 ↗</span>
+            </div>
+          </div>
+
+          <!-- 双图组合片段 (真实生活照片流动态渲染) -->
+          <div>
+            <h2 style="font-family:var(--font-serif); font-size:22px; font-weight:500; margin-bottom:16px;">日常的几个瞬间</h2>
+            <div class="pair-photo-grid" id="dailyPairPhotoGrid"></div>
+          </div>
+
+          <!-- 今日一句卡片 (含诚实接口“换一句”交互) -->
+          <div class="quote-card">
+            <p class="quote-content" id="dailyQuoteText">“在平常的日子里，慢慢收集我们之间闪闪发光的瞬间。”</p>
+            <div class="quote-bottom-bar">
+              <span class="quote-source">—— 今日一句 · 生活画廊</span>
+              <button class="btn-quote-refresh" id="btnDailyQuoteRefresh">🔄 换一句</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------------------
+         页面 2: 相册管理 (1120px 宽版心四列照片 & 目录导航)
+         ------------------------------------------------------------------------ -->
+    <section class="page-view" id="view-album">
+      <div class="shell-container" id="albumContentWrap">
+        <div class="album-header-bar">
+          <div class="album-title-group">
+            <h1>相册</h1>
+            <p>把照片放回它们所属的日子，四列网格与完整层级目录。</p>
+          </div>
+          <div style="display:flex; gap:12px;">
+            <button class="btn-secondary" onclick="openCreateFolderDialog()">＋ 新建文件夹</button>
+            <button class="btn-secondary" id="btnManageAlbum">批量管理</button>
+            <button class="btn-record" onclick="switchPage('upload')">上传照片</button>
+          </div>
+        </div>
+
+        <!-- 面包屑层级导航 -->
+        <nav class="breadcrumbs-bar" aria-label="目录层级">
+          <a class="crumb-item" onclick="navigateToFolder('')">相册</a>
+          <span class="crumb-separator">/</span>
+          <span class="crumb-current" id="currentFolderBreadcrumb">全部照片</span>
+        </nav>
+
+        <!-- 横向文件夹列表 (支持新建/重命名/删除) -->
+        <div class="folders-row" id="foldersRow"></div>
+
+        <!-- 标签过滤条 -->
+        <div class="filter-bar">
+          <div class="tag-list">
+            <button class="tag-btn active" onclick="filterByTag('全部', this)">全部</button>
+            <button class="tag-btn" onclick="filterByTag('风景', this)">风景</button>
+            <button class="tag-btn" onclick="filterByTag('日常', this)">日常</button>
+            <button class="tag-btn" onclick="filterByTag('美食', this)">美食</button>
+            <button class="tag-btn" onclick="filterByTag('抓拍', this)">抓拍</button>
+          </div>
+          <span style="font-size:14px; color:var(--color-muted);" id="photoCountDisplay">共 0 张照片</span>
+        </div>
+
+        <!-- 四列照片网格 -->
+        <div class="photo-grid" id="photoGrid"></div>
+
+        <!-- 批量管理浮动底栏 -->
+        <div class="manage-floating-bar" id="manageFloatingBar">
+          <span id="selectedCountText" style="font-weight:600; font-size:15px;">已选择 0 项</span>
+          <button class="btn-secondary" style="height:38px;" onclick="selectAllPhotos()">全选 / 反选</button>
+          <button class="btn-secondary" style="height:38px;" onclick="openBatchMoveDialog()">批量移动</button>
+          <button class="btn-secondary" style="height:38px; color:var(--color-danger);" onclick="batchDeletePhotos()">批量删除</button>
+          <button class="btn-record" style="height:38px;" onclick="document.getElementById('btnManageAlbum').click()">退出管理</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------------------
+         页面 3: 照片上传 (704px / 384px 双区版式，独立重试)
+         ------------------------------------------------------------------------ -->
+    <section class="page-view" id="view-upload">
+      <div class="shell-container">
+        <div style="margin-bottom: 24px;">
+          <h1 style="font-family:var(--font-serif); font-size:32px; font-weight:500;">上传生活照片</h1>
+          <p style="font-size:14px; color:var(--color-muted);">先确认存储目录，再把新的生活片段留在这里。</p>
+        </div>
+
+        <div class="upload-layout">
+          <!-- 左侧 704px: 拖拽区域与文件队列 -->
+          <div>
+            <input type="file" id="fileUploadInput" multiple accept="image/*" style="display:none;">
+            <div class="dropzone-box" id="uploadDropzone">
+              <div>
+                <h3 style="font-size:18px; font-weight:600; margin-bottom:4px;">拖拽照片到这里，或点击选择文件</h3>
+                <p style="font-size:13px; color:var(--color-muted);">支持 JPG、PNG、WEBP，单次支持多张批量添加</p>
+              </div>
+              <button class="btn-record" style="height:40px;">选择文件</button>
+            </div>
+
+            <div style="margin-top:24px;">
+              <h3 style="font-size:18px; font-weight:600; margin-bottom:12px;">上传队列</h3>
+              <div class="queue-list" id="uploadQueueList"></div>
+            </div>
+          </div>
+
+          <!-- 右侧 384px: 目标目录与操作 -->
+          <aside style="display:flex; flex-direction:column; gap:20px;">
+            <div style="background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-sm); padding:20px;">
+              <label for="uploadFolderSelect" style="display:block; font-size:14px; font-weight:600; color:var(--color-muted); margin-bottom:8px;">目标存储目录</label>
+              <select id="uploadFolderSelect" class="form-input"></select>
+              <p style="font-size:13px; color:var(--color-muted); margin-top:8px;">深层子目录规范化展示完整路径，自动同步相册最新文件夹。</p>
+            </div>
+
+            <div style="background:var(--color-surface-subtle); border-radius:var(--radius-sm); padding:16px; font-size:13px; color:var(--color-muted); line-height:1.6;">
+              <p>• 照片上传遵循严格校验与去重机制，防止重复消耗空间。</p>
+              <p>• 遇到网络波动导致的部分失败项，可单独点击「重试」，已成功项不重复传输。</p>
+            </div>
+
+            <button class="btn-record" id="btnSubmitUploadQueue" style="width:100%; justify-content:center; height:46px;">开始上传队列</button>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------------------
+         页面 4: 心愿与任务 (任务三段分段、身份切换与礼物小铺)
+         ------------------------------------------------------------------------ -->
+    <section class="page-view" id="view-wishes">
+      <div class="us-container">
+        <div style="margin-bottom: 24px;">
+          <h1 style="font-family:var(--font-serif); font-size:32px; font-weight:500;">心愿与约定</h1>
+          <p style="font-size:14px; color:var(--color-muted);">日常分工与甜蜜互动，积累属于两个人的心愿积分。</p>
+        </div>
+
+        <div class="wishes-subnav">
+          <button class="wishes-tab-btn active" id="tabBtnTasks" onclick="switchWishesTab('tasks')">日常任务与签到</button>
+          <button class="wishes-tab-btn" id="tabBtnShop" onclick="switchWishesTab('shop')">礼物小铺与背包</button>
+        </div>
+
+        <!-- 子页面 1: 任务与签到 -->
+        <div id="subpageTasks">
+          <!-- 签到看板卡片 -->
+          <div class="checkin-hero-card">
+            <div>
+              <h3 style="font-size:20px; font-weight:600; margin-bottom:4px;" id="checkinStreakTitle">今日日常打卡</h3>
+              <p style="font-size:14px; color:var(--color-muted);" id="checkinStreakSub">连续签到赢取约定积分 · 奖励 +10 积分</p>
+            </div>
+            <button class="btn-record" id="btnDailyCheckin">打卡签到</button>
+          </div>
+
+          <!-- 任务状态分段切换 (待完成 / 待对方确认 / 已确认) -->
+          <div class="segmented-control">
+            <button class="segment-btn active" id="segBtnPending" onclick="switchTaskTab('pending')">待完成</button>
+            <button class="segment-btn" id="segBtnConfirming" onclick="switchTaskTab('confirming')">待对方确认</button>
+            <button class="segment-btn" id="segBtnDone" onclick="switchTaskTab('done')">已完成</button>
+          </div>
+
+          <div id="tasksContainer"></div>
+        </div>
+
+        <!-- 子页面 2: 礼物小铺与背包 -->
+        <div id="subpageShop" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+            <!-- 分类筛选胶囊 (全部 / 特权券 / 实体礼物) -->
+            <div class="shop-cat-bar">
+              <button class="shop-cat-btn active" data-cat="all" onclick="filterShopCategory('all')">全部心愿</button>
+              <button class="shop-cat-btn" data-cat="coupon" onclick="filterShopCategory('coupon')">特权券</button>
+              <button class="shop-cat-btn" data-cat="gift" onclick="filterShopCategory('gift')">实体礼物</button>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:16px;">
+              <button class="btn-secondary" onclick="openBackpackModal()" style="height:38px; display:inline-flex; align-items:center; gap:8px;">
+                <span>🎒 我的背包</span>
+                <span id="backpackBadge" style="display:none; background:var(--color-accent); color:#fff; border-radius:10px; padding:1px 7px; font-size:12px;">0</span>
+              </button>
+
+              <div style="background:var(--color-surface); border:1px solid var(--color-border); border-radius:20px; padding:6px 18px; font-size:15px; font-weight:600; color:var(--color-accent);">
+                <span>可用积分：</span>
+                <strong style="font-size:22px; font-family:var(--font-serif);" id="userPointsDisplay">520</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="shop-grid" id="shopGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------------------
+         页面 5: 我们与故事 (双方资料、头像更换、纪念日与故事时间线)
+         ------------------------------------------------------------------------ -->
+    <section class="page-view" id="view-us">
+      <div class="us-container">
+        <!-- 资料看板 (支持双方点击上传更换头像) -->
+        <div class="couple-profile-card">
+          <div style="display:flex; align-items:center; gap:24px;">
+            <div style="display:flex; align-items:center;">
+              <input type="file" id="avatarFileInputBoy" accept="image/*" style="display:none;">
+              <div class="avatar-upload-wrap" id="avatarWrapBoy" title="点击更换小林的头像">
+                <img id="usBoyAvatarImg" class="avatar-circle" src="../assets/images/default-avatar.svg" alt="小林头像">
+                <div class="avatar-badge-edit">✎</div>
+              </div>
+              <span style="font-size:20px; color:var(--color-accent); margin:0 10px;">❤</span>
+              <input type="file" id="avatarFileInputGirl" accept="image/*" style="display:none;">
+              <div class="avatar-upload-wrap" id="avatarWrapGirl" title="点击更换小鹿的头像">
+                <img id="usGirlAvatarImg" class="avatar-circle" src="../assets/images/default-avatar.svg" alt="小鹿头像">
+                <div class="avatar-badge-edit">✎</div>
+              </div>
+            </div>
+            <div>
+              <h2 style="font-family:var(--font-serif); font-size:26px; font-weight:600;" id="usCoupleNames">小林 与 小鹿</h2>
+              <p style="font-size:15px; color:var(--color-muted);" id="coupleDaysText">相伴第 520 天 · 始于 2025.04.30</p>
+            </div>
+          </div>
+
+          <div>
+            <button class="btn-secondary" onclick="switchPage('devices')">🛡️ 安全与设备</button>
+          </div>
+        </div>
+
+        <div class="us-two-col">
+          <!-- 重要纪念日 -->
+          <div>
+            <h2 style="font-family:var(--font-serif); font-size:22px; margin-bottom:20px;">重要纪念日</h2>
+            <div id="anniversaryList"></div>
+          </div>
+
+          <!-- 功能入口 -->
+          <div>
+            <h2 style="font-family:var(--font-serif); font-size:22px; margin-bottom:20px;">专属空间</h2>
+            <div style="display:flex; flex-direction:column; gap:16px;">
+              <div style="background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-sm); padding:18px 20px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="switchPage('private')">
+                <div>
+                  <h3 style="font-size:16px; font-weight:600;">私密空间</h3>
+                  <p style="font-size:13px; color:var(--color-muted);">输入独立密码 · 保护两人专属随笔与私密受控文件</p>
+                </div>
+                <span>🔒</span>
+              </div>
+              <div style="background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-sm); padding:18px 20px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="switchPage('devices')">
+                <div>
+                  <h3 style="font-size:16px; font-weight:600;">设备管理与授权</h3>
+                  <p style="font-size:13px; color:var(--color-muted);">查看已批准设备 · 审批新接入设备核对码</p>
+                </div>
+                <span>📱</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 故事画卷时间线 (按年份编年倒序排列) -->
+        <div style="margin-top:48px; border-top:1px solid var(--color-divider); padding-top:36px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+            <h2 style="font-family:var(--font-serif); font-size:26px;">故事画卷 · 编年回忆</h2>
+            <button class="btn-record" style="height:36px; padding:0 14px; font-size:13px;" onclick="openStoryDraftModal()">＋ 记故事</button>
+          </div>
+          <div id="storyTimelineList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------------------
+         页面 6: 私密空间 (双模式密码门禁验证 & 笔记/受控文件双分区)
+         ------------------------------------------------------------------------ -->
+    <section class="page-view" id="view-private">
+      <div class="shell-container">
+        <!-- 门禁验证态 -->
+        <div id="privateLockedView">
+          <div class="private-lock-box">
+            <h2 style="font-family:var(--font-serif); font-size:24px; margin-bottom:6px;">输入空间独立密码</h2>
+            <p style="font-size:14px; color:var(--color-muted);">保护两人专属的私密随笔与受控文件</p>
+
+            <!-- 模式一: 4位数字软键盘 PIN -->
+            <div id="privatePinMode">
+              <div class="pin-display-dots">
+                <div class="pin-dot" id="pinDot0"></div>
+                <div class="pin-dot" id="pinDot1"></div>
+                <div class="pin-dot" id="pinDot2"></div>
+                <div class="pin-dot" id="pinDot3"></div>
+              </div>
+
+              <div class="keypad-grid">
+                <button class="keypad-btn" onclick="inputPin('1')">1</button>
+                <button class="keypad-btn" onclick="inputPin('2')">2</button>
+                <button class="keypad-btn" onclick="inputPin('3')">3</button>
+                <button class="keypad-btn" onclick="inputPin('4')">4</button>
+                <button class="keypad-btn" onclick="inputPin('5')">5</button>
+                <button class="keypad-btn" onclick="inputPin('6')">6</button>
+                <button class="keypad-btn" onclick="inputPin('7')">7</button>
+                <button class="keypad-btn" onclick="inputPin('8')">8</button>
+                <button class="keypad-btn" onclick="inputPin('9')">9</button>
+                <button class="keypad-btn" style="font-size:14px; color:var(--color-muted);" onclick="clearPin()">重输</button>
+                <button class="keypad-btn" onclick="inputPin('0')">0</button>
+                <button class="keypad-btn" style="font-size:16px;" onclick="deletePin()">⌫</button>
+              </div>
+            </div>
+
+            <!-- 模式二: 常规文本密码输入 (支持任意字符) -->
+            <div id="privateTextMode" style="display:none; max-width:280px; margin:24px auto 0;">
+              <input type="password" id="privatePasswordInput" class="form-input" placeholder="输入私密空间字符串密码" style="margin-bottom:12px; text-align:center;">
+              <button class="btn-record" style="width:100%; height:42px;" onclick="submitSecretTextPassword()">解锁空间</button>
+            </div>
+
+            <!-- 模式切换操作按钮 -->
+            <div style="margin-top:20px;">
+              <button type="button" class="btn-secondary" id="btnTogglePrivateAuthMode" style="height:32px; font-size:12px;" onclick="toggleSecretAuthMode()">切换为常规文本密码输入</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 解锁后视图 -->
+        <div id="privateUnlockedView" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+            <div>
+              <h1 style="font-family:var(--font-serif); font-size:30px;">私密空间 (已解锁)</h1>
+              <p style="font-size:14px; color:var(--color-muted);">敏感内容仅在当前会话可见，离开即锁定</p>
+            </div>
+            <button class="btn-record" style="background:var(--color-danger);" onclick="lockPrivateSpace()">🔒 立即锁定空间</button>
+          </div>
+
+          <!-- 私密空间双分区切换 (私密笔记 vs 私密文件) -->
+          <div class="segmented-control" style="max-width:320px; margin-bottom:24px;">
+            <button class="segment-btn active" id="segBtnPrivateNotes" onclick="switchPrivateTab('notes')">私密随笔</button>
+            <button class="segment-btn" id="segBtnPrivateFiles" onclick="switchPrivateTab('files')">受控文件</button>
+          </div>
+
+          <!-- 分区 1: 私密随笔 -->
+          <div id="secPrivateNotesView">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <span id="secretNotesCountText" style="font-size:14px; color:var(--color-muted);">已归档私密信件与备忘</span>
+              <button class="btn-secondary" style="height:36px; padding:0 14px; font-size:13px;" onclick="openCreateNoteModal()">＋ 新建随笔</button>
+            </div>
+            <div id="privateNotesContainer"></div>
+          </div>
+
+          <!-- 分区 2: 私密受控文件 -->
+          <div id="secPrivateFilesView" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <span id="secretFilesCountText" style="font-size:14px; color:var(--color-muted);">私密加密存储文件</span>
+              <input type="file" id="secretFileInput" style="display:none;" onchange="handleSecretFileUpload(event)">
+              <button class="btn-record" style="height:36px; padding:0 14px; font-size:13px;" onclick="document.getElementById('secretFileInput').click()">＋ 上传加密文件</button>
+            </div>
+            <div id="privateFilesContainer"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------------------
+         页面 7: 设备安全与授权 (8 位纯数字核对码审批)
+         ------------------------------------------------------------------------ -->
+    <section class="page-view" id="view-devices">
+      <div class="us-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
+          <div>
+            <h1 style="font-family:var(--font-serif); font-size:32px; font-weight:500;">设备管理与授权</h1>
+            <p style="font-size:14px; color:var(--color-muted);">双设备专属绑定架构，审批新设备 8 位纯数字核对码。</p>
+          </div>
+          <button class="btn-secondary" onclick="switchPage('us')">‹ 返回我们</button>
+        </div>
+
+        <div style="background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-sm); padding:20px; margin-bottom:24px;">
+          <h3 style="font-size:16px; font-weight:600; margin-bottom:4px;">当前受信任设备</h3>
+          <p style="font-size:14px; color:var(--color-muted);">桌面端网页 · 已获安全授权 · 信任会话持续有效</p>
+        </div>
+
+        <!-- 待审批新设备 -->
+        <div style="margin-bottom:32px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <h2 style="font-family:var(--font-serif); font-size:22px;">待审批的新接入设备</h2>
+            <button class="btn-secondary" style="height:32px; padding:0 12px; font-size:12px;" onclick="refreshPendingDevices()">刷新列表</button>
+          </div>
+          <div id="pendingDevicesWrap"></div>
+        </div>
+
+        <!-- 已授权历史设备 -->
+        <div>
+          <h2 style="font-family:var(--font-serif); font-size:22px; margin-bottom:14px;">已授权 / 历史受信任设备</h2>
+          <div id="activeDevicesWrap"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================================================
+       4. 全屏高清大图查看器浮层 (320px 暖白信息栏)
+       ========================================================================== -->
+  <aside class="viewer-overlay" id="viewerOverlay" role="dialog" aria-modal="true" aria-label="大图查看器">
+    <div class="viewer-topbar">
+      <div class="viewer-location-text" id="viewerLocationText">相册 / 生活照片</div>
+      <div class="viewer-topbar-actions">
+        <button class="viewer-btn-hero" id="btnViewerSetHero" title="将此照片设为主页焦点封面">★ 设为封面</button>
+        <span style="font-size:14px; color:#938B83;" id="viewerCounter">1 / 1</span>
+        <button class="viewer-close-btn" id="btnViewerClose" aria-label="关闭查看器 (Esc)">×</button>
+      </div>
+    </div>
+
+    <div class="viewer-body">
+      <!-- 居中高清大图 -->
+      <div class="viewer-stage">
+        <button class="viewer-nav-btn viewer-prev-btn" id="btnViewerPrev" aria-label="上一张 (←)">‹</button>
+        <div class="viewer-image-wrapper">
+          <img id="viewerLargeImg" src="" alt="大图查看">
+        </div>
+        <button class="viewer-nav-btn viewer-next-btn" id="btnViewerNext" aria-label="下一张 (→)">›</button>
+      </div>
+
+      <!-- 右侧 320px 暖白信息栏 -->
+      <aside class="viewer-info-pane">
+        <h2 style="font-family:var(--font-serif); font-size:22px; font-weight:600;" id="viewerTitle">生活照片</h2>
+        <span style="font-size:13px; color:var(--color-muted);" id="viewerDate">2026.09.28</span>
+
+        <div style="height:1px; background:var(--color-divider); width:100%;"></div>
+
+        <p style="font-size:15px; color:var(--color-ink); line-height:1.7;" id="viewerStory"></p>
+
+        <div>
+          <span style="font-size:13px; color:var(--color-muted); display:block; margin-bottom:4px;">存储路径</span>
+          <span style="font-size:14px; font-weight:500;" id="viewerPath">相册 / 根目录</span>
+        </div>
+
+        <div>
+          <span style="font-size:13px; color:var(--color-muted); display:block; margin-bottom:4px;">分类标签</span>
+          <span style="display:inline-block; padding:2px 8px; background:var(--color-surface-subtle); border-radius:4px; font-size:13px;" id="viewerTag">日常</span>
+        </div>
+
+        <div style="margin-top:auto; display:flex; flex-direction:column; gap:10px;">
+          <button class="btn-secondary" style="width:100%; justify-content:center;" id="btnViewerMove">移动到文件夹</button>
+          <button class="btn-secondary" style="width:100%; justify-content:center; color:var(--color-danger);" id="btnViewerDelete">删除照片</button>
+        </div>
+      </aside>
+    </div>
+  </aside>
+
+  <!-- ==========================================================================
+       5. 专属温润主题应用弹窗 (Themed App Dialog - 替代原生 alert/confirm)
+       ========================================================================== -->
+  <div class="app-dialog-overlay" id="appDialogOverlay" role="dialog" aria-modal="true" style="z-index:9999;">
+    <div class="app-dialog-card">
+      <h3 class="app-dialog-title" id="appDialogTitle">提示</h3>
+      <div class="app-dialog-message" id="appDialogMessage"></div>
+      <div class="app-dialog-actions">
+        <button class="btn-secondary" id="appDialogCancelBtn">取消</button>
+        <button class="btn-record" id="appDialogConfirmBtn">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 移动到文件夹弹窗 (移动时即刻关图后展示) -->
+  <div class="app-dialog-overlay" id="movePhotoModal" role="dialog" aria-modal="true">
+    <div class="app-dialog-card">
+      <h3 class="app-dialog-title">移动照片到文件夹</h3>
+      <div class="app-dialog-message">
+        <label for="moveTargetFolderSelect" style="display:block; font-size:13px; color:var(--color-muted); margin-bottom:6px;">目标文件夹</label>
+        <select id="moveTargetFolderSelect" class="form-input"></select>
+      </div>
+      <div class="app-dialog-actions">
+        <button class="btn-secondary" id="btnCancelMovePhoto">取消</button>
+        <button class="btn-record" id="btnConfirmMovePhoto">确认移动</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 封面挑选器模态框 (从相册选择封面 / 多图轮播挑选) -->
+  <div class="app-dialog-overlay" id="heroPickerModal" role="dialog" aria-modal="true">
+    <div class="app-dialog-card" style="max-width:680px;">
+      <h3 class="app-dialog-title" id="heroPickerSheetTitle">挑选封面或轮播照片</h3>
+      <p style="font-size:13px; color:var(--color-muted); margin-bottom:12px;">点击照片勾选，选 1 张作为单张封面，选 2 张及以上自动开启主页轮播</p>
+      <div class="hero-picker-grid" id="heroPickerGrid"></div>
+      <div class="app-dialog-actions" style="margin-top:16px;">
+        <button class="btn-secondary" onclick="closeHeroPhotoPicker()">取消</button>
+        <button class="btn-record" id="heroPickerConfirmBtn" onclick="confirmHeroPickerSelection()">确定 (已选 0 张)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 封面设置菜单弹层 -->
+  <div class="app-dialog-overlay" id="heroChangeSheetModal" role="dialog" aria-modal="true">
+    <div class="app-dialog-card" style="max-width:440px;">
+      <h3 class="app-dialog-title">主页封面与轮播设置</h3>
+      <p style="font-size:14px; color:var(--color-muted); line-height:1.6; margin-bottom:16px;">
+        你可以指定单张作为主页封面，也可以挑选多张照片开启自动轮播，或恢复自动展示相册最新生活瞬间。
+      </p>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <button class="btn-record" style="justify-content:center;" onclick="openHeroPhotoPicker()">🖼️ 从相册挑选（单张封面 / 多图轮播）</button>
+        <button class="btn-secondary" style="justify-content:center;" onclick="triggerHeroPhotoUpload()">📷 上传新照片作为封面</button>
+        <button class="btn-secondary" style="justify-content:center;" onclick="resetToAutoHero()">🔄 恢复自动跟随相册最新照片</button>
+        <button class="btn-secondary" style="justify-content:center; color:var(--color-muted);" onclick="closeHeroChangeMenu()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新建文件夹弹窗 -->
+  <div class="app-dialog-overlay" id="createFolderModalOverlay" role="dialog" aria-modal="true">
+    <div class="app-dialog-card">
+      <h3 class="app-dialog-title">新建相册文件夹</h3>
+      <div class="app-dialog-message">
+        <label for="newFolderNameInput" style="display:block; font-size:13px; color:var(--color-muted); margin-bottom:6px;">文件夹名称</label>
+        <input type="text" class="form-input" id="newFolderNameInput" placeholder="例如：周末露营、美食打卡..." maxlength="20">
+      </div>
+      <div class="app-dialog-actions">
+        <button class="btn-secondary" onclick="closeCreateFolderDialog()">取消</button>
+        <button class="btn-record" onclick="confirmCreateFolder()">确认创建</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 重命名文件夹弹窗 -->
+  <div class="app-dialog-overlay" id="renameFolderModalOverlay" role="dialog" aria-modal="true">
+    <div class="app-dialog-card">
+      <h3 class="app-dialog-title">重命名文件夹</h3>
+      <div class="app-dialog-message">
+        <label for="renameFolderNameInput" style="display:block; font-size:13px; color:var(--color-muted); margin-bottom:6px;">新文件夹名称</label>
+        <input type="text" class="form-input" id="renameFolderNameInput" placeholder="请输入新名称..." maxlength="20">
+      </div>
+      <div class="app-dialog-actions">
+        <button class="btn-secondary" onclick="closeRenameFolderDialog()">取消</button>
+        <button class="btn-record" onclick="confirmRenameFolder()">保存修改</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 兑换商品二次确认弹窗 -->
+  <div class="app-dialog-overlay" id="exchangeConfirmModalOverlay" role="dialog" aria-modal="true">
+    <div class="app-dialog-card">
+      <h3 class="app-dialog-title">确认兑换心愿道具</h3>
+      <div class="app-dialog-message">
+        <div style="font-size:16px; font-weight:600; color:var(--color-ink); margin-bottom:6px;" id="exchangeItemTitle">道具名称</div>
+        <p style="font-size:13px; color:var(--color-muted); margin-bottom:14px;" id="exchangeItemDesc">道具描述</p>
+        <div style="background:var(--color-surface-subtle); padding:14px 16px; border-radius:var(--radius-sm); font-size:14px; display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; justify-content:space-between;">
+            <span>所需积分：</span>
+            <strong id="exchangeItemCost" style="color:var(--color-accent);">0 积分</strong>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>当前可用余额：</span>
+            <span id="exchangeCurrentBalance">0 积分</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; border-top:1px solid var(--color-divider); padding-top:6px;">
+            <span>兑换后预计剩余：</span>
+            <strong id="exchangePredictedBalance">0 积分</strong>
+          </div>
+        </div>
+        <div id="exchangeShortageWarning" style="display:none; color:var(--color-danger); font-size:13px; margin-top:10px;">
+          积分不足，快去完成今日约定任务赚取奖励吧！
+        </div>
+      </div>
+      <div class="app-dialog-actions">
+        <button class="btn-secondary" onclick="closeExchangeConfirmModal()">取消</button>
+        <button class="btn-record" id="btnConfirmExecuteExchange" onclick="executeExchange()">确认兑换</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 我的背包弹窗 -->
+  <div class="app-dialog-overlay" id="backpackModal" role="dialog" aria-modal="true">
+    <div class="app-dialog-card" style="max-width:640px; max-height:85vh; display:flex; flex-direction:column;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 class="app-dialog-title">我的背包</h3>
+        <button class="btn-secondary" style="height:32px; padding:0 10px; font-size:12px;" onclick="closeBackpackModal()">✕ 关闭</button>
+      </div>
+      <div style="overflow-y:auto; flex:1; padding-right:4px;">
+        <!-- 分区 1: 待我确认履行的道具 (对方申请使用) -->
+        <div style="margin-bottom:24px;">
+          <h4 style="font-size:15px; font-weight:600; color:var(--color-ink); margin-bottom:10px;">待我确认履行 (对方已出示)</h4>
+          <div id="backpackPendingList"></div>
+        </div>
+        <!-- 分区 2: 我的可用道具 (我所拥有的道具) -->
+        <div>
+          <h4 style="font-size:15px; font-weight:600; color:var(--color-ink); margin-bottom:10px;">我的可用心愿特权</h4>
+          <div id="backpackItemsList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新建私密随笔弹窗 -->
+  <div class="app-dialog-overlay" id="createNoteModalOverlay" role="dialog" aria-modal="true">
+    <div class="app-dialog-card">
+      <h3 class="app-dialog-title">新建私密随笔</h3>
+      <div class="app-dialog-message">
+        <label for="newNoteTitleInput" style="display:block; font-size:13px; color:var(--color-muted); margin-bottom:6px;">随笔标题</label>
+        <input type="text" class="form-input" id="newNoteTitleInput" placeholder="输入随笔标题..." style="margin-bottom:12px;">
+        <label for="newNoteContentInput" style="display:block; font-size:13px; color:var(--color-muted); margin-bottom:6px;">正文内容</label>
+        <textarea class="form-textarea" id="newNoteContentInput" placeholder="写下只有你们两个人知道的心事或备忘..."></textarea>
+      </div>
+      <div class="app-dialog-actions">
+        <button class="btn-secondary" onclick="closeCreateNoteModal()">取消</button>
+        <button class="btn-record" onclick="confirmSaveNote()">保存随笔</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 私密随笔详情弹窗 -->
+  <div class="app-dialog-overlay" id="noteDetailModalOverlay" role="dialog" aria-modal="true">
+    <div class="app-dialog-card">
+      <h3 class="app-dialog-title" id="noteDetailTitle">私密随笔详情</h3>
+      <div class="app-dialog-message">
+        <div style="font-size:13px; color:var(--color-muted); margin-bottom:12px;" id="noteDetailDate">记录时间：刚刚</div>
+        <div style="font-family:var(--font-serif); font-size:15px; line-height:1.8; color:var(--color-ink); white-space:pre-wrap; max-height:40vh; overflow-y:auto; padding:14px; background:var(--color-surface-subtle); border-radius:var(--radius-sm);" id="noteDetailContent"></div>
+      </div>
+      <div class="app-dialog-actions" style="justify-content:space-between;">
+        <button class="btn-secondary" id="noteDetailDeleteBtn" style="color:var(--color-danger);">删除随笔</button>
+        <button class="btn-record" onclick="closeNoteDetailModal()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 写一封悄悄话弹窗 -->
+  <div class="app-dialog-overlay" id="writeLetterModal" role="dialog" aria-modal="true">
+    <div class="app-dialog-card">
+      <h3 class="app-dialog-title">写一封悄悄话</h3>
+      <div class="app-dialog-message">
+        <label for="writeLetterTitle" style="display:block; font-size:13px; color:var(--color-muted); margin-bottom:6px;">信件标题 (可选)</label>
+        <input type="text" class="form-input" id="writeLetterTitle" placeholder="写个温暖的标题，例如：今天想对你说..." style="margin-bottom:12px;">
+        <div id="writeLetterDraftOptions" style="display:none; margin-bottom:12px; display:flex; flex-direction:column; gap:8px;"></div>
+        <label for="writeLetterContent" style="display:block; font-size:13px; color:var(--color-muted); margin-bottom:6px;">信件内容</label>
+        <textarea class="form-textarea" id="writeLetterContent" placeholder="悄悄写下你想对TA说的话，只有TA能看到..."></textarea>
+      </div>
+      <div class="app-dialog-actions">
+        <button class="btn-secondary" onclick="closeWriteLetterModal()">取消</button>
+        <button class="btn-record" onclick="submitDirectLetter()">发送悄悄话</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 记入故事时间线草稿弹窗 -->
+  <div class="app-dialog-overlay" id="storyDraftModalOverlay" role="dialog" aria-modal="true">
+    <div class="app-dialog-card">
+      <h3 class="app-dialog-title">记入故事时间线</h3>
+      <div class="app-dialog-message">
+        <label for="storyDraftDate" style="display:block; font-size:13px; color:var(--color-muted); margin-bottom:4px;">发生日期</label>
+        <input type="date" id="storyDraftDate" class="form-input" style="margin-bottom:10px;">
+        <label for="storyDraftTitle" style="display:block; font-size:13px; color:var(--color-muted); margin-bottom:4px;">故事标题</label>
+        <input type="text" id="storyDraftTitle" class="form-input" value="生活点滴记录" style="margin-bottom:10px;">
+        <label for="storyDraftContent" style="display:block; font-size:13px; color:var(--color-muted); margin-bottom:4px;">正文手记</label>
+        <textarea id="storyDraftContent" class="form-textarea" placeholder="写下一段难忘的故事..." style="margin-bottom:10px;"></textarea>
+        <label for="storyDraftPhoto" style="display:block; font-size:13px; color:var(--color-muted); margin-bottom:4px;">照片附件 (可选)</label>
+        <input type="file" id="storyDraftPhoto" accept="image/*" class="form-input" style="padding-top:8px;">
+      </div>
+      <div class="app-dialog-actions">
+        <button class="btn-secondary" onclick="closeStoryDraftModal()">取消</button>
+        <button class="btn-record" onclick="confirmSaveStory()">保存至故事线</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 独立来信阅读弹窗 -->
+  <div class="app-dialog-overlay" id="letterModalPage" role="dialog" aria-modal="true" onclick="if(event.target===this)closeLetterModal()">
+    <div class="app-dialog-card" style="max-width:560px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 class="app-dialog-title">一封信</h3>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-secondary" style="height:32px; padding:0 12px; font-size:12px;" onclick="archiveLetterAction()">归档信件</button>
+          <button class="btn-secondary" style="height:32px; padding:0 10px; font-size:12px;" onclick="closeLetterModal()">✕ 关闭</button>
+        </div>
+      </div>
+      <div style="font-size:13px; color:var(--color-muted); margin-bottom:14px;" id="letterModalMeta">小鹿 写于 2026.09.28</div>
+      <div style="font-family:var(--font-serif); font-size:16px; line-height:2.0; color:var(--color-ink); max-height:50vh; overflow-y:auto; padding:16px; background:var(--color-surface-subtle); border-radius:var(--radius-sm); margin-bottom:16px;" id="letterModalContent">
+        那天在海边吹风的时候，看着天色一点点暗下去，突然觉得平淡的日子只要是和你在一起，就很值得被好好记录下来。<br><br>
+        晚上散步回去买的那杯热奶茶很甜，希望我们一直像这样，慢慢走，走很久很久。
+      </div>
+      <div class="app-dialog-actions" style="justify-content:space-between;">
+        <button class="btn-secondary" onclick="showNextWhisper()">翻阅下一封 ↻</button>
+        <button class="btn-record" onclick="handleLetterReadDone()">完成阅读</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       6. 拾光 AI 助手抽屉面板 (大屏优雅滑出) & 浮动按钮
+       ========================================================================== -->
+  <button class="btn-shiguang-float" id="btnShiguangFloat" onclick="openAgentDialog()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"/>
+    </svg>
+    <span>拾光 · 生活助手</span>
+  </button>
+
+  <div class="shiguang-drawer-overlay" id="shiguangDrawerOverlay" onclick="closeAgentOnBg(event)">
+    <aside class="shiguang-drawer">
+      <div class="shiguang-drawer-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <h3 style="font-size:17px; font-weight:600;">拾光</h3>
+          <span style="font-size:12px; color:var(--color-muted);">AI 陪伴助手</span>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn-secondary" style="height:32px; padding:0 8px; font-size:12px;" onclick="openAgentMemorySheet()">记忆 ···</button>
+          <button class="btn-secondary" style="height:32px; padding:0 8px; font-size:12px;" onclick="closeAgentDialog()">✕</button>
+        </div>
+      </div>
+
+      <!-- 消息流容器 -->
+      <div class="shiguang-chat-scroll" id="shiguangTurnsContainer">
+        <div style="padding:16px 0;" id="shiguangWelcomeZone">
+          <h2 style="font-family:var(--font-serif); font-size:22px; font-weight:500; margin-bottom:6px;">聊聊今天，<br>也聊聊我们。</h2>
+          <p style="font-size:13px; color:var(--color-muted); line-height:1.6; margin-bottom:16px;">可以帮你整理想说的话，想想周末怎么过，或寻找一段回忆。</p>
+          <div style="display:flex; flex-direction:column; gap:8px;" id="shiguangRecommendsList">
+            <button class="btn-secondary" style="justify-content:flex-start; height:36px; font-size:13px;" onclick="handleSuggestChoice('帮我写一句话')">帮我写一句话 ↗</button>
+            <button class="btn-secondary" style="justify-content:flex-start; height:36px; font-size:13px;" onclick="handleSuggestChoice('想想周末怎么过')">想想周末怎么过 ↗</button>
+            <button class="btn-secondary" style="justify-content:flex-start; height:36px; font-size:13px;" onclick="handleSuggestChoice('找一段回忆')">找一段回忆 ↗</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部输入区 -->
+      <div class="shiguang-input-dock">
+        <textarea id="agentInputText" class="shiguang-textarea" rows="1" placeholder="写下你想说的……" oninput="handleTextareaInput(this)"></textarea>
+        <button id="agentSendBtn" class="btn-record" style="height:40px; padding:0 16px; font-size:13px;" disabled onclick="handleAgentSend()">发送</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- 拾光使用的记忆面板 -->
+  <div class="app-dialog-overlay" id="agentMemorySheetOverlay" role="dialog" aria-modal="true">
+    <div class="app-dialog-card" style="max-width:480px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h3 class="app-dialog-title">使用的记忆</h3>
+        <button class="btn-secondary" style="height:32px; padding:0 8px; font-size:12px;" onclick="closeAgentMemorySheet()">✕</button>
+      </div>
+      <div style="font-size:14px; line-height:1.8; color:var(--color-ink); display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <strong style="display:block; color:var(--color-muted); font-size:12px; margin-bottom:4px;">共同信息</strong>
+          <p>• 恋爱开始日期：2025.04.30 (相伴 520 天)</p>
+          <p>• 约定账户：心愿积分体系打通</p>
+        </div>
+        <div>
+          <strong style="display:block; color:var(--color-muted); font-size:12px; margin-bottom:4px;">生活偏好</strong>
+          <p>• 喜欢手冲咖啡、老巷散步与旧时光</p>
+          <p>• 海边看落日、收集生活闪光瞬间</p>
+          <p>• 猫咪日记相册</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 拾光单条回复更多操作抽屉 -->
+  <div class="app-dialog-overlay" id="agentActionMenuOverlay" role="dialog" aria-modal="true">
+    <div class="app-dialog-card" style="max-width:380px;">
+      <h3 class="app-dialog-title">更多操作</h3>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
+        <button class="btn-secondary" style="justify-content:flex-start; height:42px;" onclick="triggerActionMenuWhisper()">✉️ 写成悄悄话</button>
+        <button class="btn-secondary" style="justify-content:flex-start; height:42px;" onclick="triggerActionMenuStory()">📖 记入故事时间线</button>
+        <button class="btn-secondary" style="justify-content:center; color:var(--color-muted);" onclick="closeAgentActionMenu()">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 桌面端原生温润登录模态框 -->
+  <div class="app-dialog-overlay" id="desktopLoginModalOverlay" role="dialog" aria-modal="true">
+    <div class="app-dialog-card" style="max-width:440px;">
+      <h3 class="app-dialog-title" style="text-align:center; font-size:22px;">翻开手账 · 登录画廊</h3>
+      <p style="font-size:13px; color:var(--color-muted); text-align:center; margin-bottom:16px;">
+        输入你们两个人的称呼即可进入，初次或未设密码可留空
+      </p>
+      <form id="modalLoginForm" onsubmit="event.preventDefault(); handleDesktopLogin();" style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label for="modalLoginYou" style="display:block; font-size:13px; font-weight:600; color:var(--color-ink); margin-bottom:4px;">你的称呼</label>
+          <input type="text" id="modalLoginYou" class="form-input" placeholder="例如：拾柒 / 小林" required autocomplete="username">
+        </div>
+        <div>
+          <label for="modalLoginBaby" style="display:block; font-size:13px; font-weight:600; color:var(--color-ink); margin-bottom:4px;">TA的称呼</label>
+          <input type="text" id="modalLoginBaby" class="form-input" placeholder="例如：小鹿" required>
+        </div>
+        <div>
+          <label for="modalLoginPassword" style="display:block; font-size:13px; font-weight:600; color:var(--color-ink); margin-bottom:4px;">空间密码 (可选)</label>
+          <input type="password" id="modalLoginPassword" class="form-input" placeholder="未设置密码可留空" autocomplete="current-password">
+        </div>
+        <div style="font-size:12px; color:var(--color-muted); background:var(--color-surface-subtle); padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--color-border); display:flex; justify-content:space-between; align-items:center;">
+          <span>预设体验账号：name1 / TA: name2</span>
+          <button type="button" onclick="fillModalDefaultAccount()" style="border:none; background:none; color:var(--color-accent); font-weight:600; cursor:pointer; font-size:12px; padding:0;">一键填入</button>
+        </div>
+        <div class="app-dialog-actions" style="margin-top:10px;">
+          <button type="button" class="btn-secondary" onclick="closeLoginModal()">取消</button>
+          <button type="submit" class="btn-record" id="modalLoginSubmitBtn">立即登录</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 引入真实通信与驱动层脚本 -->
+  <script src="../assets/js/device-router.js?v=20261003"></script>
+  <script src="js/api-client.js"></script>
+  <script src="js/device-switch.js?v=20261003"></script>
+  <script src="../assets/vendor/marked/marked.umd.js?v=18.1.1"></script>
+  <script src="../assets/vendor/dompurify/purify.min.js?v=3.4.17"></script>
+  <script src="../assets/js/shiguang-markdown.js?v=20261014"></script>
+  <script src="js/app.js?v=20261014-markdown"></script>
+
+</body>
+</html>

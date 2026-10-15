@@ -1,0 +1,142 @@
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- M01: 日常画廊流动影集 (规范画板: 390 x 844 CSS px) -->
+  <defs>
+    <style>
+      .text-title { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-weight: 600; fill: #252422; }
+      .text-body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-weight: 400; fill: #252422; }
+      .text-serif { font-family: "Noto Serif SC", "Songti SC", SimSun, serif; font-weight: 500; fill: #252422; }
+      .text-muted { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-weight: 400; fill: #68635E; }
+      .text-accent { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-weight: 600; fill: #883E4A; }
+    </style>
+    <clipPath id="heroClip">
+      <rect x="20" y="110" width="350" height="218" rx="4" fill="#fff"/>
+    </clipPath>
+    <clipPath id="grid1Clip">
+      <rect x="20" y="476" width="170" height="212" rx="4" fill="#fff"/>
+    </clipPath>
+    <clipPath id="grid2Clip">
+      <rect x="200" y="476" width="170" height="212" rx="4" fill="#fff"/>
+    </clipPath>
+    <linearGradient id="heroSunset" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3d405b"/>
+      <stop offset="45%" stop-color="#883E4A"/>
+      <stop offset="75%" stop-color="#e07a5f"/>
+      <stop offset="100%" stop-color="#f4f1de"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景底色: color.canvas #F7F5F1 -->
+  <rect width="390" height="844" fill="#F7F5F1"/>
+
+  <!-- 1. 模拟状态栏 -->
+  <g id="StatusBar">
+    <text x="32" y="32" class="text-title" font-size="14" font-weight="600">09:41</text>
+    <!-- 信号 & 电池 -->
+    <path d="M335 22h3v10h-3zm5-3h3v13h-3zm5-3h3v16h-3z" fill="#252422"/>
+    <rect x="350" y="21" width="22" height="12" rx="3" stroke="#252422" stroke-width="1.8" fill="none"/>
+    <rect x="352" y="23" width="14" height="8" rx="1.5" fill="#252422"/>
+    <path d="M373 25v4" stroke="#252422" stroke-width="1.5"/>
+  </g>
+
+  <!-- 2. 顶栏 (高度 56px, 规范 5.2 节) -->
+  <g id="TopBar">
+    <text x="20" y="86" class="text-title" font-size="22" letter-spacing="-0.2">我们的日常</text>
+    <!-- "+" 记录按钮 (44px 触控区规范) -->
+    <circle cx="355" cy="80" r="18" fill="transparent"/>
+    <path d="M355 72v16M347 80h16" stroke="#252422" stroke-width="2" stroke-linecap="round"/>
+  </g>
+
+  <!-- 3. 核心展签式单图 (规范 7.1 线框图结构) -->
+  <g id="HeroPhotoSection">
+    <!-- 照片容器 (带4px圆角) -->
+    <g clip-path="url(#heroClip)">
+      <rect x="20" y="110" width="350" height="218" fill="url(#heroSunset)"/>
+      <circle cx="270" cy="220" r="30" fill="#ffd166" opacity="0.9"/>
+      <rect x="20" y="260" width="350" height="68" fill="#19252b"/>
+      <!-- 海浪微澜 -->
+      <path d="M20 262 Q110 258 200 263 T370 261" stroke="#e07a5f" stroke-width="2" opacity="0.4" fill="none"/>
+      <!-- 海滩二人剪影 -->
+      <circle cx="115" cy="254" r="3.5" fill="#19252b"/>
+      <rect x="112" y="258" width="6" height="12" fill="#19252b"/>
+      <circle cx="126" cy="256" r="3.2" fill="#19252b"/>
+      <rect x="123" y="260" width="6" height="10" fill="#19252b"/>
+    </g>
+
+    <!-- 展签说明 (Plaque) -->
+    <text x="20" y="348" class="text-body" font-size="16">那天没有计划，只是一起走了很远。</text>
+    <text x="20" y="372" class="text-serif" font-size="15">09.28</text>
+    <text x="370" y="372" class="text-muted" font-size="13" text-anchor="end">在一起第 520 天</text>
+  </g>
+
+  <!-- 4. 轻量来信提示条 (规范 7.1: 非弹窗、无大角标、克制链接) -->
+  <g id="LetterBanner" transform="translate(20, 396)">
+    <rect width="350" height="46" rx="8" fill="#FFFEFC" stroke="#DED9D2" stroke-width="1"/>
+    <path d="M0 8a8 8 0 0 1 8-8h0v46h-8a8 8 0 0 1-8-8z" fill="#883E4A"/>
+    <!-- 信封图标 -->
+    <g transform="translate(18, 14)">
+      <rect width="18" height="14" rx="2" fill="none" stroke="#252422" stroke-width="1.6"/>
+      <path d="M1 2l8 6 8-6" stroke="#252422" stroke-width="1.6" fill="none"/>
+    </g>
+    <text x="44" y="28" class="text-title" font-size="14">有一封给你的信</text>
+    <text x="330" y="28" class="text-accent" font-size="13" text-anchor="end">打开 ↗</text>
+  </g>
+
+  <!-- 5. 章节标题: 九月的几个瞬间 -->
+  <text x="20" y="468" class="text-serif" font-size="18">九月的几个瞬间</text>
+
+  <!-- 6. 双列照片网格 (4:5 比例规范) -->
+  <g id="DoublePhotoGrid">
+    <!-- 图1: 咖啡书店 -->
+    <g clip-path="url(#grid1Clip)">
+      <rect x="20" y="476" width="170" height="212" fill="#e7dfd5"/>
+      <circle cx="105" cy="560" r="42" fill="#f4efe8" stroke="#d5ccc1" stroke-width="1"/>
+      <circle cx="105" cy="560" r="34" fill="#6f4e37"/>
+      <rect x="55" y="630" width="100" height="22" rx="2" fill="#d8cbba"/>
+    </g>
+    <text x="20" y="708" class="text-title" font-size="14">午后咖啡与书店</text>
+    <text x="20" y="726" class="text-muted" font-size="12">09.21 · 日常</text>
+
+    <!-- 图2: 散步遇猫 -->
+    <g clip-path="url(#grid2Clip)">
+      <rect x="200" y="476" width="170" height="212" fill="#e2dbcf"/>
+      <circle cx="285" cy="580" r="32" fill="#c49a6c"/>
+      <polygon points="266,558 274,540 282,558" fill="#a87f54"/>
+      <polygon points="286,558 294,540 302,558" fill="#a87f54"/>
+    </g>
+    <text x="200" y="708" class="text-title" font-size="14">路口遇到的小花猫</text>
+    <text x="200" y="726" class="text-muted" font-size="12">09.15 · 散步</text>
+  </g>
+
+  <!-- 7. 稳定四栏底部导航 (高度 60px, 规范第 6、8 节) -->
+  <g id="BottomNavigation">
+    <rect y="776" width="390" height="68" fill="#FFFEFC"/>
+    <line x1="0" y1="776" x2="390" y2="776" stroke="#DED9D2" stroke-width="1"/>
+
+    <!-- Tab 1: 日常 (选中态: 酒红 #883E4A) -->
+    <g transform="translate(48, 786)">
+      <path d="M-9 14l9-7 9 7v10a2 2 0 0 1-2 2h-14a2 2 0 0 1-2-2z" fill="none" stroke="#883E4A" stroke-width="1.8"/>
+      <text x="0" y="32" class="text-accent" font-size="11" text-anchor="middle">日常</text>
+    </g>
+
+    <!-- Tab 2: 相册 -->
+    <g transform="translate(146, 786)">
+      <rect x="-9" y="3" width="18" height="15" rx="2" fill="none" stroke="#68635E" stroke-width="1.8"/>
+      <circle cx="-3" cy="8" r="1.5" fill="#68635E"/>
+      <polyline points="7 14 3 9 -5 18" stroke="#68635E" stroke-width="1.6" fill="none"/>
+      <text x="0" y="32" class="text-muted" font-size="11" text-anchor="middle">相册</text>
+    </g>
+
+    <!-- Tab 3: 心愿 -->
+    <g transform="translate(244, 786)">
+      <path d="M5.8 4.6a4.5 4.5 0 0 0-6.3 0L0 5.1l-.5-.5a4.5 4.5 0 0 0-6.3 6.3l.5.5L0 17.5l6.3-6.1.5-.5a4.5 4.5 0 0 0 0-6.3z" transform="translate(0, 1)" fill="none" stroke="#68635E" stroke-width="1.7"/>
+      <text x="0" y="32" class="text-muted" font-size="11" text-anchor="middle">心愿</text>
+    </g>
+
+    <!-- Tab 4: 我们 -->
+    <g transform="translate(342, 786)">
+      <path d="M6 18v-2a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0-6 16v2" fill="none" stroke="#68635E" stroke-width="1.8"/>
+      <circle cx="0" cy="5" r="3.5" fill="none" stroke="#68635E" stroke-width="1.8"/>
+      <text x="0" y="32" class="text-muted" font-size="11" text-anchor="middle">我们</text>
+    </g>
+  </g>
+</svg>

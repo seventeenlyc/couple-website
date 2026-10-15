@@ -1,0 +1,113 @@
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- M05 & M06: 上传表单与部分失败恢复画板 (规范画板: 390 x 844 CSS px) -->
+  <defs>
+    <style>
+      .text-title { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-weight: 600; fill: #252422; }
+      .text-body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-weight: 400; fill: #252422; }
+      .text-muted { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-weight: 400; fill: #68635E; }
+      .text-accent { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-weight: 600; fill: #883E4A; }
+      .text-success { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-weight: 500; fill: #34634B; }
+      .text-error { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-weight: 500; fill: #AA303C; }
+      .text-warning { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-weight: 400; fill: #795318; }
+      .text-btn { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-weight: 600; fill: #FFFFFF; }
+    </style>
+  </defs>
+
+  <!-- 页面暖白底色: #F7F5F1 -->
+  <rect width="390" height="844" fill="#F7F5F1"/>
+
+  <!-- 1. 模拟状态栏 -->
+  <g id="StatusBar">
+    <text x="32" y="32" class="text-title" font-size="14" font-weight="600">09:41</text>
+    <path d="M335 22h3v10h-3zm5-3h3v13h-3zm5-3h3v16h-3z" fill="#252422"/>
+    <rect x="350" y="21" width="22" height="12" rx="3" stroke="#252422" stroke-width="1.8" fill="none"/>
+    <rect x="352" y="23" width="14" height="8" rx="1.5" fill="#252422"/>
+  </g>
+
+  <!-- 2. 全屏二级页顶栏 (规范 6 节: 返回 + 标题 + 提交操作) -->
+  <g id="TopBar">
+    <text x="20" y="85" class="text-body" font-size="15">← 返回</text>
+    <text x="195" y="85" class="text-title" font-size="17" text-anchor="middle">上传照片</text>
+    <text x="370" y="85" class="text-accent" font-size="15" text-anchor="end">提交</text>
+    <line x1="0" y1="102" x2="390" y2="102" stroke="#DED9D2" stroke-width="1"/>
+  </g>
+
+  <!-- 3. 目标目录选择卡片 (规范 7.4: 明确显示完整目标路径) -->
+  <g id="TargetFolderCard" transform="translate(20, 118)">
+    <text x="0" y="0" class="text-muted" font-size="13">目标目录</text>
+    <rect x="0" y="8" width="350" height="46" rx="8" fill="#FFFEFC" stroke="#DED9D2" stroke-width="1"/>
+    <text x="16" y="36" class="text-title" font-size="14">2026年 / 厦门旅行</text>
+    <text x="334" y="36" class="text-accent" font-size="13" text-anchor="end">更换</text>
+  </g>
+
+  <!-- 4. 已选文件与传输状态 (规范 7.4: 逐文件显示等待/上传中/成功/失败) -->
+  <g id="FileListSection" transform="translate(20, 196)">
+    <text x="0" y="0" class="text-title" font-size="14">已选文件 (3 张)</text>
+    <text x="350" y="0" class="text-muted" font-size="12" text-anchor="end">总大小 8.4 MB</text>
+
+    <!-- 条目 1: 成功 -->
+    <g transform="translate(0, 12)">
+      <rect width="350" height="66" rx="8" fill="#FFFEFC" stroke="#DED9D2" stroke-width="1"/>
+      <rect x="10" y="10" width="46" height="46" rx="4" fill="#e07a5f"/>
+      <text x="68" y="30" class="text-title" font-size="13">IMG_20260928_sunset.jpg</text>
+      <text x="68" y="48" class="text-success" font-size="12">✓ 已上传 (3.2 MB)</text>
+    </g>
+
+    <!-- 条目 2: 正在上传 (含精确字节进度与百分比) -->
+    <g transform="translate(0, 88)">
+      <rect width="350" height="74" rx="8" fill="#FFFEFC" stroke="#DED9D2" stroke-width="1"/>
+      <rect x="10" y="10" width="46" height="46" rx="4" fill="#cfc2b2"/>
+      <text x="68" y="28" class="text-title" font-size="13">IMG_20260921_coffee.jpg</text>
+      <text x="68" y="44" class="text-accent" font-size="12">上传中: 1.8 MB / 2.6 MB (69%)</text>
+      <!-- 进度条 -->
+      <rect x="68" y="52" width="260" height="4" rx="2" fill="#EFECE6"/>
+      <rect x="68" y="52" width="180" height="4" rx="2" fill="#883E4A"/>
+    </g>
+
+    <!-- 条目 3: 失败项 (规范 M06: 可单项重试) -->
+    <g transform="translate(0, 172)">
+      <rect width="350" height="66" rx="8" fill="#FFFEFC" stroke="#DED9D2" stroke-width="1"/>
+      <rect x="10" y="10" width="46" height="46" rx="4" fill="#a3b18a"/>
+      <text x="68" y="30" class="text-title" font-size="13">IMG_20260918_greenhouse.jpg</text>
+      <text x="68" y="48" class="text-error" font-size="12">✕ 上传中断：网络超时</text>
+
+      <!-- 单项重试按钮 (32px 高度, 规范要求) -->
+      <rect x="286" y="18" width="52" height="30" rx="6" fill="#F1E4E6" stroke="#883E4A" stroke-width="1"/>
+      <text x="312" y="37" class="text-accent" font-size="12" text-anchor="middle">重试</text>
+    </g>
+  </g>
+
+  <!-- 5. 异常状态反馈条 (规范 7.4: 成功项不因其他失败清空) -->
+  <g id="FeedbackBanner" transform="translate(20, 460)">
+    <rect width="350" height="54" rx="8" fill="#F6EEDC" stroke="#DED9D2" stroke-width="1"/>
+    <text x="16" y="24" class="text-warning" font-size="13" font-weight="600">部分上传需处理</text>
+    <text x="16" y="42" class="text-warning" font-size="12">2 张已上传，1 张未成功。重试失败项不会影响已保存照片。</text>
+  </g>
+
+  <!-- 6. 附加信息输入 (照片标题与标签) -->
+  <g id="MetaInputs" transform="translate(20, 532)">
+    <!-- 标题输入框 -->
+    <text x="0" y="0" class="text-muted" font-size="13">照片描述 (可选)</text>
+    <rect x="0" y="8" width="350" height="44" rx="8" fill="#FFFEFC" stroke="#938B83" stroke-width="1"/>
+    <text x="14" y="35" class="text-body" font-size="14">厦门环岛路的微风与日落</text>
+
+    <!-- 标签选择 -->
+    <text x="0" y="76" class="text-muted" font-size="13">分类标签</text>
+    <g transform="translate(0, 84)">
+      <rect x="0" y="0" width="56" height="28" rx="14" fill="#883E4A"/>
+      <text x="28" y="18" class="text-btn" font-size="12" text-anchor="middle">风景</text>
+
+      <rect x="64" y="0" width="56" height="28" rx="14" fill="#EFECE6"/>
+      <text x="92" y="18" class="text-muted" font-size="12" text-anchor="middle">旅行</text>
+
+      <rect x="128" y="0" width="56" height="28" rx="14" fill="#EFECE6"/>
+      <text x="156" y="18" class="text-muted" font-size="12" text-anchor="middle">合照</text>
+    </g>
+  </g>
+
+  <!-- 7. 底部固定主操作按钮 (规范 5.2: 至少 48px, 8px 圆角, 酒红) -->
+  <g id="BottomAction" transform="translate(20, 756)">
+    <rect width="350" height="48" rx="8" fill="#883E4A"/>
+    <text x="175" y="30" class="text-btn" font-size="16" text-anchor="middle">重试失败项并完成</text>
+  </g>
+</svg>

@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#F7F5F1">
+  <title>我们之间 · 生活画廊</title>
+  <link rel="stylesheet" href="css/gallery-h5.css">
+  <link rel="stylesheet" href="../assets/css/shiguang-markdown.css?v=20261014">
+  <style>
+    /* 密码解锁九宫格样式 */
+    .pin-dots-row {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin: 28px 0;
+    }
+    .pin-dot-circle {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--color-surface-subtle);
+      border: 1.5px solid var(--color-control-border);
+      transition: all 0.15s;
+    }
+    .pin-dot-circle.filled {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      transform: scale(1.1);
+    }
+    .pin-keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      max-width: 270px;
+      margin: 0 auto;
+    }
+    .pin-num-btn {
+      height: 58px;
+      border-radius: 50%;
+      background: var(--color-surface);
+      border: 1px solid var(--color-divider);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--color-ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.1s;
+    }
+    .pin-num-btn:active {
+      background-color: var(--color-surface-subtle);
+      transform: scale(0.96);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 隐藏的文件选择器：可直接调起手机系统相册与相机 -->
+  <input type="file" id="h5RealFileInput" accept="image/*" multiple style="display:none;">
+
+  <div class="h5-app-root">
+
+    <!-- 顶部状态栏与标题栏 (集成手机顶部安全区) -->
+    <header class="h5-topbar" id="appTopBar">
+      <div class="topbar-brand">
+        <span id="topBarTitle">我们的日常</span>
+        <span class="topbar-sub" id="topBarSub">生活画廊</span>
+      </div>
+      <button class="topbar-action-btn" id="topActionBtn" aria-label="新建记录" onclick="openRecordSheet()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- 可滚动主体视口 -->
+    <main class="h5-scroll-container" id="mainScrollContainer">
+
+      <!-- 未登录 / 会话失效提示（不在未登录时静默展示演示数据） -->
+      <div id="sessionExpiredBanner" style="display:none; margin:16px 20px 0; padding:14px 16px; background:var(--color-surface); border:1px solid var(--color-divider); border-left:3px solid var(--color-danger); border-radius:var(--radius-sm);">
+        <div style="font-size:14px; font-weight:600; color:var(--color-ink);">当前未登录，页面展示的是演示内容</div>
+        <div style="font-size:13px; color:var(--color-muted); margin-top:4px; line-height:1.6;">真实记录、相册与私密空间需要在登录并完成设备授权后才能使用。</div>
+        <button class="h5-btn-primary" style="height:44px; width:auto; padding:0 18px; font-size:14px; margin-top:10px;" onclick="gotoLogin()">去登录</button>
+      </div>
+
+      <!-- ==================================================================
+           【TAB 1: 日常 (流动影集)】
+           ================================================================== -->
+      <section class="tab-view active" id="tab-daily">
+        <!-- 核心展签式单图 (规范 7.1) -->
+        <article class="gallery-plaque-card" id="homeHeroPlaque" onclick="openHeroViewer()">
+          <div class="gallery-photo-frame" id="homeHeroMediaFrame" style="aspect-ratio: 16 / 10; position:relative;">
+            <svg id="homeHeroDefaultSvg" viewBox="0 0 350 218" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="h5Sky" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#3d405b"/>
+                  <stop offset="40%" stop-color="#883E4A"/>
+                  <stop offset="70%" stop-color="#e07a5f"/>
+                  <stop offset="100%" stop-color="#f4f1de"/>
+                </linearGradient>
+                <linearGradient id="h5Sea" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#2a3d45"/>
+                  <stop offset="100%" stop-color="#19252b"/>
+                </linearGradient>
+              </defs>
+              <rect width="350" height="150" fill="url(#h5Sky)"/>
+              <circle cx="250" cy="110" r="28" fill="#ffd166" opacity="0.85"/>
+              <rect y="150" width="350" height="68" fill="url(#h5Sea)"/>
+              <path d="M0 152 Q90 148 180 153 T350 151" stroke="#e07a5f" stroke-width="2" opacity="0.4" fill="none"/>
+              <path d="M0 168 Q80 165 170 170 T350 167" stroke="#ffd166" stroke-width="1.5" opacity="0.3" fill="none"/>
+              <circle cx="95" cy="144" r="3.5" fill="#19252b"/>
+              <path d="M92 148 h6 v12 h-6 z" fill="#19252b"/>
+              <circle cx="106" cy="146" r="3.2" fill="#19252b"/>
+              <path d="M103 150 h6 v10 h-6 z" fill="#19252b"/>
+            </svg>
+          </div>
+          <div class="plaque-details">
+            <h2 class="plaque-title" id="homeHeroTitle">那天没有计划，只是一起走了很远。</h2>
+            <div class="plaque-meta-row">
+              <span class="plaque-date-text" id="homeHeroDate">09.28</span>
+              <span class="plaque-tag-text" id="homeHeroDays">在一起第 520 天</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- 轻量来信提示条 (规范 7.1: 无角标红点) -->
+        <div class="letter-plaque-banner" id="homeLetterBanner" onclick="openLetterModal()">
+          <div class="letter-banner-left">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
+            <span id="homeLetterBannerText">有一封给你的信</span>
+          </div>
+          <span class="letter-banner-right">打开 ↗</span>
+        </div>
+
+        <!-- 画廊章节：双列照片组合 (规范 7.1) -->
+        <div class="gallery-chapter">
+          <div class="chapter-heading">
+            <span>九月的几个瞬间</span>
+          </div>
+          <div class="photo-grid-2col" id="dailyGridContainer">
+            <!-- 图1 -->
+            <div class="grid-item-card" onclick="openSinglePhotoViewer('午后咖啡与书店', '09.21 · 日常', 'coffee')">
+              <div class="gallery-photo-frame">
+                <svg viewBox="0 0 160 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="160" height="200" fill="#e7dfd5"/>
+                  <circle cx="80" cy="90" r="45" fill="#f4efe8" stroke="#d5ccc1" stroke-width="1"/>
+                  <circle cx="80" cy="90" r="36" fill="#6f4e37"/>
+                  <rect x="30" y="155" width="100" height="24" rx="2" fill="#d8cbba"/>
+                  <line x1="38" y1="167" x2="122" y2="167" stroke="#b8ab9a" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="grid-item-name">午后咖啡与书店</div>
+              <div class="grid-item-sub">09.21 · 日常</div>
+            </div>
+
+            <!-- 图2 -->
+            <div class="grid-item-card" onclick="openSinglePhotoViewer('路口遇到的小花猫', '09.15 · 散步', 'cat')">
+              <div class="gallery-photo-frame">
+                <svg viewBox="0 0 160 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="160" height="200" fill="#e2dbcf"/>
+                  <polygon points="0,0 120,0 80,200 0,200" fill="#ede7dc" opacity="0.6"/>
+                  <circle cx="85" cy="115" r="28" fill="#c49a6c"/>
+                  <polygon points="68,95 76,80 84,95" fill="#a87f54"/>
+                  <polygon points="86,95 94,80 102,95" fill="#a87f54"/>
+                </svg>
+              </div>
+              <div class="grid-item-name">路口遇到的小花猫</div>
+              <div class="grid-item-sub">09.15 · 散步</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 今日一句 (独立展签排版，支持点击卡片或换一句按钮刷新文案) -->
+        <div class="daily-quote-box" onclick="handleChangeDailyQuote()" title="点击换一句文案">
+          <div class="quote-header-row">
+            <span class="quote-label">今日一句</span>
+            <button class="quote-refresh-btn" id="changeDailyQuoteBtn" aria-label="换一句文案" onclick="event.stopPropagation(); handleChangeDailyQuote();">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+              <span>换一句</span>
+            </button>
+          </div>
+          <p class="quote-body" id="dailyQuoteText">“在平常的日子里，慢慢收集我们之间闪闪发光的瞬间。”</p>
+          <div class="quote-tap-hint">轻触卡片换一句 ✨</div>
+        </div>
+
+        <!-- 首页轻入口 (规范 1: 一行轻入口，使用分隔线，不另加大卡片) -->
+        <div class="gallery-light-entry" onclick="openAgentDialog()">
+          <div class="light-entry-left">
+            <svg class="light-entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"/>
+            </svg>
+            <span>拾光 · 有什么想聊聊的？</span>
+          </div>
+          <span class="light-entry-arrow">↗</span>
+        </div>
+      </section>
+
+      <!-- ==================================================================
+           【TAB 2: 相册 (目录与照片流)】
+           ================================================================== -->
+      <section class="tab-view" id="tab-album">
+        <div style="padding:14px 20px 8px;">
+          <!-- 面包屑路径 -->
+          <div id="albumBreadcrumbs" style="font-size:13px; color:var(--color-muted); display:flex; align-items:center; gap:6px; margin-bottom:12px;">
+            <span>全部</span><span>/</span>
+            <span id="albumCurrentFolderLabel" style="color:var(--color-ink); font-weight:600;">全部照片</span>
+          </div>
+
+          <!-- 文件夹横滑行 -->
+          <div id="albumFoldersRow" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; margin-bottom:14px; scrollbar-width:none;">
+            <!-- 动态渲染文件夹 -->
+          </div>
+
+          <!-- 筛选标签 -->
+          <div id="albumTagFiltersRow" style="display:flex; gap:8px; margin-bottom:14px; overflow-x:auto; scrollbar-width:none;">
+            <!-- 动态渲染标签 -->
+          </div>
+        </div>
+
+        <!-- 4:5 双列网格 -->
+        <div style="padding:0 20px 24px;">
+          <div class="photo-grid-2col" id="albumGridContainer">
+            <!-- 动态渲染相册照片 -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================================================================
+           【TAB 3: 心愿 (任务与小铺)】 (规范 A2 / 10.1 & 10.4)
+           ================================================================== -->
+      <section class="tab-view" id="tab-wishes">
+        <!-- 心愿页内主分段切换 (Segmented Tab) -->
+        <div class="h5-segmented wish-main-segmented" id="wishMainSegmented">
+          <button class="h5-seg-item wish-seg-btn active" data-target="wishTasksSection" onclick="switchWishSegment('wishTasksSection')">任务清单</button>
+          <button class="h5-seg-item wish-seg-btn" data-target="wishShopSection" onclick="switchWishSegment('wishShopSection')">积分小铺</button>
+        </div>
+
+        <!-- 任务清单分区 (默认可见) -->
+        <div id="wishTasksSection" class="wish-sub-section">
+          <!-- 每日打卡签到轻卡片 -->
+          <div class="wish-checkin-card">
+            <div class="wish-checkin-info">
+              <div class="wish-checkin-title" id="checkinStreakTitle">今日日常打卡</div>
+              <div class="wish-checkin-sub" id="checkinStreakSub">连续签到第 7 天 · 奖励 +10 积分</div>
+            </div>
+            <button class="h5-btn-primary wish-checkin-btn" id="h5CheckinBtn">打卡签到</button>
+          </div>
+
+          <!-- 任务状态分段切换 -->
+          <div class="h5-segmented task-sub-segmented">
+            <button class="h5-seg-item task-seg-btn active" data-status="pending">待完成</button>
+            <button class="h5-seg-item task-seg-btn" data-status="confirming">待对方确认</button>
+            <button class="h5-seg-item task-seg-btn" data-status="done">已确认</button>
+          </div>
+
+          <!-- 动态任务列表容器 -->
+          <div id="h5TasksList"></div>
+        </div>
+
+        <!-- 积分小铺分区 (切换后可见) -->
+        <div id="wishShopSection" class="wish-sub-section" style="display:none;">
+          <!-- 积分余额条与我的背包入口 -->
+          <div class="shop-header-bar">
+            <div class="shop-balance-box">
+              <span class="shop-balance-label">可用积分</span>
+              <strong class="shop-balance-value" id="h5UserPointsDisplay">520</strong>
+            </div>
+            <button class="h5-btn-secondary shop-backpack-btn" id="openBackpackBtn" onclick="openBackpackModal()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+              </svg>
+              <span>我的背包</span>
+              <span class="shop-backpack-badge" id="backpackBadge" style="display:none;"></span>
+            </button>
+          </div>
+
+          <!-- 商品分类分段切换 -->
+          <div class="h5-segmented shop-category-segmented" id="shopCategorySegmented">
+            <button class="h5-seg-item shop-cat-btn active" data-category="all" onclick="filterShopCategory('all')">全部</button>
+            <button class="h5-seg-item shop-cat-btn" data-category="coupon" onclick="filterShopCategory('coupon')">特权券</button>
+            <button class="h5-seg-item shop-cat-btn" data-category="gift" onclick="filterShopCategory('gift')">实体礼物</button>
+          </div>
+
+          <!-- 商品列表网格 -->
+          <div class="shop-grid-wrap">
+            <div class="photo-grid-2col" id="h5ShopGrid"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================================================================
+           【TAB 4: 我们 (资料、时间线与私密空间)】 (规范 7.7)
+           ================================================================== -->
+      <section class="tab-view" id="tab-us">
+        <!-- 双方资料与相伴天数 (支持真实头像展示与点击更换) -->
+        <div class="us-profile-wrap" style="padding:20px 20px 24px; text-align:center;">
+          <div style="display:flex; align-items:center; justify-content:center; margin-bottom:12px;">
+            <!-- 男方头像及更换入口 -->
+            <div class="avatar-upload-wrapper" style="position:relative; cursor:pointer;" onclick="triggerAvatarUpload('left')" title="点击更换头像">
+              <div class="profile-avatar-frame" style="width:64px; height:64px; border-radius:50%; background:#e2ddd5; border:3px solid var(--color-surface); display:flex; align-items:center; justify-content:center; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                <img id="usBoyAvatarImg" src="assets/images/default-avatar.svg" onerror="if(!this.dataset.retried){this.dataset.retried=1;this.src='../assets/images/default-avatar.svg';}" alt="男方头像" style="width:100%; height:100%; object-fit:cover;">
+              </div>
+              <div id="usBoyAvatar" style="display:none;">小林</div>
+              <div class="avatar-edit-badge" style="position:absolute; bottom:0; right:0; width:20px; height:20px; border-radius:50%; background:var(--color-surface); border:1px solid var(--color-divider); display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.12); color:var(--color-muted);">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              </div>
+              <input type="file" id="avatarUploadInputLeft" accept="image/*" style="display:none;" onchange="handleAvatarFileChange(event, 'left')">
+            </div>
+
+            <!-- 爱心连接 -->
+            <div style="width:28px; height:28px; margin:0 -6px; z-index:10; background:var(--color-surface); border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--color-accent); box-shadow:0 2px 6px rgba(0,0,0,0.1);">❤</div>
+
+            <!-- 女方头像及更换入口 -->
+            <div class="avatar-upload-wrapper" style="position:relative; cursor:pointer;" onclick="triggerAvatarUpload('right')" title="点击更换头像">
+              <div class="profile-avatar-frame" style="width:64px; height:64px; border-radius:50%; background:#e2ddd5; border:3px solid var(--color-surface); display:flex; align-items:center; justify-content:center; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+                <img id="usGirlAvatarImg" src="assets/images/default-avatar.svg" onerror="if(!this.dataset.retried){this.dataset.retried=1;this.src='../assets/images/default-avatar.svg';}" alt="女方头像" style="width:100%; height:100%; object-fit:cover;">
+              </div>
+              <div id="usGirlAvatar" style="display:none;">小鹿</div>
+              <div class="avatar-edit-badge" style="position:absolute; bottom:0; right:0; width:20px; height:20px; border-radius:50%; background:var(--color-surface); border:1px solid var(--color-divider); display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.12); color:var(--color-muted);">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              </div>
+              <input type="file" id="avatarUploadInputRight" accept="image/*" style="display:none;" onchange="handleAvatarFileChange(event, 'right')">
+            </div>
+          </div>
+          <h2 id="usCoupleNames" style="font-size:19px; font-weight:600; color:var(--color-ink);">小林 与 小鹿</h2>
+          <p id="usCoupleDays" style="font-size:14px; color:var(--color-muted); margin-top:3px;">相伴第 520 天 · 始于 2025.04.30</p>
+          <div style="font-size:12px; color:var(--color-muted); margin-top:5px;">点击头像可上传更换照片 📷</div>
+        </div>
+
+        <!-- 纪念日卡片 -->
+        <div id="usRemindersList" style="margin:0 20px 18px; background:var(--color-surface); border-radius:var(--radius-sm); border:1px solid var(--color-divider); overflow:hidden;">
+          <div style="padding:15px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--color-divider); font-size:15px;">
+            <span style="font-weight:500;">恋爱纪念日</span>
+            <span style="color:var(--color-muted); font-size:14px;">04.30 (还有 211 天)</span>
+          </div>
+          <div style="padding:15px 16px; display:flex; justify-content:space-between; align-items:center; font-size:15px;">
+            <span style="font-weight:500;">小鹿的生日</span>
+            <span style="color:var(--color-muted); font-size:14px;">11.12 (还有 42 天)</span>
+          </div>
+        </div>
+
+        <!-- 功能入口 -->
+        <div style="margin:0 20px 20px; background:var(--color-surface); border-radius:var(--radius-sm); border:1px solid var(--color-divider); overflow:hidden;">
+          <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--color-divider); cursor:pointer;" onclick="openAgentDialog()">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"/>
+              </svg>
+              <div>
+                <span style="font-size:16px; font-weight:500;">拾光</span>
+                <span style="font-size:14px; color:var(--color-muted); margin-left:8px;">聊聊生活，整理回忆</span>
+              </div>
+            </div>
+            <span style="font-size:14px; color:var(--color-muted);">↗</span>
+          </div>
+          <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--color-divider); cursor:pointer;" onclick="openStoryPage()">
+            <span style="font-size:16px; font-weight:500;">故事时间线</span>
+            <span style="font-size:14px; color:var(--color-muted);">编年节点 ↗</span>
+          </div>
+          <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--color-divider); cursor:pointer;" onclick="openSecretSpace()">
+            <span style="font-size:16px; font-weight:500;">私密空间</span>
+            <span style="font-size:14px; color:var(--color-accent); font-weight:500;">独立密码锁定 ↗</span>
+          </div>
+          <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--color-divider); cursor:pointer;" onclick="openDevicePage()">
+            <span style="font-size:16px; font-weight:500;">安全与授权设备</span>
+            <span style="font-size:14px; color:var(--color-success); font-weight:500;">● 当前设备已获信 ↗</span>
+          </div>
+          <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="openDeviceManagementModal()">
+            <span style="font-size:16px; font-weight:500;">管理员设备审批</span>
+            <span style="font-size:14px; color:var(--color-accent); font-weight:500;">配对码与审批 ↗</span>
+          </div>
+        </div>
+
+        <!-- 退出当前账号操作 -->
+        <div style="margin:0 20px 32px;">
+          <button class="h5-btn-secondary" id="h5LogoutBtn" style="width:100%; height:48px; color:var(--color-danger); border-color:var(--color-divider); background:var(--color-surface); gap:8px;" onclick="handleH5Logout()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            <span>退出当前账号</span>
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- 稳定四栏底部导航条 (固定在底部，集成底部安全区) -->
+    <nav class="h5-bottom-bar" id="appBottomNav">
+      <button class="bottom-tab-btn active" data-tab="daily">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <span>日常</span>
+      </button>
+
+      <button class="bottom-tab-btn" data-tab="album">
+        <svg viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+        <span>相册</span>
+      </button>
+
+      <button class="bottom-tab-btn" data-tab="wishes">
+        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <span>心愿</span>
+      </button>
+
+      <button class="bottom-tab-btn" data-tab="us">
+        <svg viewBox="0 0 24 24">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span>我们</span>
+      </button>
+    </nav>
+
+    <!-- ==================================================================
+         【覆盖层 1: 首页"+"底部操作面板】
+         ================================================================== -->
+    <div class="h5-overlay" id="recordSheetOverlay" onclick="closeSheetOnBg(event, 'recordSheetOverlay')">
+      <div class="h5-bottom-sheet">
+        <div class="sheet-pill-bar"></div>
+        <div style="font-size:17px; font-weight:600; margin-bottom:14px;">记录新的生活瞬间</div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <button class="h5-btn-secondary" style="justify-content:flex-start; height:48px; gap:12px;" onclick="triggerNativeUpload()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span>从手机相册上传照片</span>
+          </button>
+          <button class="h5-btn-secondary" style="justify-content:flex-start; height:48px; gap:12px;" onclick="openStoryPage(); closeRecordSheet();">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+            <span>记录一段故事</span>
+          </button>
+          <button class="h5-btn-secondary" style="justify-content:flex-start; height:48px; gap:12px;" onclick="openWriteLetterModal(); closeRecordSheet();">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
+            <span>给对方写封信</span>
+          </button>
+          <button class="h5-btn-secondary" style="justify-content:flex-start; height:48px; gap:12px;" onclick="closeRecordSheet(); openCreateFolderDialog();">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              <line x1="12" y1="11" x2="12" y2="17"/>
+              <line x1="9" y1="14" x2="15" y2="14"/>
+            </svg>
+            <span>新建相册文件夹</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         【覆盖层: 新建文件夹弹窗】
+         ================================================================== -->
+    <div class="h5-overlay" id="createFolderModalOverlay" onclick="closeSheetOnBg(event, 'createFolderModalOverlay')">
+      <div class="h5-bottom-sheet" style="padding-bottom:28px;">
+        <div class="sheet-pill-bar"></div>
+        <div style="font-size:17px; font-weight:600; margin-bottom:14px;">新建相册文件夹</div>
+        <div style="margin-bottom:16px;">
+          <label style="font-size:13px; color:var(--color-muted); display:block; margin-bottom:6px;">文件夹名称</label>
+          <input type="text" class="h5-input" id="newFolderNameInput" placeholder="例如：周末露营、美食打卡..." maxlength="20">
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="h5-btn-secondary" style="flex:1;" onclick="closeCreateFolderDialog()">取消</button>
+          <button class="h5-btn-primary" style="flex:1;" onclick="confirmCreateFolder()">确认创建</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         【覆盖层: 重命名文件夹弹窗】
+         ================================================================== -->
+    <div class="h5-overlay" id="renameFolderModalOverlay" onclick="closeSheetOnBg(event, 'renameFolderModalOverlay')">
+      <div class="h5-bottom-sheet" style="padding-bottom:28px;">
+        <div class="sheet-pill-bar"></div>
+        <div style="font-size:17px; font-weight:600; margin-bottom:14px;">重命名文件夹</div>
+        <div style="margin-bottom:16px;">
+          <label style="font-size:13px; color:var(--color-muted); display:block; margin-bottom:6px;">新文件夹名称</label>
+          <input type="text" class="h5-input" id="renameFolderNameInput" placeholder="请输入新名称..." maxlength="20">
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="h5-btn-secondary" style="flex:1;" onclick="closeRenameFolderDialog()">取消</button>
+          <button class="h5-btn-primary" style="flex:1;" onclick="confirmRenameFolder()">保存修改</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         【覆盖层: 移动照片弹窗】
+         ================================================================== -->
+    <div class="h5-overlay" id="movePhotoModalOverlay" onclick="closeSheetOnBg(event, 'movePhotoModalOverlay')">
+      <div class="h5-bottom-sheet" style="padding-bottom:28px;">
+        <div class="sheet-pill-bar"></div>
+        <div style="font-size:17px; font-weight:600; margin-bottom:14px;">移动照片到其他文件夹</div>
+        <div style="margin-bottom:16px;">
+          <label for="movePhotoTargetSelect" style="font-size:13px; color:var(--color-muted); display:block; margin-bottom:6px;">目标目录</label>
+          <div class="h5-select-wrapper">
+            <select class="h5-select" id="movePhotoTargetSelect">
+              <option value="/">全部照片 (根目录)</option>
+            </select>
+            <div class="h5-select-arrow" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="h5-btn-secondary" style="flex:1;" onclick="closeMovePhotoDialog()">取消</button>
+          <button class="h5-btn-primary" style="flex:1;" onclick="confirmMovePhoto()">确认移动</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         【通用应用内确认弹窗 (适配温润 UI 风格)】
+         ================================================================== -->
+    <div class="h5-overlay app-dialog-overlay" id="appConfirmDialogOverlay">
+      <div class="app-dialog-card">
+        <div class="app-dialog-icon" id="appDialogIcon">💌</div>
+        <div class="app-dialog-title" id="appDialogTitle">提示</div>
+        <div class="app-dialog-message" id="appDialogMessage">确定要执行该操作吗？</div>
+        <div class="app-dialog-actions">
+          <button class="h5-btn-secondary app-dialog-btn" id="appDialogCancelBtn" type="button">取消</button>
+          <button class="h5-btn-primary app-dialog-btn" id="appDialogConfirmBtn" type="button">确定</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         【主页封面设置弹层 (规范 7.1)】
+         ================================================================== -->
+    <div class="h5-overlay" id="heroChangeSheetModal" onclick="closeSheetOnBg(event, 'heroChangeSheetModal')">
+      <div class="h5-bottom-sheet">
+        <div class="sheet-pill-bar"></div>
+        <div class="sheet-title-row">
+          <span class="sheet-title">主页封面与轮播</span>
+          <button class="sheet-close-btn" onclick="closeHeroChangeMenu()">✕</button>
+        </div>
+        <div style="padding: 10px 0 28px;">
+          <p style="font-size: 13px; color: var(--color-muted); line-height: 1.5; margin-bottom: 18px;">
+            你可以指定一张单图作为主页封面，也可以挑选多张照片开启自动轮播，或恢复自动展示相册最新生活瞬间。
+          </p>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <button class="h5-btn-primary" style="height:46px; font-size:14px; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="openHeroPhotoPicker()">
+              <span>🖼️</span> 从相册挑选（单张封面 / 多图轮播）
+            </button>
+            <button class="h5-btn-secondary" style="height:46px; font-size:14px; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="triggerHeroPhotoUpload()">
+              <span>📷</span> 上传新照片作为封面
+            </button>
+            <button class="h5-btn-secondary" style="height:42px; font-size:13px; border-color:transparent; color:var(--color-muted);" onclick="resetToAutoHero()">
+              <span>🔄</span> 恢复自动展示相册最新照片
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 从相册选择封面 / 多图轮播挑选器 -->
+    <div class="h5-overlay" id="heroPickerModal" onclick="closeSheetOnBg(event, 'heroPickerModal')">
+      <div class="h5-bottom-sheet" style="max-height: 82vh; display: flex; flex-direction: column;">
+        <div class="sheet-pill-bar"></div>
+        <div class="sheet-title-row">
+          <span class="sheet-title" id="heroPickerSheetTitle">挑选封面或轮播照片</span>
+          <button class="sheet-close-btn" onclick="closeHeroPhotoPicker()">✕</button>
+        </div>
+        <div style="font-size:12.5px; color:var(--color-muted); padding:2px 0 8px;">
+          点击照片勾选，选 1 张作为固定封面，选 2 张及以上自动开启主页轮播
+        </div>
+        <div id="heroPickerGrid" style="flex:1; overflow-y:auto; padding:8px 0 16px; display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;">
+          <!-- 动态渲染照片列表 -->
+        </div>
+        <div class="hero-picker-actions" style="padding-top:12px; border-top:1px solid var(--color-divider); display:flex; gap:10px;">
+          <button class="h5-btn-secondary" style="flex:1; height:42px; font-size:13.5px;" onclick="closeHeroPhotoPicker()">取消</button>
+          <button class="h5-btn-primary" id="heroPickerConfirmBtn" style="flex:2; height:42px; font-size:14px;" onclick="confirmHeroPickerSelection()">确定 (已选 0 张)</button>
+        </div>
+      </div>
+    </div>
+
+    <input type="file" id="heroUploadInput" accept="image/*" style="display:none;" onchange="handleHeroUpload(this)">
+
+    <!-- ==================================================================
+         【全屏层 2: M04 全屏大图查看器】
+         ================================================================== -->
+    <div class="h5-image-viewer" id="fullscreenViewer">
+      <div class="viewer-header">
+        <button class="topbar-action-btn" style="color:#fff;" onclick="closeImageViewer()">✕</button>
+        <span style="font-size:14px; font-weight:500;" id="viewerCounter">1 / 1</span>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button class="topbar-action-btn" style="color:#ffd166; font-size:13px;" onclick="openHeroChangeMenu()" id="viewerHeroBtn">封面设置</button>
+          <button class="topbar-action-btn" style="color:#fff; font-size:13px;" onclick="openMovePhotoDialog()" id="viewerMoveBtn">移动</button>
+          <button class="topbar-action-btn" style="color:#ff6b6b; font-size:13px; font-weight:500;" onclick="deleteCurrentViewerPhoto()">删除</button>
+        </div>
+      </div>
+      <div class="viewer-content-zone" id="viewerImgContainer" onclick="handleViewerZoneClick(event)" style="position:relative;"></div>
+      <button class="viewer-nav-btn viewer-prev-btn" onclick="prevViewerPhoto()" aria-label="上一张" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.18); border:none; color:#fff; font-size:24px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:10;">‹</button>
+      <button class="viewer-nav-btn viewer-next-btn" onclick="nextViewerPhoto()" aria-label="下一张" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.18); border:none; color:#fff; font-size:24px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:10;">›</button>
+      <div class="viewer-footer-plaque">
+        <div style="font-size:16px; font-weight:500;" id="viewerCaption">画廊照片</div>
+        <div style="font-size:13px; color:#aaa;" id="viewerMeta">09.28 · 厦门旅行</div>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         【全屏层 3: M05 & M06 上传全屏页面】
+         ================================================================== -->
+    <div class="h5-fullscreen-page" id="uploadFullscreenPage">
+      <div class="page-top-nav">
+        <button class="topbar-action-btn" onclick="closeUploadPage()">← 返回</button>
+        <span style="font-size:16px; font-weight:600;">上传生活照片</span>
+        <button id="uploadSubmitNavBtn" style="border:none; background:transparent; color:var(--color-accent); font-weight:600; font-size:15px; cursor:pointer;" onclick="startUploadProcess()">提交</button>
+      </div>
+      <div style="padding:16px 20px;">
+        <div style="margin-bottom:14px;">
+          <label for="uploadFolderSelect" style="font-size:13px; color:var(--color-muted); display:block; margin-bottom:6px;">目标目录</label>
+          <div class="h5-select-wrapper">
+            <select class="h5-select" id="uploadFolderSelect" aria-label="选择目标目录">
+              <option value="/">全部照片 (根目录)</option>
+              <option value="/厦门旅行">厦门旅行</option>
+              <option value="/日常生活">日常生活</option>
+              <option value="/猫咪日记">猫咪日记</option>
+            </select>
+            <div class="h5-select-arrow" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="font-size:13px; color:var(--color-muted); display:block; margin-bottom:6px;">配文与描述 (可选)</label>
+          <input type="text" class="h5-input" id="uploadPhotoTitle" placeholder="记录这一刻的感受...">
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label for="uploadPhotoTags" style="font-size:13px; color:var(--color-muted); display:block; margin-bottom:6px;">照片标签 (可选，逗号分隔)</label>
+          <input type="text" class="h5-input" id="uploadPhotoTags" placeholder="例如：日常、风景、美食..." value="日常">
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:14px; font-weight:600;">待传照片</span>
+            <button class="h5-btn-secondary" style="height:30px; padding:0 10px; font-size:12px;" onclick="triggerNativeUpload()">＋继续添加</button>
+          </div>
+          <div id="uploadQueueList"></div>
+        </div>
+
+        <div id="uploadActionsContainer" style="display:flex; flex-direction:column; gap:10px;">
+          <button class="h5-btn-primary" id="startUploadBtn" onclick="startUploadProcess()">确认并开始上传</button>
+          <button class="h5-btn-secondary" id="retryFailedUploadBtn" style="display:none;" onclick="retryFailedUploads()">重试失败项</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         【全屏层 4: M10 来信全屏阅读】
+         ================================================================== -->
+    <div class="h5-fullscreen-page" id="letterModalPage">
+      <div class="page-top-nav">
+        <button class="topbar-action-btn" onclick="closeLetterModal()">← 返回</button>
+        <span style="font-size:16px; font-weight:600;">一封信</span>
+        <button style="border:none; background:transparent; color:var(--color-ink); font-size:14px; cursor:pointer;" onclick="archiveLetterAction()">归档</button>
+      </div>
+      <div style="padding:28px 24px; max-width:540px; margin:0 auto; width:100%;">
+        <div style="font-size:13px; color:var(--color-muted); margin-bottom:18px;">
+          <span id="letterModalMeta">小鹿 写于 2026.09.28 22:30</span>
+        </div>
+        <div id="letterModalContent" style="font-family:var(--font-serif); font-size:17px; line-height:2.0; color:var(--color-ink); margin-bottom:32px;">
+          那天在海边吹风的时候，看着天色一点点暗下去，突然觉得平淡的日子只要是和你在一起，就很值得被好好记录下来。<br><br>
+          晚上散步回去买的那杯热奶茶很甜，希望我们一直像这样，慢慢走，走很久很久。
+        </div>
+        <div style="padding-top:20px; border-top:1px solid var(--color-divider); display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:13px; color:var(--color-muted);">已阅读 · 会留存在私密信箱</span>
+          <button class="h5-btn-secondary" style="height:36px; padding:0 14px; font-size:13px;" onclick="handleLetterReadDone()">完成阅读</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         【全屏层 5: M11 私密空间 PIN/密码验证与空间内容】
+         ================================================================== -->
+    <div class="h5-fullscreen-page" id="secretSpacePage">
+      <div class="page-top-nav">
+        <button class="topbar-action-btn" onclick="closeSecretSpace()">← 返回</button>
+        <span style="font-size:16px; font-weight:600;">私密空间</span>
+        <button id="secretLockBtn" style="display:none; border:none; background:transparent; color:var(--color-accent); font-weight:600; font-size:14px; cursor:pointer;" onclick="lockSecretSpace()">锁定</button>
+      </div>
+
+      <!-- 独立密码认证界面 (支持数字键盘与常规文本密码双模式) -->
+      <div id="secretAuthView" style="padding:36px 20px; text-align:center;">
+        <div style="width:48px; height:48px; border-radius:50%; background:var(--color-accent-soft); color:var(--color-accent); display:flex; align-items:center; justify-content:center; margin:0 auto 14px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <h2 style="font-size:18px; font-weight:600; color:var(--color-ink);">输入空间独立密码</h2>
+        <p style="font-size:14px; color:var(--color-muted); margin-top:4px;">保护两人专属的私密随笔与留存信件</p>
+
+        <!-- 模式一: 4位数字键盘 PIN -->
+        <div id="secretPinMode">
+          <div class="pin-dots-row">
+            <div class="pin-dot-circle" id="sec-dot-0"></div>
+            <div class="pin-dot-circle" id="sec-dot-1"></div>
+            <div class="pin-dot-circle" id="sec-dot-2"></div>
+            <div class="pin-dot-circle" id="sec-dot-3"></div>
+          </div>
+
+          <div class="pin-keypad">
+            <button class="pin-num-btn" onclick="pressSecretKey('1')">1</button>
+            <button class="pin-num-btn" onclick="pressSecretKey('2')">2</button>
+            <button class="pin-num-btn" onclick="pressSecretKey('3')">3</button>
+            <button class="pin-num-btn" onclick="pressSecretKey('4')">4</button>
+            <button class="pin-num-btn" onclick="pressSecretKey('5')">5</button>
+            <button class="pin-num-btn" onclick="pressSecretKey('6')">6</button>
+            <button class="pin-num-btn" onclick="pressSecretKey('7')">7</button>
+            <button class="pin-num-btn" onclick="pressSecretKey('8')">8</button>
+            <button class="pin-num-btn" onclick="pressSecretKey('9')">9</button>
+            <button class="pin-num-btn" style="background:transparent; border:none; font-size:14px; color:var(--color-muted);" onclick="secretPin=''; updatePinDisplay();">清空</button>
+            <button class="pin-num-btn" onclick="pressSecretKey('0')">0</button>
+            <button class="pin-num-btn" style="background:transparent; border:none; font-size:16px;" onclick="deleteSecretKey()">⌫</button>
+          </div>
+        </div>
+
+        <!-- 模式二: 常规文本密码输入 (支持任意字符串密码) -->
+        <div id="secretTextMode" style="display:none; max-width:280px; margin:24px auto 0;">
+          <input type="password" id="secretPasswordInput" class="h5-input" placeholder="输入私密空间字符串密码" style="margin-bottom:12px; text-align:center;">
+          <button class="h5-btn-primary" id="secretTextSubmitBtn" onclick="submitSecretTextPassword()">解锁空间</button>
+        </div>
+
+        <!-- 模式切换操作按钮 -->
+        <div style="margin-top:24px;">
+          <button type="button" class="secret-mode-switch-btn" id="secretModeSwitchBtn" onclick="toggleSecretAuthMode()">切换为常规文本密码输入</button>
+        </div>
+      </div>
+
+      <!-- 已解锁私密内容界面 (含【私密笔记】与【私密文件】分区) -->
+      <div id="secretContentView" style="display:none; padding:16px 20px;">
+        <!-- 私密空间内容分区切换 -->
+        <div class="h5-segmented secret-tab-segmented">
+          <button class="h5-seg-item secret-tab-btn active" data-tab="notes" onclick="switchSecretContentTab('notes')">私密笔记</button>
+          <button class="h5-seg-item secret-tab-btn" data-tab="files" onclick="switchSecretContentTab('files')">私密文件</button>
+        </div>
+
+        <!-- 分区 1: 私密笔记 -->
+        <div id="secretNotesSection" class="secret-sub-section">
+          <div class="secret-section-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <span id="secretNotesCount" style="font-size:14px; color:var(--color-muted);">已归档私密信件与备忘</span>
+            <button class="h5-btn-secondary" id="openCreateNoteBtn" style="height:36px; padding:0 12px; font-size:13px;" onclick="openCreateNoteModal()">＋新建笔记</button>
+          </div>
+          <div id="secretNotesList" class="secret-list-group"></div>
+        </div>
+
+        <!-- 分区 2: 私密文件 -->
+        <div id="secretFilesSection" class="secret-sub-section" style="display:none;">
+          <div class="secret-section-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <span id="secretFilesCount" style="font-size:14px; color:var(--color-muted);">私密受控文件</span>
+            <label for="secretFileInput" class="h5-btn-primary" style="height:36px; padding:0 12px; font-size:13px; width:auto; cursor:pointer; display:inline-flex; align-items:center;">
+              <span>＋上传文件</span>
+            </label>
+            <input type="file" id="secretFileInput" style="display:none;" onchange="handleSecretFileUpload(event)">
+          </div>
+          <div id="secretFilesList" class="secret-list-group">
+            <div class="backpack-empty-hint" id="secretFilesEmpty" style="padding:28px 16px; text-align:center; font-size:14px; color:var(--color-muted);">
+              <div style="font-size:24px; margin-bottom:6px;">🔒</div>
+              暂无私密文件，点击上方上传安全存储
+            </div>
+          </div>
+        </div>
+
+        <button class="h5-btn-secondary" style="width:100%; margin-top:20px;" onclick="lockSecretSpace()">立即锁定空间</button>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         【全屏层 6: 故事时间线 (M09)】
+         ================================================================== -->
+    <div class="h5-fullscreen-page" id="storyTimelinePage">
+      <div class="page-top-nav">
+        <button class="topbar-action-btn" onclick="closeStoryPage()">← 返回</button>
+        <span style="font-size:16px; font-weight:600;">故事时间线</span>
+        <button style="border:none; background:transparent; color:var(--color-accent); font-weight:600; font-size:14px; cursor:pointer;" onclick="openStoryDraftModal('')">＋记故事</button>
+      </div>
+      <div id="storyTimelineList" style="padding:20px;">
+        <!-- 动态渲染故事节点 -->
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         【全屏层 7: 设备安全页面 (M12)】
+         ================================================================== -->
+    <div class="h5-fullscreen-page" id="deviceAuthPage">
+      <div class="page-top-nav">
+        <button class="topbar-action-btn" onclick="closeDevicePage()">← 返回</button>
+        <span style="font-size:16px; font-weight:600;">设备与授权</span>
+        <div style="width:40px;"></div>
+      </div>
+      <div id="deviceAuthInfoContainer" style="padding:20px;">
+        <div style="background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-sm); padding:16px; margin-bottom:16px;">
+          <div style="font-size:14px; font-weight:600; color:var(--color-ink); margin-bottom:4px;">当前已授权设备</div>
+          <div style="font-size:13px; color:var(--color-muted);">移动端网页 · 已获安全授权</div>
+          <div style="margin-top:10px; font-size:12px; color:var(--color-success); font-weight:500;">● 信任会话持续有效</div>
+        </div>
+
+        <!-- 前往旧版设备管理中心明确复用链接 (规范 10.7) -->
+        <a href="/device-access.php" target="_blank" class="device-legacy-banner" style="margin-bottom:14px; text-decoration:none;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+            <div>
+              <div style="font-weight:600; font-size:15px;">前往旧版设备管理中心</div>
+              <div style="font-size:12px; opacity:0.85; margin-top:2px;">管理全部设备、审批申请与安全密钥 (/device-access.php)</div>
+            </div>
+          </div>
+          <span style="font-size:16px;">↗</span>
+        </a>
+
+        <!-- 管理员快捷审批操作入口 -->
+        <button class="h5-btn-primary" onclick="openDeviceManagementModal()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span>打开管理员设备审批面板</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         【全屏层 8: 拾光 · 生活助手】
+         ================================================================== -->
+    <div class="h5-fullscreen-page" id="agentFullscreenPage">
+      <div class="page-top-nav">
+        <button class="topbar-action-btn" onclick="closeAgentDialog()">← 返回</button>
+        <span style="font-size:16px; font-weight:600; color:var(--color-ink);">拾光</span>
+        <button class="topbar-action-btn" onclick="openAgentMemorySheet()" aria-label="更多" title="使用的记忆" style="font-size:20px; font-weight:bold; letter-spacing:1px;">···</button>
+      </div>
+
+      <!-- 对话主体视口 (包含初始欢迎区域与动态对话) -->
+      <div class="shiguang-chat-scroll" id="agentChatScroll">
+        <!-- 初始欢迎区域 (普通文字，不套卡片；对话开始后推荐列表退出，开场短标题保留在顶部) -->
+        <div class="shiguang-welcome-zone" id="shiguangWelcomeZone">
+          <div class="shiguang-welcome-title">聊聊今天，<br>也聊聊我们。</div>
+          <div class="shiguang-welcome-sub">可以帮你整理想说的话，<br>想想约会安排，或寻找一段回忆。</div>
+          
+          <div class="shiguang-recommends-list" id="shiguangRecommendsList">
+            <div class="shiguang-recommend-row" onclick="handleSuggestChoice('帮我写一句话')">
+              <span>帮我写一句话</span>
+              <span class="shiguang-recommend-arrow">↗</span>
+            </div>
+            <div class="shiguang-recommend-row" onclick="handleSuggestChoice('想想周末怎么过')">
+              <span>想想周末怎么过</span>
+              <span class="shiguang-recommend-arrow">↗</span>
+            </div>
+            <div class="shiguang-recommend-row" onclick="handleSuggestChoice('找一段回忆')">
+              <span>找一段回忆</span>
+              <span class="shiguang-recommend-arrow">↗</span>
+            </div>
+          </div>
+
+          <div class="shiguang-intro-tag" id="shiguangIntroTag">AI 生活助手</div>
+        </div>
+
+        <!-- 动态消息流容器 -->
+        <div id="shiguangTurnsContainer"></div>
+      </div>
+
+      <!-- 浮动新回复提示 -->
+      <div class="shiguang-new-msg-pill" id="shiguangNewMsgPill" onclick="scrollToBottomChat()">
+        查看新回复 ↓
+      </div>
+
+      <!-- 底部输入区 (多行自适应、16px字体、44px发送按钮) -->
+      <div class="shiguang-input-dock">
+        <textarea id="agentInputText" class="shiguang-textarea" rows="1" placeholder="写下你想说的……" oninput="handleTextareaInput(this)"></textarea>
+        <button id="agentSendBtn" class="shiguang-send-btn" disabled onclick="handleAgentSend()">发送</button>
+      </div>
+    </div>
+
+    <!-- 弹层: 使用的记忆面板 (规范 6) -->
+    <div class="h5-overlay" id="agentMemorySheetOverlay" onclick="closeSheetOnBg(event, 'agentMemorySheetOverlay')">
+      <div class="h5-bottom-sheet" style="max-height:80vh; overflow-y:auto;">
+        <div class="sheet-pill-bar"></div>
+        <div class="sheet-title-row">
+          <span class="sheet-title">使用的记忆</span>
+          <button class="sheet-close-btn" onclick="closeAgentMemorySheet()">✕</button>
+        </div>
+        <div style="padding:4px 0 20px;">
+          <div class="memory-section-title">共同信息</div>
+          <div class="memory-list-group">
+            <div class="memory-item-col">
+              <span class="memory-item-main">恋爱开始日期 (2025.04.30)</span>
+              <span class="memory-item-sub">来源：站点资料</span>
+            </div>
+            <div class="memory-item-col">
+              <span class="memory-item-main">相伴天数 (520天)</span>
+              <span class="memory-item-sub">来源：系统计算</span>
+            </div>
+          </div>
+
+          <div class="memory-section-title">生活偏好</div>
+          <div class="memory-list-group">
+            <div class="memory-item-col">
+              <span class="memory-item-main">喜欢手冲咖啡</span>
+              <span class="memory-item-sub">来源：已确认记录</span>
+            </div>
+            <div class="memory-item-col">
+              <span class="memory-item-main">海边散步看落日</span>
+              <span class="memory-item-sub">来源：已确认记录</span>
+            </div>
+            <div class="memory-item-col">
+              <span class="memory-item-main">猫咪日记</span>
+              <span class="memory-item-sub">来源：相册分类</span>
+            </div>
+          </div>
+
+          <div class="memory-section-title">相关回忆</div>
+          <div class="memory-list-group">
+            <div class="memory-plaque-row" onclick="openSinglePhotoViewer('海边落日余晖', '2026.09.28', 'sunset'); closeAgentMemorySheet();">
+              <div class="memory-thumb-frame">
+                <svg viewBox="0 0 160 200" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="160" height="200" fill="#d9745b"/><circle cx="80" cy="130" r="35" fill="#f8d07e"/><rect y="150" width="160" height="50" fill="#2d3748"/>
+                </svg>
+              </div>
+              <div class="memory-plaque-text">
+                <span class="memory-item-main">环岛路日落 · 海边漫步</span>
+                <span class="memory-item-sub">2026.09.28 · 来源：已编入故事时间线</span>
+              </div>
+              <span class="memory-plaque-arrow">↗</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹层: 拾光单条回复更多操作底抽屉 (常驻复制和更多，其余收进菜单) -->
+    <div class="h5-overlay" id="agentActionMenuOverlay" onclick="closeSheetOnBg(event, 'agentActionMenuOverlay')">
+      <div class="h5-bottom-sheet">
+        <div class="sheet-pill-bar"></div>
+        <div class="sheet-title-row">
+          <span class="sheet-title">更多操作</span>
+          <button class="sheet-close-btn" onclick="closeAgentActionMenu()">✕</button>
+        </div>
+        <div style="padding:4px 0 20px; display:flex; flex-direction:column; gap:10px;">
+          <button class="h5-btn-secondary" style="justify-content:flex-start; height:48px; gap:12px;" onclick="triggerActionMenuWhisper()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <span>写成悄悄话</span>
+          </button>
+          <button class="h5-btn-secondary" style="justify-content:flex-start; height:48px; gap:12px;" onclick="triggerActionMenuStory()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span>记入故事</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹层: 写成悄悄话确认与草稿编辑 (规范 4) -->
+    <div class="h5-overlay" id="whisperDraftModalOverlay" onclick="closeSheetOnBg(event, 'whisperDraftModalOverlay')">
+      <div class="h5-bottom-sheet">
+        <div class="sheet-pill-bar"></div>
+        <div class="sheet-title-row">
+          <span class="sheet-title">写成悄悄话</span>
+          <button class="sheet-close-btn" onclick="closeWhisperDraftModal()">✕</button>
+        </div>
+        <div style="padding:4px 0 20px;">
+          <div style="font-size:13px; color:var(--color-muted); margin-bottom:8px;">可修改草稿内容，确认后发送给对方：</div>
+          <div id="h5WhisperDraftOptions" style="display:none; margin-bottom:12px; display:flex; flex-direction:column; gap:8px;"></div>
+          <textarea id="whisperDraftText" class="h5-input" style="height:100px; width:100%; padding:10px; font-size:15px; margin-bottom:14px;"></textarea>
+          <button class="h5-btn-primary" style="width:100%; height:44px;" onclick="confirmSendWhisper()">确认发送悄悄话</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹层: 记入故事确认表单 (规范 4 / 10.5) -->
+    <div class="h5-overlay" id="storyDraftModalOverlay" onclick="closeSheetOnBg(event, 'storyDraftModalOverlay')">
+      <div class="h5-bottom-sheet">
+        <div class="sheet-pill-bar"></div>
+        <div class="sheet-title-row">
+          <span class="sheet-title">记入故事时间线</span>
+          <button class="sheet-close-btn" onclick="closeStoryDraftModal()">✕</button>
+        </div>
+        <div style="padding:4px 0 20px;">
+          <div style="font-size:13px; color:var(--color-muted); margin-bottom:6px;">发生日期 (自选历史日期)</div>
+          <input type="date" id="storyDraftDate" class="h5-input" style="width:100%; height:40px; margin-bottom:12px;">
+          <div style="font-size:13px; color:var(--color-muted); margin-bottom:6px;">标题</div>
+          <input type="text" id="storyDraftTitle" class="h5-input" style="width:100%; height:40px; margin-bottom:12px;" value="生活点滴记录">
+          <div style="font-size:13px; color:var(--color-muted); margin-bottom:6px;">内容</div>
+          <textarea id="storyDraftContent" class="h5-input" style="height:90px; width:100%; padding:10px; font-size:14px; margin-bottom:12px;" placeholder="写下一段难忘的故事..."></textarea>
+          <div style="font-size:13px; color:var(--color-muted); margin-bottom:6px;">照片附件 (可选)</div>
+          <input type="file" id="storyDraftPhoto" accept="image/*" class="h5-input" style="width:100%; height:40px; margin-bottom:16px; padding:6px 10px;">
+          <button class="h5-btn-primary" style="width:100%; height:44px;" onclick="confirmSaveStory()">确认保存至时间线</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         【弹层: 我的背包】 (规范 10.4)
+         ================================================================== -->
+    <div class="h5-overlay" id="backpackModal" onclick="closeSheetOnBg(event, 'backpackModal')">
+      <div class="h5-bottom-sheet backpack-sheet" style="max-height:85vh; display:flex; flex-direction:column;">
+        <div class="sheet-pill-bar"></div>
+        <div class="sheet-title-row">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="sheet-title">我的背包</span>
+            <span class="backpack-count-badge" id="backpackCountBadge">0 件道具</span>
+          </div>
+          <button class="sheet-close-btn" onclick="closeBackpackModal()">✕</button>
+        </div>
+
+        <div class="backpack-content-scroll">
+          <!-- 待我确认的使用记录区域 -->
+          <div id="backpackPendingSection" class="backpack-section">
+            <div class="backpack-section-title">
+              <span>待我确认的物品</span>
+              <span style="font-size:12px; color:var(--color-muted);">对方已使用，等待你确认</span>
+            </div>
+            <div id="backpackPendingList" class="backpack-list">
+              <div class="backpack-empty-hint" id="backpackPendingEmpty">
+                暂无待确认的使用记录
+              </div>
+            </div>
+          </div>
+
+          <!-- 我的可用道具列表 -->
+          <div id="backpackItemsSection" class="backpack-section">
+            <div class="backpack-section-title">
+              <span>我的可用道具</span>
+              <span style="font-size:12px; color:var(--color-muted);">小铺兑换的心愿与特权</span>
+            </div>
+            <div id="backpackItemsList" class="backpack-list">
+              <div class="backpack-empty-hint" id="backpackItemsEmpty">
+                <div style="font-size:24px; margin-bottom:6px;">🎒</div>
+                背包空空如也，快去积分小铺兑换心愿吧～
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         【弹层: 新建私密笔记】 (规范 10.6)
+         ================================================================== -->
+    <div class="h5-overlay" id="createNoteModalOverlay" onclick="closeSheetOnBg(event, 'createNoteModalOverlay')">
+      <div class="h5-bottom-sheet">
+        <div class="sheet-pill-bar"></div>
+        <div class="sheet-title-row">
+          <span class="sheet-title">新建私密笔记</span>
+          <button class="sheet-close-btn" onclick="closeCreateNoteModal()">✕</button>
+        </div>
+        <div style="padding:4px 0 20px;">
+          <div style="margin-bottom:12px;">
+            <label for="newNoteTitleInput" style="font-size:14px; color:var(--color-muted); display:block; margin-bottom:6px;">笔记标题</label>
+            <input type="text" class="h5-input" id="newNoteTitleInput" placeholder="输入笔记标题...">
+          </div>
+          <div style="margin-bottom:16px;">
+            <label for="newNoteContentInput" style="font-size:14px; color:var(--color-muted); display:block; margin-bottom:6px;">笔记内容</label>
+            <textarea class="h5-input" id="newNoteContentInput" style="height:120px; padding:10px; width:100%; font-size:16px; line-height:1.5; resize:none;" placeholder="写下只有你们两个人知道的心事或备忘..."></textarea>
+          </div>
+          <button class="h5-btn-primary" id="saveNoteSubmitBtn" onclick="confirmSaveNote()">保存笔记</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         【弹层: 私密笔记详情展示】 (规范 10.6)
+         ================================================================== -->
+    <div class="h5-overlay" id="noteDetailModalOverlay" onclick="closeSheetOnBg(event, 'noteDetailModalOverlay')">
+      <div class="h5-bottom-sheet">
+        <div class="sheet-pill-bar"></div>
+        <div class="sheet-title-row">
+          <span class="sheet-title" id="noteDetailTitle">私密笔记</span>
+          <button class="sheet-close-btn" onclick="closeNoteDetailModal()">✕</button>
+        </div>
+        <div style="padding:4px 0 20px;">
+          <div style="font-size:12px; color:var(--color-muted); margin-bottom:12px;" id="noteDetailDate"></div>
+          <div style="font-family:var(--font-serif); font-size:15px; line-height:1.8; color:var(--color-ink); white-space:pre-wrap; max-height:50vh; overflow-y:auto; padding:14px; background:var(--color-surface); border-radius:var(--radius-sm); border:1px solid var(--color-divider);" id="noteDetailContent"></div>
+          <div style="margin-top:16px; display:flex; justify-content:space-between; align-items:center;">
+            <button class="h5-btn-secondary" id="noteDetailDeleteBtn" style="height:36px; padding:0 14px; font-size:13px; color:var(--color-danger, #e53e3e);">删除笔记</button>
+            <button class="h5-btn-primary" style="height:36px; padding:0 18px; font-size:13px; width:auto;" onclick="closeNoteDetailModal()">关闭</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         【弹层: 独立写信 / 悄悄话】 (规范 10.6)
+         ================================================================== -->
+    <div class="h5-overlay" id="writeLetterModal" onclick="closeSheetOnBg(event, 'writeLetterModal')">
+      <div class="h5-bottom-sheet">
+        <div class="sheet-pill-bar"></div>
+        <div class="sheet-title-row">
+          <span class="sheet-title">写一封悄悄话</span>
+          <button class="sheet-close-btn" onclick="closeWriteLetterModal()">✕</button>
+        </div>
+        <div style="padding:4px 0 20px;">
+          <div style="margin-bottom:12px;">
+            <label for="writeLetterTitle" style="font-size:14px; color:var(--color-muted); display:block; margin-bottom:6px;">信件标题 (可选)</label>
+            <input type="text" class="h5-input" id="writeLetterTitle" placeholder="写个温暖的标题，例如：今天想对你说...">
+          </div>
+          <div style="margin-bottom:16px;">
+            <label for="writeLetterContent" style="font-size:14px; color:var(--color-muted); display:block; margin-bottom:6px;">信件内容</label>
+            <textarea class="h5-input" id="writeLetterContent" style="height:140px; padding:12px; width:100%; font-family:var(--font-serif); font-size:16px; line-height:1.6; resize:none;" placeholder="悄悄写下你想对TA说的话，只有TA能看到..."></textarea>
+          </div>
+          <button class="h5-btn-primary" id="sendLetterSubmitBtn" onclick="submitDirectLetter()">发送悄悄话</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         【弹层: 管理员设备审批与管理面板】 (规范 10.7)
+         ================================================================== -->
+    <div class="h5-overlay" id="deviceManagementModal" onclick="closeSheetOnBg(event, 'deviceManagementModal')">
+      <div class="h5-bottom-sheet device-management-sheet" style="max-height:85vh; display:flex; flex-direction:column;">
+        <div class="sheet-pill-bar"></div>
+        <div class="sheet-title-row">
+          <span class="sheet-title">设备安全与授权管理</span>
+          <button class="sheet-close-btn" onclick="closeDeviceManagementModal()">✕</button>
+        </div>
+
+        <div class="device-modal-content-scroll" style="overflow-y:auto; flex:1; padding-bottom:16px;">
+          <!-- 醒目提供前往旧版设备管理中心复用链接 -->
+          <a href="/device-access.php" target="_blank" class="device-legacy-banner" style="margin-bottom:18px; text-decoration:none;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+              <div>
+                <div style="font-weight:600; font-size:14.5px;">旧版设备管理中心</div>
+                <div style="font-size:12px; opacity:0.85;">访问完整管理员控制台 (/device-access.php)</div>
+              </div>
+            </div>
+            <span style="font-size:16px;">↗</span>
+          </a>
+
+          <!-- 待审批设备列表区域 -->
+          <div class="device-section-block" style="margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span style="font-size:15px; font-weight:600; color:var(--color-ink);">待审批的新设备申请</span>
+              <button class="h5-btn-secondary" style="height:32px; padding:0 10px; font-size:12px;" onclick="refreshPendingDevices()">刷新</button>
+            </div>
+            <div id="pendingDevicesList" class="device-list-container">
+              <div class="device-empty-hint" id="pendingDevicesEmpty" style="padding:20px 16px; text-align:center; font-size:14px; color:var(--color-muted); background:var(--color-surface-subtle); border-radius:var(--radius-sm);">
+                暂无待审批的设备申请
+              </div>
+            </div>
+          </div>
+
+          <!-- 已授权设备列表（支持逐台撤销） -->
+          <div class="device-section-block" style="margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span style="font-size:15px; font-weight:600; color:var(--color-ink);">已授权 / 历史设备</span>
+            </div>
+            <div id="activeDevicesList" class="device-list-container">
+              <div class="device-empty-hint" id="activeDevicesEmpty" style="padding:20px 16px; text-align:center; font-size:14px; color:var(--color-muted); background:var(--color-surface-subtle); border-radius:var(--radius-sm);">
+                暂无设备记录
+              </div>
+            </div>
+          </div>
+
+          <!-- 输入配对码审批操作 -->
+          <div class="device-section-block" style="margin-bottom:20px; padding:16px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-sm);">
+            <label for="pairingCodeInput" style="font-size:14px; font-weight:600; color:var(--color-ink); display:block; margin-bottom:4px;">输入配对码审批设备</label>
+            <div style="font-size:12px; color:var(--color-muted); margin-bottom:10px;">新设备请求授权时显示的 8 位数字配对核对码</div>
+            <div style="display:flex; gap:10px;">
+              <input type="text" id="pairingCodeInput" class="h5-input" placeholder="输入 8 位数字核对码" maxlength="8" inputmode="numeric" pattern="[0-9]*" style="flex:1;">
+              <button class="h5-btn-primary" id="approveDeviceBtn" style="width:auto; padding:0 20px; font-size:14px; flex-shrink:0;" onclick="handleApproveDeviceByCode()">批准授权</button>
+            </div>
+          </div>
+
+          <!-- 快捷操作按钮组 (拒绝授权与撤销授权) -->
+          <div style="display:flex; gap:12px;">
+            <button class="h5-btn-secondary" id="rejectDeviceBtn" style="flex:1; height:44px; color:var(--color-danger); border-color:var(--color-divider);" onclick="handleRejectDeviceAction()">
+              <span>拒绝新申请</span>
+            </button>
+            <button class="h5-btn-secondary" id="revokeDeviceBtn" style="flex:1; height:44px; color:var(--color-muted); border-color:var(--color-divider);" onclick="handleRevokeDeviceAction()">
+              <span>撤销授权设备</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="js/api-client.js"></script>
+  <script src="../assets/js/device-router.js?v=20261003"></script>
+  <script src="js/device-switch.js?v=20261003"></script>
+  <script src="../assets/vendor/marked/marked.umd.js?v=18.1.1"></script>
+  <script src="../assets/vendor/dompurify/purify.min.js?v=3.4.17"></script>
+  <script src="../assets/js/shiguang-markdown.js?v=20261014"></script>
+  <script src="js/app.js?v=20261014-markdown"></script>
+  <script>
+    // 页面快捷面板操作辅助
+    function openRecordSheet() {
+      document.getElementById('recordSheetOverlay').classList.add('active');
+    }
+    function closeRecordSheet() {
+      document.getElementById('recordSheetOverlay').classList.remove('active');
+    }
+    function closeSheetOnBg(e, id) {
+      if (e.target.id === id) {
+        document.getElementById(id).classList.remove('active');
+      }
+    }
+
+    function triggerNativeUpload() {
+      document.getElementById('h5RealFileInput').click();
+      closeRecordSheet();
+    }
+
+    function openDevicePage() {
+      const page = document.getElementById('deviceAuthPage');
+      if (page) page.classList.add('active');
+    }
+    function closeDevicePage() {
+      const page = document.getElementById('deviceAuthPage');
+      if (page) page.classList.remove('active');
+    }
+
+    // 说明：头像更换、每日文案换一句、设备管理与退出登录的真实实现
+    // 全部由 js/app.js 提供（依赖 window.galleryApi 的真实接口）。
+    // 此处曾存在内联存根，会在接口缺失时提示“已批准/已拒绝/已更新”等假成功，已移除。
+
+    // 每日文案换一句与设备管理：见 js/app.js
+
+    // 设备审批与管理列表：见 js/app.js
+
+    // 设备审批、拒绝、撤销与退出登录的真实实现均在 js/app.js，
+    // 已移除原先“接口缺失也提示成功”的内联存根。
+  </script>
+</body>
+</html>

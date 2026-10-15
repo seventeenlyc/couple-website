@@ -45,3 +45,24 @@ Thumbs.db
 *.tmp
 *.bak
 *.backup
+
+# 本地依赖、数据库与凭据（只保留在本机，不随源码提交）
+node_modules/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# 上传的派生资源和故事附件
+uploads/thumbnails/*
+uploads/story/*

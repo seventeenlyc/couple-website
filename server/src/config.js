@@ -19,6 +19,21 @@ export function loadConfig(overrides = {}) {
     fs.mkdirSync(dbDir, { recursive: true });
   }
 
+  let allowedOrigins = [];
+  if (Array.isArray(overrides.allowedOrigins)) {
+    allowedOrigins = overrides.allowedOrigins;
+  } else if (typeof overrides.allowedOrigins === 'string') {
+    allowedOrigins = overrides.allowedOrigins.split(',').map(s => s.trim()).filter(Boolean);
+  } else if (process.env.ALLOWED_ORIGINS) {
+    try {
+      const parsed = JSON.parse(process.env.ALLOWED_ORIGINS);
+      if (Array.isArray(parsed)) allowedOrigins = parsed;
+      else allowedOrigins = process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean);
+    } catch (_) {
+      allowedOrigins = process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+
   return {
     port: Number(process.env.PORT || overrides.port || 19085),
     host: process.env.HOST || overrides.host || '127.0.0.1',
@@ -28,6 +43,7 @@ export function loadConfig(overrides = {}) {
     rootDir: overrides.rootDir || ROOT_DIR,
     dataDir: overrides.dataDir || DATA_DIR,
     uploadsDir: overrides.uploadsDir || UPLOADS_DIR,
+    allowedOrigins,
     deviceCookieMaxAge: 15552000, // 180 days in seconds
     sessionCookieMaxAge: 86400 * 7, // 7 days in seconds
     timeZone: 'Asia/Shanghai'

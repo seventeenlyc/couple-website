@@ -1,0 +1,2178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>我们之间 · 生活画廊 (移动端交互原型)</title>
+  <style>
+    /* ==========================================================================
+       1. 设计系统变量 (基于 2026-10-01-mobile-gallery-ui-design.md 第3节)
+       ========================================================================== */
+    :root {
+      --color-canvas: #F7F5F1;
+      --color-surface: #FFFEFC;
+      --color-surface-subtle: #EFECE6;
+      --color-ink: #252422;
+      --color-muted: #68635E;
+      --color-accent: #883E4A;
+      --color-accent-pressed: #6F303B;
+      --color-accent-soft: #F1E4E6;
+      --color-on-accent: #FFFFFF;
+      --color-divider: #DED9D2;
+      --color-control-border: #938B83;
+      --color-success: #34634B;
+      --color-success-soft: #E7F0E9;
+      --color-warning: #795318;
+      --color-warning-soft: #F6EEDC;
+      --color-danger: #AA303C;
+      --color-danger-soft: #F8E9EB;
+      --color-viewer: #181716;
+      --color-scrim: rgba(37, 36, 34, 0.45);
+
+      --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --font-serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
+
+      --radius-xs: 4px;   /* 图片圆角 */
+      --radius-sm: 8px;   /* 输入、按钮圆角 */
+      --radius-lg: 20px;  /* 底部面板顶部圆角 */
+
+      --topbar-height: 56px;
+      --bottombar-height: 60px;
+      --tap-target: 44px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: #2b2b2b;
+      font-family: var(--font-sans);
+      color: var(--color-ink);
+      line-height: 1.5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding: 16px 8px 32px;
+    }
+
+    /* 顶部原型控制器栏 (用于评审与多视口验证) */
+    .prototype-toolbar {
+      background: #1e1e1e;
+      color: #e0e0e0;
+      border-radius: 12px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      z-index: 9999;
+      max-width: 900px;
+      width: 100%;
+      font-size: 13px;
+    }
+
+    .toolbar-title {
+      font-weight: 600;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .toolbar-badge {
+      background: var(--color-accent);
+      color: #fff;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .toolbar-btn {
+      background: #333;
+      color: #ddd;
+      border: 1px solid #444;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .toolbar-btn:hover, .toolbar-btn.active {
+      background: var(--color-accent);
+      color: #fff;
+      border-color: var(--color-accent);
+    }
+
+    /* 移动端外壳容器 */
+    .device-shell {
+      position: relative;
+      width: 390px;
+      height: 844px;
+      background: var(--color-canvas);
+      border-radius: 48px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 0 10px #1a1a1a, 0 0 0 12px #333;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: width 0.3s ease, height 0.3s ease, border-radius 0.3s ease;
+    }
+
+    /* 模拟 iPhone 药丸灵动岛 / 刘海区 */
+    .device-notch {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 110px;
+      height: 28px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 1000;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    /* 视口尺寸适配类 */
+    .viewport-360 {
+      width: 360px;
+      height: 800px;
+      border-radius: 40px;
+    }
+    .viewport-430 {
+      width: 430px;
+      height: 932px;
+      border-radius: 52px;
+    }
+    .viewport-full {
+      width: 100% !important;
+      max-width: 440px;
+      height: 92vh;
+      border-radius: 24px;
+    }
+
+    /* 主应用视口与容器 */
+    .app-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      background: var(--color-canvas);
+      color: var(--color-ink);
+      overflow: hidden;
+    }
+
+    /* 模拟状态栏时间 */
+    .status-bar {
+      height: 44px;
+      padding: 12px 24px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-ink);
+      z-index: 900;
+      flex-shrink: 0;
+    }
+
+    /* 页面视口主体（带内部滚动与底栏留白） */
+    .screen-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: calc(var(--bottombar-height) + 20px);
+      position: relative;
+    }
+
+    /* 隐藏所有标签页，仅显示 active */
+    .tab-page {
+      display: none;
+      animation: fadeIn 0.2s ease-out;
+    }
+    .tab-page.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ==========================================================================
+       2. 通用组件规范 (顶栏、底部导航、展签、按钮、标签)
+       ========================================================================== */
+    /* 顶栏 */
+    .top-bar {
+      height: var(--topbar-height);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--color-canvas);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .top-bar-title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+      color: var(--color-ink);
+    }
+    .top-bar-action {
+      min-width: var(--tap-target);
+      min-height: var(--tap-target);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      color: var(--color-ink);
+      cursor: pointer;
+      border-radius: 50%;
+      font-size: 24px;
+      transition: background 0.15s ease;
+    }
+    .top-bar-action:active {
+      background: var(--color-surface-subtle);
+    }
+
+    /* 稳定四栏底部导航 */
+    .bottom-nav {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--bottombar-height);
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-divider);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 800;
+      padding-bottom: 8px;
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--color-muted);
+      text-decoration: none;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      gap: 3px;
+      transition: color 0.15s ease;
+    }
+    .nav-item svg {
+      width: 22px;
+      height: 22px;
+      stroke-width: 1.8;
+      stroke: currentColor;
+      fill: none;
+    }
+    .nav-item span {
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .nav-item.active {
+      color: var(--color-accent);
+    }
+    .nav-item.active span {
+      font-weight: 600;
+    }
+
+    /* 统一按钮体系 */
+    .btn-primary {
+      background: var(--color-accent);
+      color: var(--color-on-accent);
+      border: none;
+      border-radius: var(--radius-sm);
+      height: 48px;
+      padding: 0 20px;
+      font-size: 16px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      width: 100%;
+    }
+    .btn-primary:active {
+      background: var(--color-accent-pressed);
+    }
+    .btn-secondary {
+      background: var(--color-surface-subtle);
+      color: var(--color-ink);
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      height: 44px;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .btn-secondary:active {
+      background: #e5e0d8;
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--color-ink);
+      border: 1px solid var(--color-control-border);
+      border-radius: var(--radius-sm);
+      height: 44px;
+      padding: 0 16px;
+      font-size: 15px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    /* 展签式画廊图片容器 */
+    .gallery-hero-card {
+      margin: 10px 20px 24px;
+      cursor: pointer;
+    }
+    .gallery-img-wrap {
+      width: 100%;
+      border-radius: var(--radius-xs);
+      overflow: hidden;
+      background: #e8e3dc;
+      box-shadow: 0 2px 8px rgba(37, 36, 34, 0.05);
+      position: relative;
+    }
+    .gallery-img-wrap img, .gallery-img-wrap svg {
+      width: 100%;
+      display: block;
+      height: auto;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+    .gallery-hero-card:active .gallery-img-wrap img {
+      transform: scale(0.99);
+    }
+
+    /* 展签排版 (Exhibition Plaque) */
+    .plaque-info {
+      padding-top: 12px;
+    }
+    .plaque-caption {
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--color-ink);
+      font-weight: 400;
+      letter-spacing: -0.1px;
+    }
+    .plaque-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: 6px;
+      font-size: 14px;
+      color: var(--color-muted);
+    }
+    .plaque-date {
+      font-family: var(--font-serif);
+      font-size: 15px;
+      color: var(--color-ink);
+    }
+    .plaque-tag {
+      font-size: 13px;
+    }
+
+    /* 来信通知条（轻量克制，非弹窗，非大角标） */
+    .letter-banner {
+      margin: 12px 20px 24px;
+      padding: 14px 18px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-divider);
+      border-left: 3px solid var(--color-accent);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .letter-banner:active {
+      background: var(--color-accent-soft);
+    }
+    .letter-banner-text {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--color-ink);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .letter-banner-link {
+      font-size: 14px;
+      color: var(--color-accent);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    /* 画廊双图或章节组合 */
+    .gallery-section {
+      margin: 28px 20px 20px;
+    }
+    .gallery-section-title {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--color-ink);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .gallery-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .grid-photo-card {
+      cursor: pointer;
+    }
+    .grid-photo-card .gallery-img-wrap {
+      aspect-ratio: 4 / 5;
+    }
+    .grid-photo-title {
+      font-size: 14px;
+      font-weight: 500;
+      margin-top: 8px;
+      color: var(--color-ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .grid-photo-date {
+      font-size: 12px;
+      color: var(--color-muted);
+      margin-top: 2px;
+    }
+
+    /* 今日一句（展签独立轻文字） */
+    .daily-quote-card {
+      margin: 32px 20px;
+      padding: 24px 20px;
+      background: var(--color-surface);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-divider);
+      position: relative;
+    }
+    .quote-badge {
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .quote-text {
+      font-family: var(--font-serif);
+      font-size: 16px;
+      line-height: 1.8;
+      color: var(--color-ink);
+    }
+
+    /* ==========================================================================
+       3. 相册页结构 (M03)
+       ========================================================================== */
+    .album-header {
+      padding: 0 20px 12px;
+    }
+    .breadcrumb-path {
+      font-size: 13px;
+      color: var(--color-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .breadcrumb-path span.current {
+      color: var(--color-ink);
+      font-weight: 600;
+    }
+
+    .folder-scroller {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      margin-bottom: 16px;
+      scrollbar-width: none;
+    }
+    .folder-scroller::-webkit-scrollbar { display: none; }
+    .folder-pill {
+      background: var(--color-surface);
+      border: 1px solid var(--color-divider);
+      border-radius: 8px;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .folder-pill.active {
+      background: var(--color-accent-soft);
+      border-color: var(--color-accent);
+      color: var(--color-accent);
+      font-weight: 600;
+    }
+
+    .filter-tags {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .tag-item {
+      font-size: 13px;
+      padding: 4px 12px;
+      border-radius: 16px;
+      background: var(--color-surface-subtle);
+      color: var(--color-muted);
+      cursor: pointer;
+    }
+    .tag-item.active {
+      background: var(--color-ink);
+      color: #fff;
+    }
+
+    /* ==========================================================================
+       4. 心愿与任务 (M07 & M08)
+       ========================================================================== */
+    .wish-entry-list {
+      padding: 12px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .wish-entry-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-divider);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .wish-entry-card:active {
+      background: var(--color-accent-soft);
+      border-color: var(--color-accent);
+    }
+    .entry-info h3 {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--color-ink);
+      margin-bottom: 4px;
+    }
+    .entry-info p {
+      font-size: 13px;
+      color: var(--color-muted);
+    }
+
+    .segmented-control {
+      display: flex;
+      background: var(--color-surface-subtle);
+      padding: 3px;
+      border-radius: 8px;
+      margin: 12px 20px;
+    }
+    .segment-btn {
+      flex: 1;
+      padding: 8px 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-muted);
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .segment-btn.active {
+      background: var(--color-surface);
+      color: var(--color-ink);
+      font-weight: 600;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+
+    .task-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-divider);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin: 0 20px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .task-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .task-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+    .task-reward {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-accent);
+      background: var(--color-accent-soft);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .task-desc {
+      font-size: 14px;
+      color: var(--color-muted);
+      line-height: 1.5;
+    }
+    .task-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+      padding-top: 10px;
+      border-top: 1px solid var(--color-divider);
+      font-size: 13px;
+      color: var(--color-muted);
+    }
+
+    /* ==========================================================================
+       5. 我们页面 (M09)
+       ========================================================================== */
+    .profile-header {
+      padding: 16px 20px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .avatar-pair {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .avatar-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 3px solid var(--color-surface);
+      background: #e2ddd5;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: var(--color-muted);
+    }
+    .avatar-heart {
+      width: 28px;
+      height: 28px;
+      margin: 0 -8px;
+      z-index: 10;
+      background: var(--color-surface);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-accent);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+    .profile-names {
+      font-size: 19px;
+      font-weight: 600;
+      color: var(--color-ink);
+      margin-bottom: 4px;
+    }
+    .profile-days {
+      font-size: 14px;
+      color: var(--color-muted);
+    }
+
+    .cell-group {
+      margin: 0 20px 20px;
+      background: var(--color-surface);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-divider);
+      overflow: hidden;
+    }
+    .cell-item {
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--color-divider);
+      cursor: pointer;
+      font-size: 15px;
+      color: var(--color-ink);
+    }
+    .cell-item:last-child {
+      border-bottom: none;
+    }
+    .cell-item:active {
+      background: var(--color-surface-subtle);
+    }
+    .cell-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .cell-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--color-muted);
+    }
+
+    /* ==========================================================================
+       6. 模态层与全屏视图 (M04大图、M05上传、M10信件、M11私密)
+       ========================================================================== */
+    .sheet-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--color-scrim);
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+    .sheet-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .bottom-sheet {
+      background: var(--color-surface);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding: 24px 20px 32px;
+      transform: translateY(100%);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      max-height: 85%;
+      overflow-y: auto;
+    }
+    .sheet-overlay.active .bottom-sheet {
+      transform: translateY(0);
+    }
+    .sheet-drag-handle {
+      width: 36px;
+      height: 4px;
+      background: var(--color-divider);
+      border-radius: 2px;
+      margin: 0 auto 18px;
+    }
+    .sheet-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--color-ink);
+    }
+    .sheet-action-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .sheet-action-item {
+      padding: 14px 16px;
+      background: var(--color-surface-subtle);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      text-align: left;
+      width: 100%;
+    }
+    .sheet-action-item:active {
+      background: var(--color-accent-soft);
+      color: var(--color-accent);
+    }
+
+    /* 全屏大图查看器 (M04) */
+    .viewer-fullscreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--color-viewer);
+      color: #fff;
+      z-index: 1200;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .viewer-fullscreen.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .viewer-topbar {
+      height: 56px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .viewer-btn {
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      color: #fff;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .viewer-img-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+    }
+    .viewer-img-container svg, .viewer-img-container img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    .viewer-bottom-bar {
+      background: rgba(24, 23, 22, 0.85);
+      backdrop-filter: blur(8px);
+      padding: 16px 20px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .viewer-caption {
+      font-size: 15px;
+      color: #fff;
+      font-weight: 500;
+    }
+    .viewer-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #999;
+    }
+
+    /* 全屏独立子页面容器 (上传、信件、时间线、私密空间) */
+    .fullscreen-subpage {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--color-canvas);
+      z-index: 950;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow-y: auto;
+    }
+    .fullscreen-subpage.active {
+      transform: translateX(0);
+    }
+    .subpage-topbar {
+      height: var(--topbar-height);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--color-canvas);
+      border-bottom: 1px solid var(--color-divider);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .subpage-title {
+      font-size: 17px;
+      font-weight: 600;
+    }
+    .subpage-back {
+      border: none;
+      background: transparent;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--color-ink);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      min-height: var(--tap-target);
+      min-width: var(--tap-target);
+    }
+
+    /* 上传进度与条目 (M05 & M06) */
+    .upload-item {
+      background: var(--color-surface);
+      border: 1px solid var(--color-divider);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .upload-thumb {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-xs);
+      background: #e5e0d8;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .upload-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .upload-filename {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .upload-status-text {
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .status-success { color: var(--color-success); }
+    .status-error { color: var(--color-danger); }
+    .status-uploading { color: var(--color-accent); }
+    .upload-progress-bar {
+      height: 4px;
+      background: var(--color-surface-subtle);
+      border-radius: 2px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--color-accent);
+      width: 65%;
+      transition: width 0.3s;
+    }
+
+    /* 空状态与错误提示卡 (M02) */
+    .empty-state {
+      padding: 60px 24px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .empty-icon {
+      width: 54px;
+      height: 54px;
+      color: var(--color-muted);
+      margin-bottom: 4px;
+    }
+    .empty-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+    .empty-desc {
+      font-size: 14px;
+      color: var(--color-muted);
+      max-width: 260px;
+    }
+
+    /* 私密密码输入 (M11) */
+    .pin-input-group {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin: 32px 0;
+    }
+    .pin-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-control-border);
+      transition: background 0.15s;
+    }
+    .pin-dot.filled {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+
+    .keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      max-width: 280px;
+      margin: 0 auto;
+    }
+    .key-btn {
+      height: 56px;
+      border-radius: 50%;
+      background: var(--color-surface);
+      border: 1px solid var(--color-divider);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--color-ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .key-btn:active {
+      background: var(--color-surface-subtle);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       顶部开发与评审控制条 (满足规范 5.1 视口尺寸检查与 13.3 画板切换要求)
+       ========================================================================== -->
+  <header class="prototype-toolbar">
+    <div class="toolbar-title">
+      <span>我们之间 · 生活画廊</span>
+      <span class="toolbar-badge">UI 原型 v1.0</span>
+    </div>
+
+    <!-- 视口尺寸快速切换 -->
+    <div class="toolbar-group">
+      <span style="color:#aaa;">视口：</span>
+      <button class="toolbar-btn active" onclick="setViewport('390', this)">390px (标准)</button>
+      <button class="toolbar-btn" onclick="setViewport('360', this)">360px (紧凑)</button>
+      <button class="toolbar-btn" onclick="setViewport('430', this)">430px (大屏)</button>
+      <button class="toolbar-btn" onclick="setViewport('full', this)">响应式</button>
+    </div>
+
+    <!-- 核心状态快速模拟 -->
+    <div class="toolbar-group" style="margin-left:auto;">
+      <span style="color:#aaa;">状态演练：</span>
+      <button class="toolbar-btn" id="btn-toggle-empty" onclick="toggleEmptyState()">切换 M02 空状态</button>
+      <button class="toolbar-btn" onclick="openUploadSheet()">打开 M05 上传</button>
+      <button class="toolbar-btn" onclick="openLetterViewer()">打开 M10 来信</button>
+      <button class="toolbar-btn" onclick="openPrivateAuth()">进入 M11 私密空间</button>
+      <a href="../../h5/index.html" class="toolbar-btn" style="text-decoration:none; color:#ffd166; border-color:#ffd166;" target="_blank">真机 H5 (含AI伴侣) ↗</a>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       移动端外壳 (默认 390 × 844 CSS px)
+       ========================================================================== -->
+  <main class="device-shell" id="deviceShell">
+    <!-- 模拟顶部药丸灵动岛 -->
+    <div class="device-notch" id="deviceNotch"></div>
+
+    <div class="app-container">
+      <!-- 手机顶部状态栏 -->
+      <div class="status-bar">
+        <span>09:41</span>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor">
+            <path d="M1 9.5h1.5v1H1v-1zm3-2h1.5v3H4v-3zm3-3h1.5v6H7v-6zm3-4h1.5v10H10v-10zm3 1h1.5v9H13v-9z"/>
+          </svg>
+          <svg width="20" height="11" viewBox="0 0 24 12" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="1" y="1" width="19" height="10" rx="3"/>
+            <path d="M22 4v4"/>
+            <rect x="3" y="3" width="14" height="6" rx="1.5" fill="currentColor"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 视口滚动内容主体 -->
+      <div class="screen-content" id="mainScroll">
+
+        <!-- ==================================================================
+             【TAB 1: 日常 (M01 & M02)】 流动影集
+             ================================================================== -->
+        <section class="tab-page active" id="tab-daily">
+          <!-- 顶栏 -->
+          <div class="top-bar">
+            <h1 class="top-bar-title">我们的日常</h1>
+            <button class="top-bar-action" aria-label="新建记录" onclick="openActionMenu()">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- M02 空状态容器 (默认隐藏) -->
+          <div id="daily-empty-view" style="display:none;">
+            <div class="empty-state">
+              <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <rect x="3" y="3" width="18" height="18" rx="3"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <div class="empty-title">这里还没有照片</div>
+              <div class="empty-desc">记录我们的第一张照片，开启共同的生活画廊。</div>
+              <button class="btn-primary" style="margin-top:16px; width:auto; padding:0 24px;" onclick="openUploadSheet()">记录第一张照片</button>
+            </div>
+          </div>
+
+          <!-- M01 正常生活流容器 -->
+          <div id="daily-normal-view">
+            <!-- 核心单张展签大图 -->
+            <div class="gallery-hero-card" onclick="openImageViewer('那天没有计划，只是一起走了很远。', '09.28 · 傍晚环岛路', 'sunset')">
+              <div class="gallery-img-wrap" style="aspect-ratio: 16 / 10;">
+                <!-- 矢量照片模拟：日落与海岸线 -->
+                <svg viewBox="0 0 350 218" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="#3d405b"/>
+                      <stop offset="40%" stop-color="#883E4A"/>
+                      <stop offset="70%" stop-color="#e07a5f"/>
+                      <stop offset="100%" stop-color="#f4f1de"/>
+                    </linearGradient>
+                    <linearGradient id="seaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="#2a3d45"/>
+                      <stop offset="100%" stop-color="#19252b"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="350" height="150" fill="url(#skyGrad)"/>
+                  <circle cx="240" cy="110" r="28" fill="#ffd166" opacity="0.85"/>
+                  <rect y="150" width="350" height="68" fill="url(#seaGrad)"/>
+                  <path d="M0 152 Q90 148 180 153 T350 151" stroke="#e07a5f" stroke-width="2" opacity="0.4" fill="none"/>
+                  <path d="M0 168 Q80 165 170 170 T350 167" stroke="#ffd166" stroke-width="1.5" opacity="0.3" fill="none"/>
+                  <!-- 岸边散步两剪影 -->
+                  <circle cx="95" cy="144" r="3.5" fill="#19252b"/>
+                  <path d="M92 148 h6 v12 h-6 z" fill="#19252b"/>
+                  <circle cx="106" cy="146" r="3.2" fill="#19252b"/>
+                  <path d="M103 150 h6 v10 h-6 z" fill="#19252b"/>
+                </svg>
+              </div>
+              <div class="plaque-info">
+                <p class="plaque-caption">那天没有计划，只是一起走了很远。</p>
+                <div class="plaque-meta">
+                  <span class="plaque-date">09.28</span>
+                  <span class="plaque-tag">在一起第 520 天</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 轻量来信通知条 (规范 7.1 要求：非弹窗、无红色数字徽标) -->
+            <div class="letter-banner" onclick="openLetterViewer()">
+              <div class="letter-banner-text">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+                <span>有一封给你的信</span>
+              </div>
+              <span class="letter-banner-link">打开 ↗</span>
+            </div>
+
+            <!-- 画廊章节：双列照片组合 -->
+            <div class="gallery-section">
+              <div class="gallery-section-title">
+                <span>九月的几个瞬间</span>
+              </div>
+              <div class="gallery-grid-2">
+                <!-- 双列照片 1 -->
+                <div class="grid-photo-card" onclick="openImageViewer('周末午后的手冲咖啡与小书店', '09.21', 'coffee')">
+                  <div class="gallery-img-wrap">
+                    <svg viewBox="0 0 160 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="160" height="200" fill="#e7dfd5"/>
+                      <circle cx="80" cy="90" r="45" fill="#f4efe8" stroke="#d5ccc1" stroke-width="1"/>
+                      <circle cx="80" cy="90" r="36" fill="#6f4e37"/>
+                      <path d="M125 80 c10 0 10 20 0 20" stroke="#d5ccc1" stroke-width="3" fill="none"/>
+                      <rect x="30" y="155" width="100" height="24" rx="2" fill="#d8cbba"/>
+                      <line x1="38" y1="167" x2="122" y2="167" stroke="#b8ab9a" stroke-width="2"/>
+                    </svg>
+                  </div>
+                  <div class="grid-photo-title">午后咖啡与书店</div>
+                  <div class="grid-photo-date">09.21 · 日常</div>
+                </div>
+
+                <!-- 双列照片 2 -->
+                <div class="grid-photo-card" onclick="openImageViewer('路口偶遇的那只打哈欠小花猫', '09.15', 'cat')">
+                  <div class="gallery-img-wrap">
+                    <svg viewBox="0 0 160 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="160" height="200" fill="#e2dbcf"/>
+                      <!-- 窗边阳光 -->
+                      <polygon points="0,0 120,0 80,200 0,200" fill="#ede7dc" opacity="0.6"/>
+                      <circle cx="85" cy="115" r="28" fill="#c49a6c"/>
+                      <polygon points="68,95 76,80 84,95" fill="#a87f54"/>
+                      <polygon points="86,95 94,80 102,95" fill="#a87f54"/>
+                      <ellipse cx="85" cy="120" rx="6" ry="4" fill="#5c4033"/>
+                    </svg>
+                  </div>
+                  <div class="grid-photo-title">路口遇到的小花猫</div>
+                  <div class="grid-photo-date">09.15 · 散步</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 今日一句 (独立展签排版) -->
+            <div class="daily-quote-card">
+              <div class="quote-badge">今日一句</div>
+              <p class="quote-text">“在平常的日子里，慢慢收集我们之间闪闪发光的瞬间。”</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             【TAB 2: 相册 (M03)】 目录与照片流
+             ================================================================== -->
+        <section class="tab-page" id="tab-album">
+          <div class="top-bar">
+            <h1 class="top-bar-title">相册</h1>
+            <button class="btn-primary" style="height:36px; padding:0 14px; font-size:14px; width:auto;" onclick="openUploadSheet()">上传照片</button>
+          </div>
+
+          <div class="album-header">
+            <!-- 路径指示 -->
+            <div class="breadcrumb-path">
+              <span>全部</span>
+              <span>/</span>
+              <span>2026年</span>
+              <span>/</span>
+              <span class="current">厦门旅行</span>
+            </div>
+
+            <!-- 文件夹横滑行 -->
+            <div class="folder-scroller">
+              <div class="folder-pill active">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span>厦门旅行 (24)</span>
+              </div>
+              <div class="folder-pill">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span>日常生活 (68)</span>
+              </div>
+              <div class="folder-pill">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span>猫咪日记 (19)</span>
+              </div>
+            </div>
+
+            <!-- 标签筛选行 -->
+            <div class="filter-tags">
+              <span class="tag-item active">全部</span>
+              <span class="tag-item">风景</span>
+              <span class="tag-item">美食</span>
+              <span class="tag-item">抓拍</span>
+            </div>
+          </div>
+
+          <!-- 双列 4:5 比例照片网格 -->
+          <div style="padding:0 20px;">
+            <div class="gallery-grid-2">
+              <div class="grid-photo-card" onclick="openImageViewer('海边的落日余晖', '09.28', 'sunset')">
+                <div class="gallery-img-wrap">
+                  <svg viewBox="0 0 160 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="160" height="200" fill="#d9745b"/>
+                    <circle cx="80" cy="130" r="35" fill="#f8d07e"/>
+                    <rect y="150" width="160" height="50" fill="#2d3748"/>
+                  </svg>
+                </div>
+                <div class="grid-photo-title">海边落日余晖</div>
+                <div class="grid-photo-date">2026.09.28</div>
+              </div>
+
+              <div class="grid-photo-card" onclick="openImageViewer('老巷子里的手冲咖啡馆', '09.21', 'coffee')">
+                <div class="gallery-img-wrap">
+                  <svg viewBox="0 0 160 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="160" height="200" fill="#cfc2b2"/>
+                    <rect x="35" y="60" width="90" height="80" rx="4" fill="#8d7765"/>
+                    <rect x="50" y="75" width="60" height="50" fill="#f3efe8"/>
+                  </svg>
+                </div>
+                <div class="grid-photo-title">老巷手冲咖啡</div>
+                <div class="grid-photo-date">2026.09.21</div>
+              </div>
+
+              <div class="grid-photo-card" onclick="openImageViewer('绿意盎然的植物园温室', '09.18', 'plant')">
+                <div class="gallery-img-wrap">
+                  <svg viewBox="0 0 160 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="160" height="200" fill="#a3b18a"/>
+                    <path d="M80 180 Q60 110 30 90 Q70 120 80 180" fill="#344e41"/>
+                    <path d="M80 180 Q100 100 130 80 Q90 120 80 180" fill="#588157"/>
+                  </svg>
+                </div>
+                <div class="grid-photo-title">植物园温室</div>
+                <div class="grid-photo-date">2026.09.18</div>
+              </div>
+
+              <div class="grid-photo-card" onclick="openImageViewer('海风吹拂的白色灯塔', '09.12', 'tower')">
+                <div class="gallery-img-wrap">
+                  <svg viewBox="0 0 160 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="160" height="200" fill="#8da9c4"/>
+                    <polygon points="70,180 90,180 85,80 75,80" fill="#eef4f8"/>
+                    <rect x="74" y="70" width="12" height="10" fill="#883e4a"/>
+                  </svg>
+                </div>
+                <div class="grid-photo-title">白色灯塔远景</div>
+                <div class="grid-photo-date">2026.09.12</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             【TAB 3: 心愿 (M07 & M08)】 两个明确入口，无大仪表盘卡片
+             ================================================================== -->
+        <section class="tab-page" id="tab-wishes">
+          <div class="top-bar">
+            <h1 class="top-bar-title">心愿与约定</h1>
+          </div>
+
+          <!-- 两个稳定入口行（规范第 6 节要求：任务与签到、小铺与礼物） -->
+          <div class="wish-entry-list">
+            <div class="wish-entry-card" onclick="openTasksView()">
+              <div class="entry-info">
+                <h3>任务与签到</h3>
+                <p>记录日常分工，完成互动约定赚取心愿积分</p>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-muted)" stroke-width="2">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </div>
+
+            <div class="wish-entry-card" onclick="openShopView()">
+              <div class="entry-info">
+                <h3>小铺与礼物</h3>
+                <p>使用积累的积分兑换甜蜜心愿券与专属特权</p>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-muted)" stroke-width="2">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- 今日签到轻卡片（规范 7.5：不置于首页） -->
+          <div style="margin:8px 20px; padding:18px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:12px; display:flex; align-items:center; justify-content:space-between;">
+            <div>
+              <div style="font-size:15px; font-weight:600; color:var(--color-ink);">今日日常打卡</div>
+              <div style="font-size:13px; color:var(--color-muted); margin-top:2px;" id="checkin-status">已连续签到 7 天 · 签到奖励 +10 积分</div>
+            </div>
+            <button class="btn-primary" style="height:38px; padding:0 16px; font-size:14px; width:auto;" id="checkin-btn" onclick="handleCheckin(this)">打卡签到</button>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             【TAB 4: 我们 (M09)】 双方资料与时间线入口
+             ================================================================== -->
+        <section class="tab-page" id="tab-us">
+          <div class="top-bar">
+            <h1 class="top-bar-title">我们</h1>
+          </div>
+
+          <!-- 双方资料与相伴天数 -->
+          <div class="profile-header">
+            <div class="avatar-pair">
+              <div class="avatar-circle">小林</div>
+              <div class="avatar-heart">❤</div>
+              <div class="avatar-circle">小鹿</div>
+            </div>
+            <h2 class="profile-names">小林 与 小鹿</h2>
+            <p class="profile-days">相伴第 520 天 · 始于 2025.04.30</p>
+          </div>
+
+          <!-- 重要纪念日与生日列表 -->
+          <div class="cell-group">
+            <div class="cell-item">
+              <div class="cell-left">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <span>恋爱纪念日</span>
+              </div>
+              <div class="cell-right">04.30 (还有 211 天)</div>
+            </div>
+            <div class="cell-item">
+              <div class="cell-left">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 6v6l4 2"/>
+                </svg>
+                <span>小鹿的生日</span>
+              </div>
+              <div class="cell-right">11.12 (还有 42 天)</div>
+            </div>
+          </div>
+
+          <!-- 功能列表入口 -->
+          <div class="cell-group">
+            <div class="cell-item" onclick="openStoryTimeline()">
+              <div class="cell-left">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M12 20h9"/>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                </svg>
+                <span>故事时间线</span>
+              </div>
+              <div class="cell-right">
+                <span>编年回忆</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+            </div>
+
+            <div class="cell-item" onclick="openPrivateAuth()">
+              <div class="cell-left">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                <span>私密空间</span>
+              </div>
+              <div class="cell-right">
+                <span>密码锁定</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+            </div>
+
+            <div class="cell-item" onclick="openDeviceAuthView()">
+              <div class="cell-left">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <rect x="5" y="2" width="14" height="20" rx="2"/>
+                  <line x1="12" y1="18" x2="12.01" y2="18"/>
+                </svg>
+                <span>设备与授权</span>
+              </div>
+              <div class="cell-right">
+                <span>当前设备已授权</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ==================================================================
+           稳定四栏底部导航 (日常、相册、心愿、我们)
+           ================================================================== -->
+      <nav class="bottom-nav">
+        <button class="nav-item active" onclick="switchTab('daily', this)">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          </svg>
+          <span>日常</span>
+        </button>
+
+        <button class="nav-item" onclick="switchTab('album', this)">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+          <span>相册</span>
+        </button>
+
+        <button class="nav-item" onclick="switchTab('wishes', this)">
+          <svg viewBox="0 0 24 24">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+          <span>心愿</span>
+        </button>
+
+        <button class="nav-item" onclick="switchTab('us', this)">
+          <svg viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          <span>我们</span>
+        </button>
+      </nav>
+
+      <!-- ==================================================================
+           【模态 1: 首页"+"底部选择面板】 (发照片、记故事、写悄悄话)
+           ================================================================== -->
+      <div class="sheet-overlay" id="recordSheet" onclick="closeSheet(event, 'recordSheet')">
+        <div class="bottom-sheet">
+          <div class="sheet-drag-handle"></div>
+          <div class="sheet-title">记录新的瞬间</div>
+          <div class="sheet-action-list">
+            <button class="sheet-action-item" onclick="openUploadSheet(); closeSheetDirect('recordSheet');">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <span>上传照片</span>
+            </button>
+            <button class="sheet-action-item" onclick="alert('进入记故事全屏表单'); closeSheetDirect('recordSheet');">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M12 20h9"/>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              </svg>
+              <span>记录一段故事</span>
+            </button>
+            <button class="sheet-action-item" onclick="alert('进入写信全屏表单'); closeSheetDirect('recordSheet');">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+              </svg>
+              <span>给对方写封信</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================================================================
+           【全屏层 2: M04 大图查看器】 (深炭色背景、关闭、前后切换、信息展签)
+           ================================================================== -->
+      <div class="viewer-fullscreen" id="imageViewer">
+        <div class="viewer-topbar">
+          <button class="viewer-btn" onclick="closeImageViewer()" aria-label="关闭大图">✕</button>
+          <span style="font-size:14px; font-weight:500;">2 / 12</span>
+          <button class="viewer-btn" onclick="alert('更多操作：保存、查看原图、设为封面')" aria-label="更多操作">···</button>
+        </div>
+        <div class="viewer-img-container" id="viewerContainer">
+          <!-- 动态注入所选照片 -->
+        </div>
+        <div class="viewer-bottom-bar">
+          <div class="viewer-caption" id="viewerCaption">那天没有计划，只是一起走了很远。</div>
+          <div class="viewer-meta">
+            <span id="viewerMeta">09.28 · 傍晚环岛路</span>
+            <span>轻触图片可沉浸浏览</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================================================================
+           【全屏层 3: M05 & M06 上传与异常恢复】 (部分失败重试)
+           ================================================================== -->
+      <div class="fullscreen-subpage" id="uploadSubpage">
+        <div class="subpage-topbar">
+          <button class="subpage-back" onclick="closeUploadSheet()">← 返回</button>
+          <div class="subpage-title">上传照片</div>
+          <button style="border:none; background:transparent; color:var(--color-accent); font-weight:600; font-size:15px; cursor:pointer;" onclick="simulateSubmitUpload()">提交</button>
+        </div>
+        <div style="padding:16px 20px;">
+          <!-- 目标目录选择 -->
+          <div style="margin-bottom:16px;">
+            <label style="font-size:13px; color:var(--color-muted); display:block; margin-bottom:6px;">目标目录</label>
+            <div style="padding:12px 14px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:14px; font-weight:500;">2026年 / 厦门旅行</span>
+              <span style="font-size:13px; color:var(--color-accent);">更换</span>
+            </div>
+          </div>
+
+          <!-- 已选文件列表（演示规范 M06 部分失败与单项重试场景） -->
+          <div style="margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span style="font-size:14px; font-weight:600;">已选文件 (3 张)</span>
+              <span style="font-size:12px; color:var(--color-muted);">总大小 8.4 MB</span>
+            </div>
+
+            <!-- 条目 1: 成功 -->
+            <div class="upload-item">
+              <div class="upload-thumb" style="background:#e07a5f;"></div>
+              <div class="upload-info">
+                <div class="upload-filename">IMG_20260928_sunset.jpg</div>
+                <div class="upload-status-text status-success">✓ 已上传 (3.2 MB)</div>
+              </div>
+            </div>
+
+            <!-- 条目 2: 正在上传 -->
+            <div class="upload-item" id="upload-item-2">
+              <div class="upload-thumb" style="background:#cfc2b2;"></div>
+              <div class="upload-info">
+                <div class="upload-filename">IMG_20260921_coffee.jpg</div>
+                <div class="upload-status-text status-uploading">上传中: 1.8 MB / 2.6 MB (69%)</div>
+                <div class="upload-progress-bar"><div class="progress-fill" style="width:69%;"></div></div>
+              </div>
+            </div>
+
+            <!-- 条目 3: 模拟失败项 (M06 规范要求可单独重试) -->
+            <div class="upload-item">
+              <div class="upload-thumb" style="background:#a3b18a;"></div>
+              <div class="upload-info">
+                <div class="upload-filename">IMG_20260918_greenhouse.jpg</div>
+                <div class="upload-status-text status-error">✕ 上传中断：网络连接超时</div>
+              </div>
+              <button class="btn-secondary" style="height:32px; padding:0 10px; font-size:12px; border-color:var(--color-accent); color:var(--color-accent);" onclick="alert('正在重新传输该单项文件...')">重试</button>
+            </div>
+          </div>
+
+          <!-- 规范 7.4 总体反馈 banner -->
+          <div style="padding:12px 16px; background:var(--color-warning-soft); border-radius:8px; font-size:13px; color:var(--color-warning); margin-bottom:20px;">
+            提示：1 张照片上传失败。成功上传的项目已安全保存，可单独重试失败项。
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================================================================
+           【全屏层 4: M10 来信全屏阅读】 (克制纸质感、无即时通讯复杂状态)
+           ================================================================== -->
+      <div class="fullscreen-subpage" id="letterSubpage">
+        <div class="subpage-topbar">
+          <button class="subpage-back" onclick="closeLetterViewer()">← 返回</button>
+          <div class="subpage-title">一封信</div>
+          <button style="border:none; background:transparent; color:var(--color-ink); font-size:14px; cursor:pointer;" onclick="archiveLetter()">归档</button>
+        </div>
+        <div style="padding:28px 24px; max-width:540px; margin:0 auto; width:100%;">
+          <div style="font-size:13px; color:var(--color-muted); margin-bottom:18px;">
+            <span>小鹿 写于 2026.09.28 22:30</span>
+          </div>
+          <div style="font-family:var(--font-serif); font-size:17px; line-height:2.0; color:var(--color-ink); margin-bottom:32px;">
+            那天在海边吹风的时候，看着天色一点点暗下去，突然觉得平淡的日子只要是和你在一起，就很值得被好好记录下来。<br><br>
+            晚上散步回去买的那杯热奶茶很甜，希望我们一直像这样，慢慢走，走很久很久。
+          </div>
+          <div style="padding-top:20px; border-top:1px solid var(--color-divider); display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:13px; color:var(--color-muted);">已阅读 · 会自动留存在“我们”私密信箱</span>
+            <button class="btn-secondary" style="height:36px; padding:0 14px; font-size:13px;" onclick="closeLetterViewer()">完成阅读</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================================================================
+           【全屏层 5: M11 私密空间】 (PIN 解锁与锁定状态)
+           ================================================================== -->
+      <div class="fullscreen-subpage" id="privateSubpage">
+        <div class="subpage-topbar">
+          <button class="subpage-back" onclick="closePrivateSubpage()">← 返回</button>
+          <div class="subpage-title" id="privateTitle">私密空间验证</div>
+          <button id="privateLockBtn" style="display:none; border:none; background:transparent; color:var(--color-accent); font-weight:600; font-size:14px;" onclick="lockPrivateSpace()">锁定</button>
+        </div>
+
+        <!-- 密码解锁界面 -->
+        <div id="privateAuthView" style="padding:40px 24px; text-align:center;">
+          <div style="width:48px; height:48px; border-radius:50%; background:var(--color-accent-soft); color:var(--color-accent); display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <h2 style="font-size:18px; font-weight:600; color:var(--color-ink);">输入空间独立密码</h2>
+          <p style="font-size:13px; color:var(--color-muted); margin-top:4px;">保护两人专属的私密随笔与留存信件</p>
+
+          <div class="pin-input-group">
+            <div class="pin-dot" id="dot-0"></div>
+            <div class="pin-dot" id="dot-1"></div>
+            <div class="pin-dot" id="dot-2"></div>
+            <div class="pin-dot" id="dot-3"></div>
+          </div>
+
+          <div class="keypad-grid">
+            <button class="key-btn" onclick="pressPin('1')">1</button>
+            <button class="key-btn" onclick="pressPin('2')">2</button>
+            <button class="key-btn" onclick="pressPin('3')">3</button>
+            <button class="key-btn" onclick="pressPin('4')">4</button>
+            <button class="key-btn" onclick="pressPin('5')">5</button>
+            <button class="key-btn" onclick="pressPin('6')">6</button>
+            <button class="key-btn" onclick="pressPin('7')">7</button>
+            <button class="key-btn" onclick="pressPin('8')">8</button>
+            <button class="key-btn" onclick="pressPin('9')">9</button>
+            <button class="key-btn" style="background:transparent; border:none; font-size:14px; color:var(--color-muted);" onclick="clearPin()">重输</button>
+            <button class="key-btn" onclick="pressPin('0')">0</button>
+            <button class="key-btn" style="background:transparent; border:none; font-size:16px;" onclick="deletePin()">⌫</button>
+          </div>
+          <div style="margin-top:20px; font-size:12px; color:var(--color-muted);">原型提示：输入任意4位数字即可模拟成功解锁</div>
+        </div>
+
+        <!-- 已解锁私密内容列表 (默认隐藏) -->
+        <div id="privateContentView" style="display:none; padding:16px 20px;">
+          <div style="font-size:13px; color:var(--color-muted); margin-bottom:12px;">已归档来信与专属随笔 (2 条)</div>
+          <div class="cell-group" style="margin:0 0 16px;">
+            <div class="cell-item" onclick="openLetterViewer()">
+              <div class="cell-left">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+                <span>小鹿的来信 · 那天海边的风</span>
+              </div>
+              <div class="cell-right">09.28</div>
+            </div>
+            <div class="cell-item" onclick="alert('查看随笔：小林写下的秘密心愿清单')">
+              <div class="cell-left">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <span>专属随笔 · 秘密心愿清单</span>
+              </div>
+              <div class="cell-right">08.15</div>
+            </div>
+          </div>
+          <button class="btn-secondary" style="width:100%;" onclick="lockPrivateSpace()">立即锁定空间</button>
+        </div>
+      </div>
+
+      <!-- ==================================================================
+           【全屏层 6: 心愿二级页 - 任务与签到】
+           ================================================================== -->
+      <div class="fullscreen-subpage" id="tasksSubpage">
+        <div class="subpage-topbar">
+          <button class="subpage-back" onclick="closeTasksView()">← 返回心愿</button>
+          <div class="subpage-title">任务与约定</div>
+          <button style="border:none; background:transparent; color:var(--color-accent); font-weight:600; font-size:14px;" onclick="alert('新建任务约定')">＋新增</button>
+        </div>
+        <div class="segmented-control">
+          <button class="segment-btn active" onclick="switchTaskTab('pending', this)">待完成 (1)</button>
+          <button class="segment-btn" onclick="switchTaskTab('confirming', this)">待确认 (1)</button>
+          <button class="segment-btn" onclick="switchTaskTab('done', this)">已完成 (3)</button>
+        </div>
+
+        <div id="tasks-list-content">
+          <!-- 任务 1: 待完成 -->
+          <div class="task-card">
+            <div class="task-top">
+              <div class="task-title">周末一起去海边散步看落日</div>
+              <div class="task-reward">+20 积分</div>
+            </div>
+            <div class="task-desc">一起出门走走，吹吹海风，远离屏幕与工作压力。</div>
+            <div class="task-footer">
+              <span>由 小林 认领执行</span>
+              <button class="btn-primary" style="height:32px; padding:0 12px; font-size:13px; width:auto;" onclick="markTaskCompleted(this)">标记已完成</button>
+            </div>
+          </div>
+
+          <!-- 任务 2: 待确认 (规范 7.5：完成者不可自我确认，合法确认者确认) -->
+          <div class="task-card">
+            <div class="task-top">
+              <div class="task-title">做一顿营养美味的晚餐</div>
+              <div class="task-reward">+15 积分</div>
+            </div>
+            <div class="task-desc">小林已于 19:30 提交完成，包含番茄牛腩与西兰花。</div>
+            <div class="task-footer">
+              <span style="color:var(--color-warning);">等待小鹿确认</span>
+              <button class="btn-secondary" style="height:32px; padding:0 12px; font-size:13px; width:auto; border-color:var(--color-accent); color:var(--color-accent);" onclick="confirmTask(this)">确认完成发放奖励</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================================================================
+           【全屏层 7: 心愿二级页 - 小铺与礼物】 (规范 7.6 兑换与确认)
+           ================================================================== -->
+      <div class="fullscreen-subpage" id="shopSubpage">
+        <div class="subpage-topbar">
+          <button class="subpage-back" onclick="closeShopView()">← 返回心愿</button>
+          <div class="subpage-title">心愿小铺</div>
+          <div style="font-size:13px; color:var(--color-muted);">记录</div>
+        </div>
+
+        <!-- 积分余额信息 (规范明确：仅在小铺显示，不污染首页) -->
+        <div style="padding:16px 20px; background:var(--color-surface); border-bottom:1px solid var(--color-divider); display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:12px; color:var(--color-muted);">当前可用积分</div>
+            <div style="font-size:24px; font-weight:700; color:var(--color-accent); font-family:var(--font-serif);" id="user-points">520</div>
+          </div>
+          <button class="btn-secondary" style="height:34px; padding:0 12px; font-size:13px;" onclick="alert('背包中共有 2 张未使用的券')">我的背包 (2)</button>
+        </div>
+
+        <!-- 商品双列网格 -->
+        <div style="padding:16px 20px;">
+          <div class="gallery-grid-2">
+            <div class="grid-photo-card" onclick="openExchangeModal('温暖拥抱券', 50)">
+              <div class="gallery-img-wrap" style="aspect-ratio: 1; display:flex; align-items:center; justify-content:center; background:#f4ece1;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.8">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+              </div>
+              <div class="grid-photo-title">温暖拥抱券</div>
+              <div class="grid-photo-date" style="color:var(--color-accent); font-weight:600;">50 积分</div>
+            </div>
+
+            <div class="grid-photo-card" onclick="openExchangeModal('专属肩颈按摩 20分钟', 80)">
+              <div class="gallery-img-wrap" style="aspect-ratio: 1; display:flex; align-items:center; justify-content:center; background:#ebf0ec;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="1.8">
+                  <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/>
+                  <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/>
+                  <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/>
+                  <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+                </svg>
+              </div>
+              <div class="grid-photo-title">专属肩颈按摩券</div>
+              <div class="grid-photo-date" style="color:var(--color-accent); font-weight:600;">80 积分</div>
+            </div>
+
+            <div class="grid-photo-card" onclick="openExchangeModal('免洗碗特权券', 100)">
+              <div class="gallery-img-wrap" style="aspect-ratio: 1; display:flex; align-items:center; justify-content:center; background:#e8edf3;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4a6fa5" stroke-width="1.8">
+                  <circle cx="12" cy="12" r="9"/>
+                  <circle cx="12" cy="12" r="5"/>
+                </svg>
+              </div>
+              <div class="grid-photo-title">免洗碗特权券</div>
+              <div class="grid-photo-date" style="color:var(--color-accent); font-weight:600;">100 积分</div>
+            </div>
+
+            <div class="grid-photo-card" onclick="openExchangeModal('周末睡懒觉不催起券', 60)">
+              <div class="gallery-img-wrap" style="aspect-ratio: 1; display:flex; align-items:center; justify-content:center; background:#f5ede8;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#b2675e" stroke-width="1.8">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+              </div>
+              <div class="grid-photo-title">周末睡懒觉券</div>
+              <div class="grid-photo-date" style="color:var(--color-accent); font-weight:600;">60 积分</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================================================================
+           【全屏层 8: 故事时间线 (M09)】 编年记录
+           ================================================================== -->
+      <div class="fullscreen-subpage" id="timelineSubpage">
+        <div class="subpage-topbar">
+          <button class="subpage-back" onclick="closeStoryTimeline()">← 返回</button>
+          <div class="subpage-title">故事时间线</div>
+          <button style="border:none; background:transparent; color:var(--color-accent); font-size:14px; font-weight:600;" onclick="alert('添加新的时间线事件')">＋记故事</button>
+        </div>
+        <div style="padding:20px;">
+          <!-- 年份节点 -->
+          <div style="font-family:var(--font-serif); font-size:24px; font-weight:600; color:var(--color-ink); margin-bottom:16px;">2026</div>
+
+          <!-- 时间轴条目 1 -->
+          <div style="position:relative; padding-left:24px; margin-bottom:24px; border-left:2px solid var(--color-divider);">
+            <div style="position:absolute; left:-6px; top:4px; width:10px; height:10px; border-radius:50%; background:var(--color-accent);"></div>
+            <div style="font-size:13px; color:var(--color-muted);">09月28日 · 厦门环岛路</div>
+            <div style="font-size:16px; font-weight:600; margin:4px 0 6px;">吹着海风看日落</div>
+            <p style="font-size:14px; color:var(--color-ink); line-height:1.6;">那天没有特定计划，只是在海边漫无目的地走了很久很久。</p>
+          </div>
+
+          <!-- 时间轴条目 2 -->
+          <div style="position:relative; padding-left:24px; margin-bottom:24px; border-left:2px solid var(--color-divider);">
+            <div style="position:absolute; left:-6px; top:4px; width:10px; height:10px; border-radius:50%; background:var(--color-muted);"></div>
+            <div style="font-size:13px; color:var(--color-muted);">04月30日 · 在一起一周年</div>
+            <div style="font-size:16px; font-weight:600; margin:4px 0 6px;">一周年纪念日的晚餐</div>
+            <p style="font-size:14px; color:var(--color-ink); line-height:1.6;">预订了喜欢的小馆子，互送了亲手制作的礼物。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================================================================
+           【全屏层 9: 设备与授权 (M12)】
+           ================================================================== -->
+      <div class="fullscreen-subpage" id="deviceSubpage">
+        <div class="subpage-topbar">
+          <button class="subpage-back" onclick="closeDeviceAuthView()">← 返回</button>
+          <div class="subpage-title">安全与授权设备</div>
+          <div style="width:40px;"></div>
+        </div>
+        <div style="padding:20px;">
+          <div style="background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-sm); padding:16px; margin-bottom:16px;">
+            <div style="font-size:14px; font-weight:600; color:var(--color-ink); margin-bottom:4px;">当前操作设备</div>
+            <div style="font-size:13px; color:var(--color-muted);">iPhone 15 Pro · Safari · 已获长期授权</div>
+            <div style="margin-top:12px; font-size:12px; color:var(--color-success); font-weight:500;">● 安全信任会话有效</div>
+          </div>
+
+          <div style="font-size:14px; font-weight:600; color:var(--color-ink); margin-bottom:10px;">新设备接入验证演示</div>
+          <div style="background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-sm); padding:20px; text-align:center;">
+            <div style="font-size:13px; color:var(--color-muted);">待审批设备核对码</div>
+            <div style="font-family:monospace; font-size:28px; font-weight:700; letter-spacing:4px; margin:10px 0; color:var(--color-ink);">7392-A8</div>
+            <div style="font-size:12px; color:var(--color-muted); margin-bottom:16px;">有效期剩余 08:45 · 请由已授权的主设备批准</div>
+            <div style="display:flex; gap:10px;">
+              <button class="btn-secondary" style="flex:1;" onclick="alert('已拒绝新设备接入')">拒绝接入</button>
+              <button class="btn-primary" style="flex:1;" onclick="alert('已批准新设备信任')">批准授权</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ==========================================================================
+       交互逻辑脚本 (模块化、轻量纯原生 JS)
+       ========================================================================== -->
+  <script>
+    // 1. 视口切换器控制
+    function setViewport(size, btn) {
+      const shell = document.getElementById('deviceShell');
+      const notch = document.getElementById('deviceNotch');
+      document.querySelectorAll('.toolbar-btn').forEach(b => {
+        if (b.innerText.includes('px') || b.innerText.includes('响应式')) b.classList.remove('active');
+      });
+      btn.classList.add('active');
+
+      shell.classList.remove('viewport-360', 'viewport-430', 'viewport-full');
+      if (size === '360') {
+        shell.classList.add('viewport-360');
+        notch.style.display = 'block';
+      } else if (size === '430') {
+        shell.classList.add('viewport-430');
+        notch.style.display = 'block';
+      } else if (size === 'full') {
+        shell.classList.add('viewport-full');
+        notch.style.display = 'none';
+      } else {
+        notch.style.display = 'block';
+      }
+    }
+
+    // 2. 底部四栏切换
+    function switchTab(tabName, btn) {
+      document.querySelectorAll('.tab-page').forEach(page => page.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+
+      const target = document.getElementById('tab-' + tabName);
+      if (target) {
+        target.classList.add('active');
+        btn.classList.add('active');
+        document.getElementById('mainScroll').scrollTop = 0;
+      }
+    }
+
+    // 3. M02 空状态切换演练
+    let isEmpty = false;
+    function toggleEmptyState() {
+      isEmpty = !isEmpty;
+      const emptyView = document.getElementById('daily-empty-view');
+      const normalView = document.getElementById('daily-normal-view');
+      const btn = document.getElementById('btn-toggle-empty');
+
+      if (isEmpty) {
+        emptyView.style.display = 'block';
+        normalView.style.display = 'none';
+        btn.innerText = '恢复 M01 生活流';
+        btn.classList.add('active');
+      } else {
+        emptyView.style.display = 'none';
+        normalView.style.display = 'block';
+        btn.innerText = '切换 M02 空状态';
+        btn.classList.remove('active');
+      }
+    }
+
+    // 4. 底部动作面板 (发照片/故事/信件)
+    function openActionMenu() {
+      document.getElementById('recordSheet').classList.add('active');
+    }
+    function closeSheet(e, id) {
+      if (e.target.id === id) {
+        document.getElementById(id).classList.remove('active');
+      }
+    }
+    function closeSheetDirect(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    // 5. M04 全屏大图查看器
+    const photoDict = {
+      sunset: `<svg viewBox="0 0 350 220" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="skyL" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#3d405b"/><stop offset="50%" stop-color="#883E4A"/><stop offset="100%" stop-color="#f4f1de"/>
+          </linearGradient>
+        </defs>
+        <rect width="350" height="220" fill="url(#skyL)"/>
+        <circle cx="230" cy="110" r="30" fill="#ffd166" opacity="0.9"/>
+        <rect y="160" width="350" height="60" fill="#19252b"/>
+      </svg>`,
+      coffee: `<svg viewBox="0 0 300 300" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+        <rect width="300" height="300" fill="#e7dfd5"/>
+        <circle cx="150" cy="140" r="60" fill="#6f4e37"/>
+        <rect x="60" y="230" width="180" height="30" rx="4" fill="#d8cbba"/>
+      </svg>`,
+      cat: `<svg viewBox="0 0 300 300" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+        <rect width="300" height="300" fill="#e2dbcf"/>
+        <circle cx="150" cy="160" r="50" fill="#c49a6c"/>
+      </svg>`,
+      plant: `<svg viewBox="0 0 300 300" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+        <rect width="300" height="300" fill="#a3b18a"/>
+        <path d="M150 280 Q100 150 40 120 Q120 180 150 280" fill="#344e41"/>
+      </svg>`,
+      tower: `<svg viewBox="0 0 300 300" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+        <rect width="300" height="300" fill="#8da9c4"/>
+        <polygon points="130,280 170,280 160,100 140,100" fill="#eef4f8"/>
+      </svg>`
+    };
+
+    function openImageViewer(caption, meta, key) {
+      const viewer = document.getElementById('imageViewer');
+      const container = document.getElementById('viewerContainer');
+      document.getElementById('viewerCaption').innerText = caption;
+      document.getElementById('viewerMeta').innerText = meta;
+      container.innerHTML = photoDict[key] || photoDict['sunset'];
+      viewer.classList.add('active');
+    }
+    function closeImageViewer() {
+      document.getElementById('imageViewer').classList.remove('active');
+    }
+
+    // 6. M05 & M06 上传子页面与提交模拟
+    function openUploadSheet() {
+      document.getElementById('uploadSubpage').classList.add('active');
+    }
+    function closeUploadSheet() {
+      document.getElementById('uploadSubpage').classList.remove('active');
+    }
+    function simulateSubmitUpload() {
+      alert('已触发上传：2 张成功，1 张重试中。上传遵循幂等性与断点续传。');
+      closeUploadSheet();
+    }
+
+    // 7. M10 来信查看
+    function openLetterViewer() {
+      document.getElementById('letterSubpage').classList.add('active');
+    }
+    function closeLetterViewer() {
+      document.getElementById('letterSubpage').classList.remove('active');
+    }
+    function archiveLetter() {
+      alert('信件已归档至私密空间信箱。');
+      closeLetterViewer();
+    }
+
+    // 8. M11 私密空间 PIN 验证逻辑
+    let currentPin = '';
+    function openPrivateAuth() {
+      document.getElementById('privateSubpage').classList.add('active');
+      lockPrivateSpace();
+    }
+    function closePrivateSubpage() {
+      document.getElementById('privateSubpage').classList.remove('active');
+    }
+    function pressPin(digit) {
+      if (currentPin.length < 4) {
+        currentPin += digit;
+        updatePinDots();
+        if (currentPin.length === 4) {
+          setTimeout(unlockPrivateSpace, 200);
+        }
+      }
+    }
+    function deletePin() {
+      if (currentPin.length > 0) {
+        currentPin = currentPin.slice(0, -1);
+        updatePinDots();
+      }
+    }
+    function clearPin() {
+      currentPin = '';
+      updatePinDots();
+    }
+    function updatePinDots() {
+      for (let i = 0; i < 4; i++) {
+        const dot = document.getElementById('dot-' + i);
+        if (i < currentPin.length) {
+          dot.classList.add('filled');
+        } else {
+          dot.classList.remove('filled');
+        }
+      }
+    }
+    function unlockPrivateSpace() {
+      document.getElementById('privateAuthView').style.display = 'none';
+      document.getElementById('privateContentView').style.display = 'block';
+      document.getElementById('privateLockBtn').style.display = 'block';
+      document.getElementById('privateTitle').innerText = '私密空间 (已解锁)';
+    }
+    function lockPrivateSpace() {
+      currentPin = '';
+      updatePinDots();
+      document.getElementById('privateAuthView').style.display = 'block';
+      document.getElementById('privateContentView').style.display = 'none';
+      document.getElementById('privateLockBtn').style.display = 'none';
+      document.getElementById('privateTitle').innerText = '私密空间验证';
+    }
+
+    // 9. 心愿二级页面控制器 (任务、小铺、故事、设备)
+    function openTasksView() { document.getElementById('tasksSubpage').classList.add('active'); }
+    function closeTasksView() { document.getElementById('tasksSubpage').classList.remove('active'); }
+
+    function openShopView() { document.getElementById('shopSubpage').classList.add('active'); }
+    function closeShopView() { document.getElementById('shopSubpage').classList.remove('active'); }
+
+    function openStoryTimeline() { document.getElementById('timelineSubpage').classList.add('active'); }
+    function closeStoryTimeline() { document.getElementById('timelineSubpage').classList.remove('active'); }
+
+    function openDeviceAuthView() { document.getElementById('deviceSubpage').classList.add('active'); }
+    function closeDeviceAuthView() { document.getElementById('deviceSubpage').classList.remove('active'); }
+
+    // 10. 任务与签到状态机演示
+    function handleCheckin(btn) {
+      btn.innerText = '已签到';
+      btn.disabled = true;
+      btn.style.background = 'var(--color-surface-subtle)';
+      btn.style.color = 'var(--color-muted)';
+      document.getElementById('checkin-status').innerText = '今日已打卡 · 积分 +10 已发放';
+    }
+    function markTaskCompleted(btn) {
+      btn.innerText = '等待对方确认';
+      btn.disabled = true;
+      btn.style.background = 'var(--color-warning-soft)';
+      btn.style.color = 'var(--color-warning)';
+    }
+    function confirmTask(btn) {
+      btn.innerText = '已发放奖励';
+      btn.disabled = true;
+      btn.style.background = 'var(--color-success-soft)';
+      btn.style.color = 'var(--color-success)';
+      alert('确认完成！对方已获得 +15 约定积分。');
+    }
+
+    // 11. 小铺兑换弹窗
+    function openExchangeModal(name, cost) {
+      const confirmed = confirm(`确认兑换「${name}」？\n消耗积分：${cost} 点\n兑换后将自动放入我的背包。`);
+      if (confirmed) {
+        const balanceEl = document.getElementById('user-points');
+        let current = parseInt(balanceEl.innerText, 10);
+        if (current >= cost) {
+          balanceEl.innerText = current - cost;
+          alert(`兑换成功！已获得「${name}」，剩余积分 ${current - cost} 点。`);
+        } else {
+          alert('积分不足，快去完成双人任务赚取积分吧！');
+        }
+      }
+    }
+  </script>
+</body>
+</html>

@@ -7,10 +7,29 @@ const API = (() => {
   let currentUser = null;
   let userId = null;
 
+  let apiBaseUrl = '';
+  try {
+    if (typeof window !== 'undefined' && window.location) {
+      const port = window.location.port;
+      const protocol = window.location.protocol;
+      if (protocol === 'file:' || (port && port !== '19085')) {
+        apiBaseUrl = 'http://127.0.0.1:19085';
+      }
+    }
+  } catch (_) {}
+
+  function resolveUrl(url) {
+    if (!url) return '';
+    if (/^(https?:)?\/\//i.test(url)) return url;
+    const clean = url.startsWith('/') ? url : '/' + url;
+    return (apiBaseUrl || '') + clean;
+  }
+
   // ── CSRF ──────────────────────────────────────────────
   async function fetchCSRFToken() {
     try {
-      const res = await fetch('api/csrf-token.php', { credentials: 'same-origin', cache: 'no-store' });
+      const targetUrl = resolveUrl('api/csrf-token.php');
+      const res = await fetch(targetUrl, { credentials: 'include', cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
         csrfToken = data.csrf_token;
@@ -34,7 +53,7 @@ const API = (() => {
   // ── Core request helpers ──────────────────────────────
   async function get(url) {
     try {
-      const res = await fetch(url, { credentials: 'same-origin' });
+      const res = await fetch(resolveUrl(url), { credentials: 'include' });
       if (res.status === 401) return { redirect: 'login' };
       return await res.json();
     } catch (e) {
@@ -47,10 +66,10 @@ const API = (() => {
       const token = await getCSRFToken();
       if (token) data.csrf_token = token;
 
-      const res = await fetch(url, {
+      const res = await fetch(resolveUrl(url), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
+        credentials: 'include',
         body: JSON.stringify(data)
       });
       if (res.status === 401) return { redirect: 'login' };
@@ -66,10 +85,11 @@ const API = (() => {
       const token = await getCSRFToken();
       if (token) data.csrf_token = token;
 
-      const send = () => fetch(url, {
+      const targetUrl = resolveUrl(url);
+      const send = () => fetch(targetUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        credentials: 'same-origin',
+        credentials: 'include',
         body: new URLSearchParams(data).toString()
       });
       let res = await send();
@@ -85,7 +105,8 @@ const API = (() => {
       if (result.device_pending) window.location.href = '/device-access.php';
       return result;
     } catch (e) {
-      return { success: false, message: '网络错误，请检查连接' };
+      console.error('[API.postForm] error:', e);
+      return { success: false, message: '网络错误，请检查服务是否运行在 http://127.0.0.1:19085' };
     }
   }
 
@@ -124,9 +145,10 @@ const API = (() => {
       link.style.cssText = 'position:fixed;right:16px;bottom:80px;z-index:999;background:#fffdf9;color:#544139;padding:9px 14px;border:1px solid #d9cfc3;border-radius:20px;font-size:14px';
       document.body.appendChild(link);
     }
-    // Redirect to login if not on login page and not logged in
+    // Redirect to login if not on login page, test page, or device router test and not logged in
     const onLoginPage = location.pathname.endsWith('index.html') || location.pathname === '/' || location.pathname.endsWith('/');
-    if (!onLoginPage && !currentUser) {
+    const onTestPage = location.pathname.includes('/test/') || location.pathname.includes('device-router-test.html');
+    if (!onLoginPage && !onTestPage && !currentUser) {
       const check = await checkAuth();
       if (!check.loggedIn) {
         window.location.href = 'index.html';
