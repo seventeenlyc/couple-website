@@ -14,6 +14,8 @@ const __dirname = path.dirname(__filename);
 test('Legacy Data Import and Reconcile Integrity', async (t) => {
   const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'couple-legacy-migration-'));
   const testDbPath = path.join(fixtureDir, 'migration.db');
+  const deviceStorePath = path.join(fixtureDir, 'device-state.json');
+  fs.writeFileSync(deviceStorePath, JSON.stringify({ version: 1, bound: {}, devices: {}, rates: {} }));
   fs.writeFileSync(path.join(fixtureDir, 'config.json'), JSON.stringify({ users: {
     fixtureA: { id: 'fixture-a', password: '', partner: 'fixtureB' },
     fixtureB: { id: 'fixture-b', password: '', partner: 'fixtureA' }
@@ -36,12 +38,15 @@ test('Legacy Data Import and Reconcile Integrity', async (t) => {
     closeDb();
     const rep = runImport({
       dbPath: testDbPath,
-      dataDir: fixtureDir
+      dataDir: fixtureDir,
+      deviceStorePath
     });
 
     assert.equal(rep.users, 2);
     assert.equal(rep.products, 11);
     assert.equal(rep.tasks, 8);
+    assert.equal(rep.deviceBindings, 0);
+    assert.equal(rep.deviceRecords, 0);
     closeDb();
   });
 
@@ -49,7 +54,8 @@ test('Legacy Data Import and Reconcile Integrity', async (t) => {
     closeDb();
     const rep2 = runImport({
       dbPath: testDbPath,
-      dataDir: fixtureDir
+      dataDir: fixtureDir,
+      deviceStorePath
     });
     closeDb();
 
@@ -107,7 +113,7 @@ test('Legacy Data Import and Reconcile Integrity', async (t) => {
     fs.writeFileSync(path.join(tempDir, 'private_u_priv_test.json'), JSON.stringify(privData));
 
     const legacyDbPath = path.join(tempDir, 'temp.db');
-    runImport({ dbPath: legacyDbPath, dataDir: tempDir });
+    runImport({ dbPath: legacyDbPath, dataDir: tempDir, deviceStorePath });
     closeDb();
 
     const db = initDb(legacyDbPath);
