@@ -597,7 +597,11 @@ export function generateDatePlanDraft(coupleContext, userMessage, primaryMemory)
  * 拾光生活助手核心交互
  */
 export async function chatWithCoupleAgent(db, message, history = [], currentUsername = null) {
+  const perfStart = Date.now();
+  const perfLog = { total: 0, setup: 0, retrieval: 0, llm: 0, local: 0 };
+
   // 1. 用户与伴侣基础事实提取
+  const setupStart = Date.now();
   const users = db.prepare('SELECT id, username, birthday FROM users').all();
   const user1 = users[0]?.username || 'name1';
   const user2 = users[1]?.username || 'name2';
@@ -618,10 +622,13 @@ export async function chatWithCoupleAgent(db, message, history = [], currentUser
     partnerName,
     usernames
   };
+  perfLog.setup = Date.now() - setupStart;
 
   // 2. 真实记忆检索 (相册 + 故事轴)
+  const retrievalStart = Date.now();
   const memoryResult = searchMemories(db, message);
   const { primaryMemory, memoryRef, matchQuality, searchWord: memoryKeyword } = memoryResult;
+  perfLog.retrieval = Date.now() - retrievalStart;
 
   // 3. 意图分类：优先识别明确的回忆与相册查询，规划必须结合未来安排语境，杜绝将“旅行照片”误判为约会规划
   const text = (message || '').toLowerCase();
@@ -648,6 +655,7 @@ export async function chatWithCoupleAgent(db, message, history = [], currentUser
 
   // 5. 大模型调用 (RAG 真实记忆注入)
   if (aiConfig && aiConfig.enabled && aiConfig.api_key) {
+    const llmStart = Date.now();
     try {
       // 提取相册与故事的前 5 条作为真实记忆知识库
       const recentPhotos = db.prepare(`
@@ -706,10 +714,14 @@ ${memoryFactContext}
       if (res.ok) {
         const data = await res.json();
         const content = data.choices?.[0]?.message?.content?.trim();
+        perfLog.llm = Date.now() - llmStart;
         if (content && data.choices?.[0]?.finish_reason !== 'length') {
-          const draft = isWhisperIntent 
+          const draft = isWhisperIntent
             ? generateWhisperDrafts(coupleContext, message)
             : (isDateIntent ? generateDatePlanDraft(coupleContext, message, primaryMemory) : null);
+
+          perfLog.total = Date.now() - perfStart;
+          console.log(`[Shiguang Performance] total=${perfLog.total}ms setup=${perfLog.setup}ms retrieval=${perfLog.retrieval}ms llm=${perfLog.llm}ms`);
 
           return {
             success: true,
@@ -722,11 +734,13 @@ ${memoryFactContext}
         }
       }
     } catch (_) {
+      perfLog.llm = Date.now() - llmStart;
       // 接口超时或异常时自动无缝降级到本地真实记忆驱动引擎
     }
   }
 
   // 6. 本地真实数据驱动引擎 (Local Authentic Engine - 彻底替换死模板)
+  const localStart = Date.now();
 
   // 6.1 留言 / 悄悄话草稿
   if (isWhisperIntent) {
@@ -734,6 +748,11 @@ ${memoryFactContext}
     const reply = `为你整理了三句温润而真挚的留言短句，点击下方「更多 ···」即可一键填入悄悄话发送给${partnerName}：\n\n` +
       draft.options.map((opt, i) => `${i + 1}. “${opt}”`).join('\n\n') +
       `\n\n挑选一句你最想表达的，或者直接复制微调吧 💕`;
+
+    perfLog.local = Date.now() - localStart;
+    perfLog.total = Date.now() - perfStart;
+    console.log(`[Shiguang Performance] total=${perfLog.total}ms setup=${perfLog.setup}ms retrieval=${perfLog.retrieval}ms local=${perfLog.local}ms (local:whisper)`);
+
     return {
       success: true,
       reply,
@@ -766,10 +785,15 @@ ${memoryFactContext}
           : `在你们的故事时间轴里找到了这段里程碑：\n\n`) +
           `📖 ${primaryMemory.title}\n` +
           `📅 发生日期：${primaryMemory.date}\n` +
-          (primaryMemory.description ? `💭 当时记下：“${primaryMemory.description}”\n` : '') +
+          (primaryMemory.description ? `💭 当时记下：”${primaryMemory.description}”\n` : '') +
           `\n点击下方展签即可重温这一段专属时光。` +
           (isFuzzy ? `\n\n如果这不是你要找的那一次，可以再补充地点或日期，我再帮你仔细翻找。` : '');
       }
+
+      perfLog.local = Date.now() - localStart;
+      perfLog.total = Date.now() - perfStart;
+      console.log(`[Shiguang Performance] total=${perfLog.total}ms setup=${perfLog.setup}ms retrieval=${perfLog.retrieval}ms local=${perfLog.local}ms (local:memory_found)`);
+
       return {
         success: true,
         reply,
@@ -779,6 +803,10 @@ ${memoryFactContext}
         matchQuality
       };
     } else {
+      perfLog.local = Date.now() - localStart;
+      perfLog.total = Date.now() - perfStart;
+      console.log(`[Shiguang Performance] total=${perfLog.total}ms setup=${perfLog.setup}ms retrieval=${perfLog.retrieval}ms local=${perfLog.local}ms (local:memory_not_found)`);
+
       return {
         success: true,
         reply: `在画廊相册与故事时间轴里，暂时还没有找到相关的记录呢。\n\n相伴的这 ${diffDays} 天里，每一天都有闪光的日常。要不要现在点击顶部的「＋记录」，记下一段新的故事或上传几张照片？`,
@@ -796,6 +824,11 @@ ${memoryFactContext}
     const reply = `结合你们相伴的第 ${diffDays} 天，为你整理了一份慢节奏的周末漫步提案：\n\n` +
       draft.content +
       `\n\n你可以点击下方「更多 ···」把这份规划直接记入故事时间线备忘。`;
+
+    perfLog.local = Date.now() - localStart;
+    perfLog.total = Date.now() - perfStart;
+    console.log(`[Shiguang Performance] total=${perfLog.total}ms setup=${perfLog.setup}ms retrieval=${perfLog.retrieval}ms local=${perfLog.local}ms (local:date_plan)`);
+
     return {
       success: true,
       reply,
@@ -808,6 +841,10 @@ ${memoryFactContext}
 
   // 6.4 情绪共情与分歧化解
   if (isConflictIntent) {
+    perfLog.local = Date.now() - localStart;
+    perfLog.total = Date.now() - perfStart;
+    console.log(`[Shiguang Performance] total=${perfLog.total}ms setup=${perfLog.setup}ms retrieval=${perfLog.retrieval}ms local=${perfLog.local}ms (local:conflict)`);
+
     return {
       success: true,
       reply: `相伴的这 ${diffDays} 天里，遇到分歧往往是因为彼此都在意对方。\n\n此时不妨先各自平静片刻。试着把容易激化情绪的话，换成真诚的感受表达，例如：\n“刚才我有些着急，但我很在意你的感受，等下我们一起聊聊好吗？”\n\n给对方一个温和的缓冲台阶，往往比争执更能拉近彼此。`,
@@ -819,6 +856,10 @@ ${memoryFactContext}
 
   // 6.5 疲惫安慰
   if (isExhaustedIntent) {
+    perfLog.local = Date.now() - localStart;
+    perfLog.total = Date.now() - perfStart;
+    console.log(`[Shiguang Performance] total=${perfLog.total}ms setup=${perfLog.setup}ms retrieval=${perfLog.retrieval}ms local=${perfLog.local}ms (local:exhausted)`);
+
     return {
       success: true,
       reply: `今天辛苦啦。感到疲惫的时候不用勉强安排复杂的活动，好好休息最重要。\n\n今晚可以泡个温水澡、早点休息，也可以去心愿小铺为对方兑换一张「肩颈按摩券」，卸下白天的压力。`,
@@ -829,6 +870,10 @@ ${memoryFactContext}
   }
 
   // 6.6 默认指引与开场
+  perfLog.local = Date.now() - localStart;
+  perfLog.total = Date.now() - perfStart;
+  console.log(`[Shiguang Performance] total=${perfLog.total}ms setup=${perfLog.setup}ms retrieval=${perfLog.retrieval}ms local=${perfLog.local}ms (local:default_guide)`);
+
   return {
     success: true,
     reply: `我是画廊里的生活助手「拾光」。\n\n相伴的第 ${diffDays} 天，我可以帮你：\n1. 整理给对方的留言或悄悄话（试试发“帮我写一句话”）；\n2. 规划周末漫步与约会安排（试试发“想想周末怎么过”）；\n3. 翻找相册与故事里的真实回忆（试试发“找一段回忆”）。\n\n随时写下你想聊的，我都在。`,
