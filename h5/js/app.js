@@ -991,18 +991,6 @@ function renderViewerCurrent() {
   const tagText = item.tag || (Array.isArray(item.tags) && item.tags[0]) || '';
   if (metaEl) metaEl.innerText = `${item.date || '今日'} · ${folderText}${tagText ? ' · ' + tagText : ''}`;
 
-  // 根据来源区分封面按钮行为
-  const coverBtn = document.getElementById('viewerSetCoverBtn');
-  if (coverBtn) {
-    if (currentViewerSource === 'hero') {
-      coverBtn.textContent = '设置封面';
-      coverBtn.onclick = openHeroChangeMenu;
-    } else {
-      coverBtn.textContent = '设为封面';
-      coverBtn.onclick = setAsHeroPhoto;
-    }
-  }
-
   if (item.url && !item.type) {
     container.innerHTML = `<img src="${escapeForAttr(item.url)}" alt="${escapeForAttr(item.title)}" style="max-width:100%; max-height:100%; object-fit:contain; display:block;">`;
   } else if (item.type && photoSvgPresets[item.type]) {
