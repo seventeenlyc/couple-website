@@ -67,19 +67,16 @@ export function checkDeviceRateLimit(db, key, limit = 30) {
 
 export function isUserAdmin(db, userId) {
   if (!userId) return false;
-  // Look up username '拾柒' or admin config
-  const adminUser = db.prepare("SELECT id FROM users WHERE username = '拾柒'").get();
-  if (adminUser && String(adminUser.id) === String(userId)) return true;
-
-  // Fallback: check site_config
+  // Explicit first-run choice takes precedence over the legacy fixed account.
   const cfg = db.prepare("SELECT value FROM site_config WHERE key = 'site'").get();
   if (cfg) {
     try {
       const site = JSON.parse(cfg.value);
-      if (site.admin_id && String(site.admin_id) === String(userId)) return true;
+      if (site.admin_id) return String(site.admin_id) === String(userId);
     } catch (e) {}
   }
-  return false;
+  const adminUser = db.prepare("SELECT id FROM users WHERE username = '拾柒'").get();
+  return !!adminUser && String(adminUser.id) === String(userId);
 }
 
 export function authorizeDeviceLogin(db, user, cookies = {}, reqInfo = {}) {
@@ -160,7 +157,7 @@ export function authorizeDeviceLogin(db, user, cookies = {}, reqInfo = {}) {
 
 export function handleDeviceAdminAction(db, adminUserId, action, deviceId, code = '') {
   if (!isUserAdmin(db, adminUserId)) {
-    return { success: false, message: '仅拾柒管理员可以管理设备' };
+    return { success: false, message: '仅管理员可以管理设备' };
   }
 
   const record = db.prepare('SELECT * FROM device_records WHERE id = ?').get(deviceId);

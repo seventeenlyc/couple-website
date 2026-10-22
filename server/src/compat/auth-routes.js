@@ -29,6 +29,7 @@ export default async function authRoutes(fastify) {
       csrf_token: req.getCSRFToken(),
       user: loggedIn ? req.getCurrentUser() : null,
       user_id: loggedIn ? req.getCurrentUserId() : null,
+      is_admin: loggedIn ? isUserAdmin(db, req.getCurrentUserId()) : false,
       logged_in: loggedIn
     };
   });
@@ -228,7 +229,7 @@ export default async function authRoutes(fastify) {
     const currentUserId = req.getCurrentUserId();
     if (!req.isLoggedIn() || !isUserAdmin(db, currentUserId)) {
       reply.code(403);
-      return { success: false, message: '仅拾柒管理员可以管理设备' };
+      return { success: false, message: '仅管理员可以管理设备' };
     }
 
     if (action === 'list') {

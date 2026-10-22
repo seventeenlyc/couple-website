@@ -15,6 +15,7 @@ Environment=HOST=127.0.0.1
 Environment=COUPLE_DB_PATH=/www/wwwroot/lyczwc520.site/server/data/couple.db
 Environment=TRUST_PROXY=true
 Environment=USE_X_ACCEL_REDIRECT=true
+EnvironmentFile=-/etc/couple-website/setup.env
 
 # Security sandbox
 ProtectSystem=full

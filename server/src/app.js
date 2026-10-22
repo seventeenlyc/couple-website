@@ -10,6 +10,7 @@ import authRoutes from './compat/auth-routes.js';
 import economyRoutes from './compat/economy-routes.js';
 import contentRoutes from './compat/content-routes.js';
 import gatewayRoutes from './compat/gateway-routes.js';
+import setupRoutes from './compat/setup-routes.js';
 
 export async function buildApp(configOverrides = {}) {
   const config = loadConfig(configOverrides);
@@ -77,6 +78,7 @@ export async function buildApp(configOverrides = {}) {
 
   // 3. Compatibility routes (exact legacy PHP endpoints & gateway)
   await fastify.register(authRoutes, config);
+  await fastify.register(setupRoutes, config);
   await fastify.register(economyRoutes, config);
   await fastify.register(contentRoutes, config);
   await fastify.register(gatewayRoutes, config);

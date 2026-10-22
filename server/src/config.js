@@ -38,6 +38,7 @@ export function loadConfig(overrides = {}) {
     port: Number(process.env.PORT || overrides.port || 19085),
     host: process.env.HOST || overrides.host || '127.0.0.1',
     dbPath,
+    setupToken: overrides.setupToken ?? process.env.SETUP_TOKEN ?? '',
     sessionSecret: process.env.SESSION_SECRET || overrides.sessionSecret || 'c0uple-w3bs1te-sup3r-s3cur3-s3ss10n-k3y-2026!',
     trustProxy: overrides.trustProxy ?? (process.env.TRUST_PROXY === 'true' || true),
     rootDir: overrides.rootDir || ROOT_DIR,
