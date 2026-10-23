@@ -61,6 +61,10 @@
       font-weight: 600;
       color: var(--color-ink);
     }
+    @media (max-width: 480px) {
+      .login-card { padding: 32px 24px; }
+      .login-brand { font-size: 23px; }
+    }
   </style>
 </head>
 <body>
@@ -95,7 +99,7 @@
       </form>
 
       <div style="text-align:center; padding-top:16px; border-top:1px solid var(--color-divider); font-size:13px; color:var(--color-muted);">
-        <a href="index.html" style="color:var(--color-accent); text-decoration:none;">以访客身份进入画廊 ↗</a>
+        <a id="guestGalleryLink" href="index.html" style="color:var(--color-accent); text-decoration:none;">以访客身份进入画廊 ↗</a>
       </div>
     </div>
   </main>
@@ -104,6 +108,9 @@
   <script src="../assets/js/device-router.js"></script>
   <script>
     const api = new GalleryApiClient();
+    if (new URLSearchParams(window.location.search).get('redirect') === '/h5/index.html') {
+      document.getElementById('guestGalleryLink').href = '/h5/index.html';
+    }
 
     function showToast(msg) {
       let toast = document.getElementById('globalToast');

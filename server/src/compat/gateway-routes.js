@@ -37,14 +37,14 @@ export default async function gatewayRoutes(fastify, options) {
   const rootDir = options.rootDir;
   const uploadsDir = options.uploadsDir;
 
-  // Public login entry: H5 redirects here before a session exists.
+  // Public guide page; login uses /desktop/login.html.
   for (const url of ['/', '/index.html']) {
     fastify.get(url, async (req, reply) => {
-      const loginPath = path.join(rootDir, 'index.html');
-      if (!fs.existsSync(loginPath)) return reply.code(404).send('Not Found');
+      const guidePath = path.join(rootDir, 'index.html');
+      if (!fs.existsSync(guidePath)) return reply.code(404).send('Not Found');
       reply.header('Cache-Control', 'no-store');
       reply.type('text/html; charset=utf-8');
-      return fs.createReadStream(loginPath);
+      return fs.createReadStream(guidePath);
     });
   }
 
@@ -65,7 +65,7 @@ export default async function gatewayRoutes(fastify, options) {
 
   fastify.get('/device-login.php', async (req, reply) => {
     reply.header('Cache-Control', 'no-store');
-    return reply.redirect('/index.html');
+    return reply.redirect('/desktop/login.html');
   });
 
   fastify.head('/maintaining.html', async (req, reply) => {
