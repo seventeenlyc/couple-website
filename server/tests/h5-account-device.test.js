@@ -443,9 +443,29 @@ test('h5/index.html 设备审批核对码说明必须为 8 位数字，不得出
   );
 });
 
-test('根目录页面只导引到移动端和桌面端', () => {
-  const guide = fs.readFileSync(path.join(__dirname, '..', '..', 'index.html'), 'utf8');
-  assert.match(guide, /href="\/h5\/index\.html"/);
-  assert.match(guide, /href="\/desktop\/index\.html"/);
-  assert.doesNotMatch(guide, /<form\b|api\/login\.php|preview_token/);
+test('根目录入口根据视口和用户偏好直接替换为对应页面', () => {
+  const rootDir = path.join(__dirname, '..', '..');
+  const entry = fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8');
+  const router = fs.readFileSync(path.join(rootDir, 'assets', 'js', 'device-router.js'), 'utf8');
+  const inline = entry.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+  assert.match(entry, /<script src="\/assets\/js\/device-router\.js"><\/script>/);
+  assert.ok(inline, '入口必须直接运行跳转脚本');
+  assert.doesNotMatch(entry, /<nav\b|<a\b|<form\b|<main\b/);
+
+  for (const [width, preference, target] of [
+    [390, null, '/h5/index.html'],
+    [1440, null, '/desktop/index.html'],
+    [390, 'desktop', '/desktop/index.html'],
+    [1440, 'mobile', '/h5/index.html']
+  ]) {
+    const destinations = [];
+    const sandbox = {
+      window: { innerWidth: width, location: { replace: (url) => destinations.push(url) } },
+      localStorage: { getItem: () => preference }
+    };
+    vm.createContext(sandbox);
+    vm.runInContext(router, sandbox);
+    vm.runInContext(inline, sandbox);
+    assert.deepEqual(destinations, [target], `${width}px、偏好 ${preference} 应只跳转一次`);
+  }
 });

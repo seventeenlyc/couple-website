@@ -37,14 +37,14 @@ export default async function gatewayRoutes(fastify, options) {
   const rootDir = options.rootDir;
   const uploadsDir = options.uploadsDir;
 
-  // Public guide page; login uses /desktop/login.html.
+  // Public device redirect entry; login uses /desktop/login.html.
   for (const url of ['/', '/index.html']) {
     fastify.get(url, async (req, reply) => {
-      const guidePath = path.join(rootDir, 'index.html');
-      if (!fs.existsSync(guidePath)) return reply.code(404).send('Not Found');
+      const entryPath = path.join(rootDir, 'index.html');
+      if (!fs.existsSync(entryPath)) return reply.code(404).send('Not Found');
       reply.header('Cache-Control', 'no-store');
       reply.type('text/html; charset=utf-8');
-      return fs.createReadStream(guidePath);
+      return fs.createReadStream(entryPath);
     });
   }
 

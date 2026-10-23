@@ -6,10 +6,10 @@ import path from 'node:path';
 import { buildApp } from '../src/app.js';
 import { closeDb } from '../src/storage/db.js';
 
-test('root guide and public assets are served without a session', async (t) => {
+test('root redirect entry and public assets are served without a session', async (t) => {
   const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'couple-login-'));
   fs.mkdirSync(path.join(rootDir, 'assets/js'), { recursive: true });
-  fs.writeFileSync(path.join(rootDir, 'index.html'), '<html>Root guide</html>');
+  fs.writeFileSync(path.join(rootDir, 'index.html'), '<html>Root redirect</html>');
   fs.writeFileSync(path.join(rootDir, 'assets/js/api-client.js'), 'window.loginClient = true;');
   fs.writeFileSync(path.join(rootDir, 'secret.txt'), 'must not be public');
   const app = await buildApp({ dbPath: ':memory:', rootDir, secureCookie: false });
@@ -22,7 +22,7 @@ test('root guide and public assets are served without a session', async (t) => {
     const res = await app.inject({ url });
     assert.equal(res.statusCode, 200);
     assert.match(res.headers['content-type'], /text\/html/);
-    assert.match(res.body, /Root guide/);
+    assert.match(res.body, /Root redirect/);
   }
   const deviceLogin = await app.inject({ url: '/device-login.php' });
   assert.equal(deviceLogin.statusCode, 302);
