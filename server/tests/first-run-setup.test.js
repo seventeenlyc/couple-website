@@ -18,6 +18,11 @@ test('first-run setup creates two accounts and closes permanently', async t => {
   assert.equal(page.statusCode, 200);
   assert.match(page.body, /初次上线配置/);
   assert.equal((await app.inject({method:'GET',url:'/setup.html'})).statusCode, 404);
+  const devicePage = await app.inject({method: 'GET', url: '/device-access.php'});
+  assert.equal(devicePage.statusCode, 200);
+  assert.match(devicePage.headers['content-type'], /text\/html/);
+  assert.match(devicePage.body, /安全与设备/);
+  assert.doesNotMatch(devicePage.body, /<\?php/);
   const csrf = await app.inject({method: 'GET', url: '/api/csrf-token.php'});
   const setCookie = csrf.headers['set-cookie'];
   const cookie = (Array.isArray(setCookie) ? setCookie[0] : setCookie || '').split(';')[0];

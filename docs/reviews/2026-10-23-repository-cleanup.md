@@ -9,4 +9,4 @@
 
 同步移除了登录页面无效的预设账户、演示密码、预览用字段及旧站备案号，并将根 README 更新为 Node/SQLite 的首次安装流程。
 
-`api/`、`includes/`、旧版配置示例、`generated-quotes.txt` 仍与 PHP 历史版本或迁移排查有关。设计稿、历史评审记录和 `maintain.html` 属于保留资料。上述内容没有按扩展名批量删除。
+当时曾保留 `api/`、`includes/`、旧版配置示例和 `generated-quotes.txt`。用户随后确认不再回滚旧版，第二次清理已删除这些文件；详见 [旧版移除记录](2026-10-23-legacy-removal.md)。本记录保留为当次清理的历史事实。
