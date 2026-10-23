@@ -283,16 +283,6 @@
     }
   }
 
-  function fillModalDefaultAccount() {
-    const you = document.getElementById('modalLoginYou');
-    const baby = document.getElementById('modalLoginBaby');
-    const pwd = document.getElementById('modalLoginPassword');
-    if (you) you.value = 'name1';
-    if (baby) baby.value = 'name2';
-    if (pwd) pwd.value = 'change-this-login-password';
-    showToast('已填入预设账号与密码');
-  }
-
   function openLoginModal() {
     const modal = document.getElementById('desktopLoginModalOverlay');
     if (!modal) {
@@ -3133,7 +3123,6 @@
   window.updateQueueItemTitle = updateQueueItemTitle;
   window.updateQueueItemTag = updateQueueItemTag;
   window.startQueueUpload = startQueueUpload;
-  window.fillModalDefaultAccount = fillModalDefaultAccount;
   window.openLoginModal = openLoginModal;
   window.closeLoginModal = closeLoginModal;
   window.handleDesktopLogin = handleDesktopLogin;

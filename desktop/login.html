@@ -76,22 +76,17 @@
       <form id="desktopLoginForm" onsubmit="event.preventDefault(); submitLogin();" style="display:flex; flex-direction:column; gap:16px;">
         <div class="form-group">
           <label for="loginYou" class="form-label">你的名字</label>
-          <input type="text" id="loginYou" class="form-input" placeholder="例如：拾柒 / 小林" required autocomplete="username">
+          <input type="text" id="loginYou" class="form-input" placeholder="请输入你的称呼" required autocomplete="username">
         </div>
 
         <div class="form-group">
           <label for="loginBaby" class="form-label">TA的名字</label>
-          <input type="text" id="loginBaby" class="form-input" placeholder="例如：小鹿" required>
+          <input type="text" id="loginBaby" class="form-input" placeholder="请输入对方的称呼" required>
         </div>
 
         <div class="form-group">
-          <label for="loginPassword" class="form-label">空间密码 (如已设置)</label>
-          <input type="password" id="loginPassword" class="form-input" placeholder="初次或未设密码可留空" autocomplete="current-password">
-        </div>
-
-        <div style="font-size:12px; color:var(--color-muted); background:var(--color-surface-subtle); padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--color-border); display:flex; justify-content:space-between; align-items:center;">
-          <span>预设账号：name1 / TA: name2</span>
-          <button type="button" onclick="fillDefaultAccount()" style="border:none; background:none; color:var(--color-accent); font-weight:600; cursor:pointer; font-size:12px; padding:0;">一键填入</button>
+          <label for="loginPassword" class="form-label">登录密码</label>
+          <input type="password" id="loginPassword" class="form-input" placeholder="请输入登录密码" autocomplete="current-password">
         </div>
 
         <button type="submit" class="btn-record" id="btnLoginSubmit" style="width:100%; height:46px; justify-content:center; margin-top:4px; font-size:15px;">
@@ -109,13 +104,6 @@
   <script src="../assets/js/device-router.js"></script>
   <script>
     const api = new GalleryApiClient();
-
-    function fillDefaultAccount() {
-      document.getElementById('loginYou').value = 'name1';
-      document.getElementById('loginBaby').value = 'name2';
-      document.getElementById('loginPassword').value = 'change-this-login-password';
-      showToast('已填入预设账号与密码');
-    }
 
     function showToast(msg) {
       let toast = document.getElementById('globalToast');
