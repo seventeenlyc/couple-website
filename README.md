@@ -28,12 +28,6 @@
 | --- | --- |
 | ![双方资料与故事](docs/images/readme/desktop-us.png) | ![AI 生活助手](docs/images/readme/shiguang.png) |
 
-仓库还保留了通过 Node 服务提供的手账风页面：`/shop.html`、`/task.html` 和 `/story.html`。
-
-| 礼物小铺 | 每日任务 | 故事时间线 |
-| --- | --- | --- |
-| ![礼物小铺](docs/images/readme/shop.png) | ![每日任务](docs/images/readme/task.png) | ![故事时间线](docs/images/readme/story.png) |
-
 ## 本地启动与首次配置
 
 需要 Node.js 20 或更新版本。在仓库的 `server/` 目录安装依赖并启动服务。首次使用空数据库时，先设置至少 32 个字符的一次性安装密钥。
@@ -76,8 +70,6 @@ npm start
 ## 部署与数据
 
 生产环境请使用 HTTPS、持久化的 `COUPLE_DB_PATH`、独立的 `SESSION_SECRET` 和服务管理器。Nginx 与 systemd 的示例及安装密钥的管理步骤见[部署与运维说明](deploy/README.md)。`/health/ready` 可用于检查 Node 服务与数据库连接。
-
-仓库中的旧 PHP 实现和旧 JSON 导入工具已经退役。前端仍会请求部分以 `.php` 结尾的 API 地址，但这些路由由 Node 服务处理。不要将旧 JSON 数据直接导入现有 SQLite 数据库。
 
 ## 目录结构
 
