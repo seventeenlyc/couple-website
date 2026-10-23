@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>初次上线配置 · 我们的手账本</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,"Microsoft YaHei",sans-serif;color:#382d2b;background:#f7f3ef}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;padding:28px 16px;background:radial-gradient(circle at 85% 5%,#ffe9e4,transparent 38%),#f7f3ef}
+    main{max-width:760px;margin:auto}header{text-align:center;margin:22px 0 28px}h1{font-size:clamp(28px,5vw,38px);margin:8px 0}p{line-height:1.65;color:#71625d}
+    form{background:#fff;border:1px solid #ebdeda;border-radius:24px;padding:clamp(20px,5vw,38px);box-shadow:0 18px 45px #5d392012}
+    fieldset{border:0;border-top:1px solid #eee1dd;padding:22px 0 2px;margin:0}legend{font-weight:700;padding:0 10px 0 0;color:#8c534f;font-size:18px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}label{display:block;font-size:14px;font-weight:600;margin:12px 0 0}
+    input,select{display:block;width:100%;min-height:46px;margin-top:7px;padding:10px 12px;border:1px solid #d7c8c3;border-radius:10px;background:#fff;color:#382d2b;font:inherit}
+    input:focus,select:focus{outline:2px solid #bc7770;outline-offset:2px}.hint{font-size:12px;margin:8px 0 2px}
+    button{width:100%;border:0;border-radius:12px;min-height:50px;margin-top:24px;background:#75504c;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer}
+    button:disabled{opacity:.6;cursor:wait}#message{min-height:28px;margin:14px 0 0;color:#a03737;font-weight:600}#message.success{color:#277455}
+    @media(max-width:600px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<main>
+  <header><div aria-hidden="true">✦</div><h1>初次上线配置</h1><p>创建两位成员、指定管理员，并写入服务器已配置的 SQLite 数据库。完成后此页面会自动关闭。</p></header>
+  <form id="setup-form" autocomplete="off">
+    <fieldset><legend>站点设置</legend>
+      <label>服务器安装密钥<input name="setup_token" type="password" required minlength="32" autocomplete="off" placeholder="从服务器环境变量 SETUP_TOKEN 获取"></label>
+      <p class="hint">安装密钥只用于这一次初始化。数据库位置由服务器环境变量 COUPLE_DB_PATH 决定，不在网页中输入文件路径。</p>
+      <div class="grid">
+        <label>开始日期<input name="start_date" type="date" required></label>
+        <label>管理员身份<select name="admin" required><option value="first">第一位成员</option><option value="second">第二位成员</option></select></label>
+      </div>
+    </fieldset>
+    <fieldset><legend>第一位成员</legend><div class="grid">
+      <label>称呼<input name="first_name" required maxlength="40" autocomplete="off"></label>
+      <label>生日（可选）<input name="first_birthday" type="text" inputmode="numeric" placeholder="MM-DD" pattern="[0-9]{2}-[0-9]{2}"></label>
+      <label>登录密码<input name="first_password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label>
+      <label>私密空间密码<input name="first_private_password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label>
+    </div></fieldset>
+    <fieldset><legend>第二位成员</legend><div class="grid">
+      <label>称呼<input name="second_name" required maxlength="40" autocomplete="off"></label>
+      <label>生日（可选）<input name="second_birthday" type="text" inputmode="numeric" placeholder="MM-DD" pattern="[0-9]{2}-[0-9]{2}"></label>
+      <label>登录密码<input name="second_password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label>
+      <label>私密空间密码<input name="second_private_password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label>
+    </div></fieldset>
+    <button id="submit" type="submit">创建站点并启用登录</button><p id="message" role="status" aria-live="polite"></p>
+  </form>
+</main>
+<script>
+  const form = document.getElementById('setup-form');
+  const message = document.getElementById('message');
+  const submit = document.getElementById('submit');
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    submit.disabled = true; message.className = ''; message.textContent = '正在创建站点…';
+    try {
+      const csrfResponse = await fetch('/api/csrf-token.php', {credentials:'same-origin',cache:'no-store'});
+      if (!csrfResponse.ok) throw new Error('无法获取安全令牌，请刷新页面');
+      const csrf = await csrfResponse.json();
+      const data = Object.fromEntries(new FormData(form));
+      data.csrf_token = csrf.csrf_token;
+      const response = await fetch('/api/setup', {method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || '初始化失败');
+      form.reset(); message.className = 'success'; message.textContent = '初始化完成，即将进入登录页。';
+      setTimeout(() => { location.assign('/'); }, 1200);
+    } catch (error) { message.textContent = error.message || '网络错误，请稍后重试'; submit.disabled = false; }
+  });
+</script>
+</body>
+</html>

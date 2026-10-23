@@ -29,11 +29,11 @@
       const d=await call('/api/devices.php',{action:'status'});if(!d.success)throw Error(d.message);
       document.getElementById('pair').replaceChildren();
       if(d.status==='active'){
-        msg.textContent=d.admin?'你是拾柒管理员，可以审批和撤销设备。':'当前浏览器已授权，可以返回首页。';
+        msg.textContent=d.admin?'你是管理员，可以审批和撤销设备。':'当前浏览器已授权，可以返回首页。';
         if(d.admin){await list();timer=setTimeout(status,10000);} return;
       }
       if(d.status==='pending'){
-        msg.textContent='请让拾柒在已授权浏览器打开“安全与设备”，核对下方代码后批准。申请 10 分钟内有效。';
+        msg.textContent='请让管理员在已授权浏览器打开“安全与设备”，核对下方代码后批准。申请 10 分钟内有效。';
         document.getElementById('pair').append(text('code',d.code));timer=setTimeout(status,5000);
       }else msg.textContent=({expired:'申请或授权已过期，请重新登录。',denied:'申请已被拒绝。',revoked:'此浏览器授权已撤销。',missing:'没有有效申请，请先登录。'})[d.status]||'请重新登录。';
     }catch(e){msg.textContent=e.message;}

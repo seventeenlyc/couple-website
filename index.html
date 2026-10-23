@@ -110,9 +110,6 @@
 
             <!-- 登录表单 -->
             <form id="login-form" class="space-y-6 relative">
-                <!-- 前端预览用的隐藏字段，实际项目中用 PHP 替换 value -->
-                <input type="hidden" name="csrf_token" value="preview_token">
-                
                 <!-- 装饰邮票 -->
                 <div class="absolute -right-4 -top-8 w-12 h-12 border-2 border-dashed border-rose-200 rounded-full flex items-center justify-center rotate-12 opacity-50 pointer-events-none">
                     <i class="fas fa-stamp text-rose-300 text-xl"></i>
@@ -178,17 +175,12 @@
                 </div>
             </form>
            
-            <!-- 提示信息与备案 -->
+            <!-- 提示信息 -->
             <div class="mt-8 pt-6 text-center space-y-3 relative z-10 bg-white/40 backdrop-blur-[1px] rounded-xl pb-2">
                 <p class="font-serif-sc text-[11px] text-stone-400">
                     <i class="fas fa-info-circle mr-1 opacity-70"></i>
                     如有问题，请<span class="line-through mx-1 opacity-60">诱惑</span>贿赂管理员 
                     <img src="https://ts1.tc.mm.bing.net/th/id/OIP-C.JqtutuIUT2Pxe6BsgdseGwAAAA?cb=ucfimg2&ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3" alt="狗头" class="inline-block w-4 h-4 align-text-bottom rounded-full rotate-6">
-                </p>
-                <p class="font-serif-sc text-[10px] text-stone-300 tracking-wider">
-                    <a href="https://beian.miit.gov.cn/#/Integrated/index" target="_blank" class="hover:text-stone-500 transition-colors">
-                        <i class="fas fa-shield-alt mr-1 opacity-50"></i>粤ICP备2025512966号-1
-                    </a>
                 </p>
             </div>
         </div>
@@ -233,7 +225,7 @@
             }, 2500);
         }
 
-        // --- 表单提交逻辑 (模拟预览) ---
+        // --- 表单提交逻辑 ---
         const form = document.getElementById('login-form');
         const loginButton = document.getElementById('login-button');
 

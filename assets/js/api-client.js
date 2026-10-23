@@ -6,6 +6,7 @@ const API = (() => {
   let csrfToken = null;
   let currentUser = null;
   let userId = null;
+  let isAdmin = false;
 
   let apiBaseUrl = '';
   try {
@@ -37,6 +38,7 @@ const API = (() => {
           currentUser = data.user;
           userId = data.user_id;
         }
+        isAdmin = !!data.is_admin;
       }
       return csrfToken;
     } catch (e) {
@@ -139,15 +141,15 @@ const API = (() => {
   // ── Init ──────────────────────────────────────────────
   async function init() {
     await fetchCSRFToken();
-    if (currentUser === '拾柒' && !document.getElementById('device-management-link')) {
+    if (isAdmin && !document.getElementById('device-management-link')) {
       const link = document.createElement('a');
       link.id = 'device-management-link'; link.href = '/device-access.php'; link.textContent = '安全与设备';
       link.style.cssText = 'position:fixed;right:16px;bottom:80px;z-index:999;background:#fffdf9;color:#544139;padding:9px 14px;border:1px solid #d9cfc3;border-radius:20px;font-size:14px';
       document.body.appendChild(link);
     }
-    // Redirect to login if not on login page, test page, or device router test and not logged in
+    // Redirect to login if not on login or internal test page and not logged in
     const onLoginPage = location.pathname.endsWith('index.html') || location.pathname === '/' || location.pathname.endsWith('/');
-    const onTestPage = location.pathname.includes('/test/') || location.pathname.includes('device-router-test.html');
+    const onTestPage = location.pathname.includes('/test/');
     if (!onLoginPage && !onTestPage && !currentUser) {
       const check = await checkAuth();
       if (!check.loggedIn) {

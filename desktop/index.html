@@ -858,24 +858,20 @@
     <div class="app-dialog-card" style="max-width:440px;">
       <h3 class="app-dialog-title" style="text-align:center; font-size:22px;">翻开手账 · 登录画廊</h3>
       <p style="font-size:13px; color:var(--color-muted); text-align:center; margin-bottom:16px;">
-        输入你们两个人的称呼即可进入，初次或未设密码可留空
+        输入首次配置的两人称呼和登录密码
       </p>
       <form id="modalLoginForm" onsubmit="event.preventDefault(); handleDesktopLogin();" style="display:flex; flex-direction:column; gap:12px;">
         <div>
           <label for="modalLoginYou" style="display:block; font-size:13px; font-weight:600; color:var(--color-ink); margin-bottom:4px;">你的称呼</label>
-          <input type="text" id="modalLoginYou" class="form-input" placeholder="例如：拾柒 / 小林" required autocomplete="username">
+          <input type="text" id="modalLoginYou" class="form-input" placeholder="请输入你的称呼" required autocomplete="username">
         </div>
         <div>
           <label for="modalLoginBaby" style="display:block; font-size:13px; font-weight:600; color:var(--color-ink); margin-bottom:4px;">TA的称呼</label>
-          <input type="text" id="modalLoginBaby" class="form-input" placeholder="例如：小鹿" required>
+          <input type="text" id="modalLoginBaby" class="form-input" placeholder="请输入对方的称呼" required>
         </div>
         <div>
-          <label for="modalLoginPassword" style="display:block; font-size:13px; font-weight:600; color:var(--color-ink); margin-bottom:4px;">空间密码 (可选)</label>
-          <input type="password" id="modalLoginPassword" class="form-input" placeholder="未设置密码可留空" autocomplete="current-password">
-        </div>
-        <div style="font-size:12px; color:var(--color-muted); background:var(--color-surface-subtle); padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--color-border); display:flex; justify-content:space-between; align-items:center;">
-          <span>预设体验账号：name1 / TA: name2</span>
-          <button type="button" onclick="fillModalDefaultAccount()" style="border:none; background:none; color:var(--color-accent); font-weight:600; cursor:pointer; font-size:12px; padding:0;">一键填入</button>
+          <label for="modalLoginPassword" style="display:block; font-size:13px; font-weight:600; color:var(--color-ink); margin-bottom:4px;">登录密码</label>
+          <input type="password" id="modalLoginPassword" class="form-input" placeholder="请输入登录密码" autocomplete="current-password">
         </div>
         <div class="app-dialog-actions" style="margin-top:10px;">
           <button type="button" class="btn-secondary" onclick="closeLoginModal()">取消</button>

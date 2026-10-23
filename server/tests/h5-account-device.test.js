@@ -330,7 +330,7 @@ test('getDailyQuote 在 401、500 或网络失败时返回 null，不返回假�
 });
 
 test('handleChangeDailyQuote 在服务端不可用时每次点击切换不同备用文案且提示准确', async () => {
-  const appSrc = fs.readFileSync(path.join(H5_DIR, 'js', 'app.js'), 'utf8');
+  const appSrc = fs.readFileSync(path.join(H5_DIR, 'js', 'app.js'), 'utf8').replace(/\r\n?/g, '\n');
   const start = appSrc.indexOf('const presetQuotes = [');
   assert.notEqual(start, -1, 'app.js 应定义 presetQuotes');
   const end = appSrc.indexOf('/* ==========================================================================\n   12.4 设备管理', start);
@@ -387,7 +387,7 @@ test('handleChangeDailyQuote 在服务端不可用时每次点击切换不同备
 });
 
 test('handleChangeDailyQuote 在服务端返回相同文案时提示已是最新，不虚报已更新', async () => {
-  const appSrc = fs.readFileSync(path.join(H5_DIR, 'js', 'app.js'), 'utf8');
+  const appSrc = fs.readFileSync(path.join(H5_DIR, 'js', 'app.js'), 'utf8').replace(/\r\n?/g, '\n');
   const start = appSrc.indexOf('const presetQuotes = [');
   const end = appSrc.indexOf('/* ==========================================================================\n   12.4 设备管理', start);
   const snippet = appSrc.slice(start, end);

@@ -1,155 +1,46 @@
 # Couple Website
 
-A private interactive website for couples — share photos, complete daily tasks, manage wish lists, send whispers, and track your love story.
+供两人使用的私人网站，包含相册、每日任务、心愿、私密空间和故事时间线。当前服务端使用 Node.js、Fastify 和 SQLite；`api/`、`includes/` 中的 PHP 文件为旧版留档，可供历史问题排查和迁移参考。
 
-## Features
+## 首次使用
 
-- **Home** — Live love-duration counter, AI daily quotes, anniversary & birthday reminders
-- **Album** — Photo upload with folder organization, tags, and thumbnail generation
-- **Shop** — Virtual & physical goods store with a built-in currency system
-- **Tasks** — Daily check-in, collaborative task tracker, task rewards
-- **Private Space** — Password-protected private notes & file storage
-- **Whispers** — Private messages between partners
-- **Story** — Interactive love story timeline
-
-## Tech Stack
-
-| Layer    | Technology                        |
-|----------|-----------------------------------|
-| Frontend | HTML5, Tailwind CSS, JavaScript   |
-| Backend  | PHP 7.4+ (API endpoints)         |
-| Storage  | JSON file-based (no database)    |
-| Icons    | Font Awesome                     |
-| AI       | OpenAI / DeepSeek / DashScope API |
-
-## Project Structure
-
-```
-├── index.html              # Login page
-├── home.html               # Dashboard / landing
-├── album.html              # Photo album
-├── shop.html               # Shop & orders
-├── task.html               # Tasks & check-in
-├── story.html              # Love story timeline
-├── private.html            # Password-protected private space
-├── api/                    # PHP API endpoints
-│   ├── login.php           # Authentication
-│   ├── checkin.php         # Daily check-in
-│   ├── tasks.php           # Task CRUD
-│   ├── photos.php          # Photo upload & management
-│   ├── folders.php         # Album folders
-│   ├── shop.php            # Product listing & purchase
-│   ├── orders.php          # Order management
-│   ├── reviews.php         # Product reviews
-│   ├── story.php           # Story event management
-│   ├── whispers.php        # Partner messages
-│   ├── private-files.php   # Private file upload
-│   ├── private-notes.php   # Private notes
-│   ├── private-auth.php    # Private space authentication
-│   ├── upload-avatar.php   # Avatar upload
-│   ├── upload-photo.php    # Photo upload
-│   ├── app-config.php      # Frontend app configuration
-│   ├── balance.php         # Currency balance
-│   ├── csrf-token.php      # CSRF token provider
-│   └── daily-quote.php     # AI-generated daily quote
-├── includes/               # PHP helper libraries
-│   ├── config.php          # Configuration loader
-│   ├── session.php         # Session management
-│   ├── auth.php            # Authentication helpers
-│   └── ...                 # Domain helpers (shop, tasks, album, etc.)
-├── assets/                 # Static assets (CSS, JS, images)
-├── data/                   # JSON data files (gitignored except .example)
-│   ├── config.json.example
-│   ├── ai_config.json.example
-│   ├── products.txt        # Product definitions
-│   └── tasks.txt           # Task pool definitions
-└── uploads/                # User uploads (gitignored)
-    ├── avatars/
-    ├── photos/
-    └── private/
-```
-
-## Quick Start
-
-### Requirements
-
-- PHP 7.4+
-- Any web server (Apache, Nginx, or PHP built-in)
-- Write permissions on `data/` and `uploads/`
-
-### Setup
+需要 Node.js 20 或更新版本。克隆仓库后，先生成并妥善保存一次性安装密钥，再在 `server/` 安装依赖并启动服务：
 
 ```bash
-# Clone the repo
-git clone https://github.com/seventeenlyc/couple-website.git
-cd couple-website
-
-# Start a dev server
-php -S localhost:8080
+cd server
+npm ci
+export SETUP_TOKEN="$(openssl rand -hex 32)"
+printf '本次安装密钥：%s\n' "$SETUP_TOKEN"
+npm start
 ```
 
-### Configuration
+上面的命令仅示意本机启动；正式环境按[部署与运维说明](deploy/README.md)将密钥设置为服务端环境变量，并使用持久化的 `COUPLE_DB_PATH`、HTTPS 和服务管理器。不要把密钥提交到仓库。
 
-Copy the example config files and edit them:
+打开 `http://127.0.0.1:19085/setup`（正式环境使用 `https://你的域名/setup`），填写安装密钥、开始日期、双方称呼、登录密码、私密空间密码，并选择管理员。密码均需至少 12 个字符。完成后访问 `/` 登录；首次登录会绑定当前浏览器，之后的新设备由管理员审批。
+
+安装页只对空数据库开放。完成初始化后移除 `SETUP_TOKEN` 并重启服务。已有站点数据不可通过安装页覆盖；从旧版 PHP/JSON 迁移时，按[旧站迁移步骤](deploy/README.md#旧站迁移)执行导入和对账，切勿对现有数据库重新导入。
+
+## 项目目录
+
+| 路径 | 用途 |
+| --- | --- |
+| `server/src/` | Fastify API、认证和 SQLite 存储 |
+| `server/tests/` | 服务端及前端行为测试 |
+| `h5/`、`desktop/`、`assets/` | 移动端、桌面端和共享资源 |
+| `setup.html` | 首次安装页面，仅通过 `/setup` 提供 |
+| `maintain.html` | 手动维护页源文件；不会自动作为线上路由开放 |
+| `deploy/` | Nginx、systemd 及运维说明 |
+| `api/`、`includes/` | 旧版 PHP 实现，当前 Node 服务不执行 |
+
+SQLite 数据库、上传内容、密码和服务端密钥必须存放在仓库之外或被 `.gitignore` 排除。数据库位置由 `COUPLE_DB_PATH` 指定；默认本机路径为 `server/data/couple.db`。不要使用公开可读的目录存放数据库，也不要将旧版 `data/config.json.example` 中的示例账户当成当前安装配置。
+
+## 验证
+
+在 `server/` 运行：
 
 ```bash
-cp data/config.json.example data/config.json
-cp data/ai_config.json.example data/ai_config.json
+npm run check
+npm test
 ```
 
-**`data/config.json`** — set your user names, passwords, anniversary date, and birthdays:
-
-```json
-{
-  "startDate": "2024-02-14",
-  "users": {
-    "name1": {
-      "id": "id1",
-      "password": "your-login-password",
-      "privatePassword": "private-password",
-      "partner": "name2",
-      "birthday": "01-01"
-    },
-    "name2": {
-      "id": "id2",
-      "password": "partner-login-password",
-      "privatePassword": "partner-private-password",
-      "partner": "name1",
-      "birthday": "02-14"
-    }
-  }
-}
-```
-
-**`data/ai_config.json`** — optionally enable AI-powered features:
-
-```json
-{
-  "enabled": true,
-  "api_provider": "openai",
-  "api_key": "sk-your-api-key",
-  "model": "gpt-3.5-turbo"
-}
-```
-
-Supported providers: `openai`, `deepseek`, `dashscope`, `anthropic`.
-
-### File Permissions
-
-```bash
-chmod 777 -R data/
-chmod 777 -R uploads/
-```
-
-## Security
-
-- Login requires each user's `password` in `config.json`; plain text and `password_hash()` values are supported
-- Private-space passwords are checked independently through `privatePassword`
-- CSRF protection on all state-changing requests
-- Private spaces have independent password protection
-- `data/*.json` and `uploads/*` are gitignored to prevent accidental leaks
-- Server-side API key handling (keys never exposed to the frontend)
-
-## License
-
-For personal use and learning. Not for commercial use.
+服务启动后，`/health/ready` 可用于检查进程与数据库连接。更多部署、迁移和回滚说明见 [deploy/README.md](deploy/README.md)。

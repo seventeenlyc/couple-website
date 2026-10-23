@@ -538,8 +538,7 @@ async function handleHeroUpload(input) {
     localStorage.setItem('couple_h5_hero_photo_id', res.photo.id);
     localStorage.removeItem('couple_h5_hero_carousel_ids');
     showToast('已成功上传并设为主页封面 ✨');
-    await renderDailyPhotos();
-    await renderAlbumView();
+    setTimeout(() => location.reload(), 800);
   } else {
     showToast(res?.message || '上传失败');
   }
@@ -648,7 +647,7 @@ async function confirmHeroPickerSelection() {
   }
 
   closeHeroPhotoPicker();
-  await renderDailyPhotos();
+  setTimeout(() => location.reload(), 800);
 }
 
 function closeHeroPhotoPicker() {
@@ -662,7 +661,7 @@ async function resetToAutoHero() {
   localStorage.removeItem('couple_h5_hero_carousel_ids');
   closeHeroChangeMenu();
   showToast('已恢复自动跟随相册最新照片');
-  await renderDailyPhotos();
+  setTimeout(() => location.reload(), 800);
 }
 
 function setAsHeroPhoto() {
@@ -672,7 +671,7 @@ function setAsHeroPhoto() {
   localStorage.setItem('couple_h5_hero_photo_id', photo.id);
   localStorage.removeItem('couple_h5_hero_carousel_ids');
   showToast('已设为首页封面 ✨');
-  renderDailyPhotos();
+  setTimeout(() => location.reload(), 800);
 }
 
 window.openHeroViewer = openHeroViewer;
@@ -715,8 +714,9 @@ async function renderDailyPhotos() {
     return;
   }
 
-  // 严格隔离首页日常流缓存数组，前4张
-  dailyPhotosList = photos.slice(0, 4);
+  // 严格隔离首页日常流缓存数组，随机抽取4张
+  const shuffled = photos.slice().sort(() => Math.random() - 0.5);
+  dailyPhotosList = shuffled.slice(0, 4);
   container.innerHTML = dailyPhotosList.map((p, idx) => {
     let frameContent = '';
     if (p.url && !p.type) {
@@ -1078,18 +1078,16 @@ async function deleteCurrentViewerPhoto() {
   albumPhotosList = albumPhotosList.filter(p => p.id !== item.id);
   currentLoadedPhotos = albumPhotosList;
 
-  // 刷新背景视图
-  await renderAlbumView();
-  await renderDailyPhotos();
-
   if (viewerPhotoList.length === 0) {
     closeImageViewer();
     showToast('相册中已无更多照片');
+    setTimeout(() => location.reload(), 800);
   } else {
     if (currentViewerIndex >= viewerPhotoList.length) {
       currentViewerIndex = viewerPhotoList.length - 1;
     }
     renderViewerCurrent();
+    setTimeout(() => location.reload(), 800);
   }
 }
 
@@ -1156,9 +1154,7 @@ async function confirmMovePhoto() {
     item.folder = newFolderStr;
     closeMovePhotoDialog();
     pendingMovingPhoto = null;
-
-    await renderAlbumView();
-    await renderDailyPhotos();
+    setTimeout(() => location.reload(), 800);
   } else {
     showToast(res?.message || '移动照片失败');
   }
@@ -1205,7 +1201,7 @@ async function confirmCreateFolder() {
     closeCreateFolderDialog();
     const newPath = currentAlbumFolder ? `${currentAlbumFolder}/${name}` : name;
     currentAlbumFolder = newPath;
-    await renderAlbumView();
+    setTimeout(() => location.reload(), 800);
   } else {
     showToast(res?.message || '创建文件夹失败');
   }
@@ -1257,7 +1253,7 @@ async function confirmRenameFolder() {
       parts[parts.length - 1] = newName;
       currentAlbumFolder = parts.join('/');
     }
-    await renderAlbumView();
+    setTimeout(() => location.reload(), 800);
   } else {
     showToast(res?.message || '重命名失败');
   }
@@ -1282,7 +1278,7 @@ async function confirmDeleteCurrentFolder(folderPath) {
     showToast('文件夹已成功删除');
     const parentPath = target.includes('/') ? target.split('/').slice(0, -1).join('/') : null;
     currentAlbumFolder = parentPath;
-    await renderAlbumView();
+    setTimeout(() => location.reload(), 800);
   } else {
     showToast(res?.message || '删除文件夹失败');
   }
@@ -1551,8 +1547,7 @@ async function startUploadProcess(onlyFailed = false) {
     setTimeout(() => {
       pendingUploadFiles = [];
       closeUploadPage();
-      renderAlbumView();
-      renderDailyPhotos();
+      location.reload();
     }, 1200);
   } else {
     showToast(`成功 ${successItems.length} 张，失败 ${failedItems.length} 张，请检查后重试失败项`);
@@ -1561,7 +1556,6 @@ async function startUploadProcess(onlyFailed = false) {
     // 每一项的 blob URL 只在其被单独移除（removePendingUploadItem）或队列彻底清空时才释放。
     // 刷新背景相册，让已成功的图片即刻呈现
     await renderAlbumView();
-    await renderDailyPhotos();
   }
 }
 

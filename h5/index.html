@@ -142,7 +142,7 @@
         <!-- 画廊章节：双列照片组合 (规范 7.1) -->
         <div class="gallery-chapter">
           <div class="chapter-heading">
-            <span>九月的几个瞬间</span>
+            <span>日常的几个瞬间</span>
           </div>
           <div class="photo-grid-2col" id="dailyGridContainer">
             <!-- 图1 -->
@@ -572,7 +572,7 @@
 
     <!-- 从相册选择封面 / 多图轮播挑选器 -->
     <div class="h5-overlay" id="heroPickerModal" onclick="closeSheetOnBg(event, 'heroPickerModal')">
-      <div class="h5-bottom-sheet" style="max-height: 82vh; display: flex; flex-direction: column;">
+      <div class="h5-bottom-sheet" style="max-height: 82vh; display: flex; flex-direction: column; overflow-y: hidden;">
         <div class="sheet-pill-bar"></div>
         <div class="sheet-title-row">
           <span class="sheet-title" id="heroPickerSheetTitle">挑选封面或轮播照片</span>
@@ -581,7 +581,7 @@
         <div style="font-size:12.5px; color:var(--color-muted); padding:2px 0 8px;">
           点击照片勾选，选 1 张作为固定封面，选 2 张及以上自动开启主页轮播
         </div>
-        <div id="heroPickerGrid" style="flex:1; overflow-y:auto; padding:8px 0 16px; display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;">
+        <div id="heroPickerGrid" style="flex:1; overflow-y:auto; padding:8px 0 16px; display:grid; grid-template-columns:repeat(3, 1fr); grid-auto-rows:max-content; gap:8px;">
           <!-- 动态渲染照片列表 -->
         </div>
         <div class="hero-picker-actions" style="padding-top:12px; border-top:1px solid var(--color-divider); display:flex; gap:10px;">
@@ -601,7 +601,7 @@
         <button class="topbar-action-btn" style="color:#fff;" onclick="closeImageViewer()">✕</button>
         <span style="font-size:14px; font-weight:500;" id="viewerCounter">1 / 1</span>
         <div style="display:flex; gap:10px; align-items:center;">
-          <button class="topbar-action-btn" style="color:#ffd166; font-size:13px;" onclick="openHeroChangeMenu()" id="viewerHeroBtn">封面设置</button>
+          <button class="topbar-action-btn" style="color:#ffd166; font-size:13px;" onclick="setAsHeroPhoto()" id="viewerSetCoverBtn">设为封面</button>
           <button class="topbar-action-btn" style="color:#fff; font-size:13px;" onclick="openMovePhotoDialog()" id="viewerMoveBtn">移动</button>
           <button class="topbar-action-btn" style="color:#ff6b6b; font-size:13px; font-weight:500;" onclick="deleteCurrentViewerPhoto()">删除</button>
         </div>
