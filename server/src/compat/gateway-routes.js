@@ -55,7 +55,7 @@ export default async function gatewayRoutes(fastify, options) {
   // 1. Device pages
   fastify.get('/device-access.php', async (req, reply) => {
     reply.header('Cache-Control', 'no-store');
-    const accessHtmlPath = path.join(rootDir, 'device-access.php');
+    const accessHtmlPath = path.join(rootDir, 'device-access.html');
     if (fs.existsSync(accessHtmlPath)) {
       reply.type('text/html; charset=utf-8');
       return fs.createReadStream(accessHtmlPath);

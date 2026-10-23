@@ -8,9 +8,9 @@
 - Nginx >= 1.20
 - SQLite 3 (已内置于 better-sqlite3)
 
-## 2. 安装与导入
+## 2. 首次安装
 
-### 全新站点：首次上线配置
+### 首次上线配置
 
 先按第 3 节安装 `couple.service`，并设置 `COUPLE_DB_PATH` 为持久化 SQLite 文件位置，确保服务用户能写入其目录。启动时服务会自动建立空数据库和表结构。创建一个仅供此次安装使用的随机密钥，放入服务端环境文件：
 
@@ -35,26 +35,6 @@ sudo systemctl restart couple.service
 ```
 
 本页面只初始化当前 `COUPLE_DB_PATH` 指向的 SQLite 数据库，不接收数据库连接字符串或文件路径。已有用户、站点配置或其他业务数据的数据库不会显示安装页，也不会被覆盖。生产服务器应只通过 HTTPS 暴露网站；`COUPLE_DB_PATH` 必须指向持久化目录，不能随发布目录替换而丢失。
-
-### 旧站迁移
-
-以下导入命令只适用于从旧版 JSON 数据迁移的站点。已有业务数据时不要使用首次上线配置页，也不要对当前数据库重新执行导入。
-
-在站点根目录：
-
-```bash
-cd server
-npm install --omit=dev
-
-# 运行数据导入 Dry-Run 校验
-npm run import -- --dry-run
-
-# 执行正式导入
-npm run import
-
-# 对账校验
-npm run reconcile
-```
 
 ## 3. 配置服务 (systemd)
 
