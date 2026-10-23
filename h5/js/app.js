@@ -1555,7 +1555,7 @@ async function startUploadProcess(onlyFailed = false) {
     // 因此这里绝不撤销 blob URL（撤销会让仍在队列中的成功项立刻变成坏图）。
     // 每一项的 blob URL 只在其被单独移除（removePendingUploadItem）或队列彻底清空时才释放。
     // 刷新背景相册，让已成功的图片即刻呈现
-    setTimeout(() => location.reload(), 800);
+    await renderAlbumView();
   }
 }
 
