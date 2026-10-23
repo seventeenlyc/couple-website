@@ -1357,7 +1357,7 @@ class GalleryApiClient {
         from = window.location.pathname;
       }
     } catch (_) {}
-    return `../index.html?redirect=${encodeURIComponent(from)}`;
+    return `/desktop/login.html?redirect=${encodeURIComponent(from)}`;
   }
 
   async logout() {

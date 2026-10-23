@@ -226,7 +226,7 @@ test('logout 调用真实端点并清空本地会话状态', async () => {
 test('getLoginUrl 带 redirect 参数指回 H5', () => {
   const { api } = createClient();
   const url = api.getLoginUrl();
-  assert.match(url, /^\.\.\/index\.html\?redirect=/);
+  assert.match(url, /^\/desktop\/login\.html\?redirect=/);
   assert.match(url, /h5%2Findex\.html/);
 });
 
@@ -443,34 +443,9 @@ test('h5/index.html 设备审批核对码说明必须为 8 位数字，不得出
   );
 });
 
-test('旧登录页支持 redirect 回跳 H5，且拒绝开放重定向', () => {
-  const loginHtml = fs.readFileSync(path.join(__dirname, '..', '..', 'index.html'), 'utf8');
-
-  const start = loginHtml.indexOf('const rawRedirect');
-  assert.notEqual(start, -1, '登录页应读取 redirect 查询参数');
-  const end = loginHtml.indexOf(': null;', start);
-  assert.notEqual(end, -1, '登录页应有安全回跳判定');
-  const snippet = `${loginHtml.slice(start, end + ': null;'.length)}\n__out = safeRedirect;`;
-
-  const evaluate = (search) => {
-    const sandbox = {
-      window: { location: { search } },
-      URLSearchParams,
-      __out: undefined
-    };
-    sandbox.globalThis = sandbox;
-    vm.createContext(sandbox);
-    vm.runInContext(snippet, sandbox);
-    return sandbox.__out;
-  };
-
-  // 合法站内路径：回到 H5
-  assert.equal(evaluate('?redirect=%2Fh5%2Findex.html'), '/h5/index.html');
-  assert.equal(evaluate('?redirect=/home.html'), '/home.html');
-
-  // 拒绝开放重定向
-  assert.equal(evaluate('?redirect=https://evil.example.com/x'), null);
-  assert.equal(evaluate('?redirect=//evil.example.com/x'), null);
-  assert.equal(evaluate('?redirect=/a://b'), null);
-  assert.equal(evaluate(''), null);
+test('根目录页面只导引到移动端和桌面端', () => {
+  const guide = fs.readFileSync(path.join(__dirname, '..', '..', 'index.html'), 'utf8');
+  assert.match(guide, /href="\/h5\/index\.html"/);
+  assert.match(guide, /href="\/desktop\/index\.html"/);
+  assert.doesNotMatch(guide, /<form\b|api\/login\.php|preview_token/);
 });
